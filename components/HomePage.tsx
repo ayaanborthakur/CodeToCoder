@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { ContactModal } from './ContactModal';
 
 interface HomePageProps {
   onStart: () => void;
@@ -12,6 +13,8 @@ import BoltIcon from '../assets/icons/BoltIcon.svg?react';
 import CommunityIcon from '../assets/icons/CommunityIcon.svg?react';
 
 export const HomePage: React.FC<HomePageProps> = ({ onStart, onNavigate }) => {
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
   const scrollToMission = (e: React.MouseEvent) => {
     e.preventDefault();
     const missionSection = document.getElementById('mission');
@@ -126,6 +129,24 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart, onNavigate }) => {
           Enter Classroom
         </button>
       </section>
+
+      {/* Contact Us Section */}
+      <section className="px-6 pb-24">
+        <div className="max-w-5xl mx-auto bg-[#1e232f] rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+          <div className="text-left">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#fef08a] mb-2">Need Help?</h2>
+            <p className="text-gray-400 text-lg">Contact our support team or report an issue.</p>
+          </div>
+          <button
+            onClick={() => setIsContactModalOpen(true)}
+            className="px-8 py-3 text-lg font-bold bg-[#10b981] hover:bg-[#059669] text-white rounded-full shadow-lg transition-colors whitespace-nowrap"
+          >
+            Contact Us
+          </button>
+        </div>
+      </section>
+
+      <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
 
       <footer className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-16 pb-8 text-gray-500">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
