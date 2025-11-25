@@ -4,8 +4,8 @@ import type { ChatMessage, Lesson, LintIssue, PracticeItem, Difficulty, QuizQues
 
 // Helper to get or create the AI client
 const getAiClient = (): GoogleGenAI => {
-    // Always use process.env.API_KEY
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Use Vite's import.meta.env for client-side environment variables
+    return new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 };
 
 // FIX: Updated model to the latest stable version.
@@ -366,7 +366,7 @@ export const generateLessonVideo = async (title: string, contentSnippet: string)
     }
 
     // Create a fresh client with the potentially updated API key (if re-selected)
-    const client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const client = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
 
     const prompt = `Create a futuristic, high-quality 3D educational visualization for a Python programming lesson titled "${title}". 
     The video should abstractly represent this concept: "${contentSnippet.slice(0, 200)}...". 
@@ -408,7 +408,7 @@ export const generateLessonVideo = async (title: string, contentSnippet: string)
         if (!downloadLink) return null;
 
         // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
-        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_KEY}`);
         if (!response.ok) return null;
         
         const blob = await response.blob();
