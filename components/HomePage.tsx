@@ -3,6 +3,7 @@ import React from 'react';
 
 interface HomePageProps {
   onStart: () => void;
+  onNavigate: (view: any) => void;
 }
 
 import FooterLogo from '../assets/icons/FooterLogo.svg?react';
@@ -10,7 +11,7 @@ import CheckIcon from '../assets/icons/CheckIcon.svg?react';
 import BoltIcon from '../assets/icons/BoltIcon.svg?react';
 import CommunityIcon from '../assets/icons/CommunityIcon.svg?react';
 
-export const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onStart, onNavigate }) => {
   const scrollToMission = (e: React.MouseEvent) => {
     e.preventDefault();
     const missionSection = document.getElementById('mission');
@@ -146,7 +147,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Connect</h3>
             <ul className="space-y-3 text-gray-500 dark:text-gray-400">
               <li><a href="#" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">About the Team</a></li>
+              <li><button onClick={() => onNavigate('about')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors text-left">About the Team</button></li>
             </ul>
           </div>
 

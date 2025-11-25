@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -34,8 +34,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         setIsMobileMenuOpen(false);
       }}
       className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors ${currentView === view
-          ? 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400'
-          : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+        ? 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400'
+        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
         }`}
     >
       {label}
