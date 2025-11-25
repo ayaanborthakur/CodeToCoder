@@ -343,13 +343,18 @@ const App: React.FC = () => {
       setHasCelebrated(true);
     }
 
+    // Module Completion Logic (Updated for Skip-Ahead Support)
     if (prevCompletedLessons && completedLessons.size > prevCompletedLessons.size) {
       const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
-      if (currentModule) {
-        const isModuleCompleteNow = currentModule.lessons.every(l => completedLessons.has(l.id));
-        const wasModuleCompleteBefore = currentModule.lessons.every(l => prevCompletedLessons.has(l.id));
+      
+      if (currentModule && currentModule.lessons.length > 0) {
+        // Check if the FINAL lesson of the module (the gatekeeper) was just completed
+        // This allows the banner to show even if the user skipped earlier lessons
+        const finalLesson = currentModule.lessons[currentModule.lessons.length - 1];
+        const isModuleUnlockedNow = completedLessons.has(finalLesson.id);
+        const wasModuleUnlockedBefore = prevCompletedLessons.has(finalLesson.id);
 
-        if (isModuleCompleteNow && !wasModuleCompleteBefore) {
+        if (isModuleUnlockedNow && !wasModuleUnlockedBefore) {
           triggerConfetti();
           setCompletedModuleBannerInfo({ title: currentModule.title });
         }
