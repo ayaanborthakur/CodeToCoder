@@ -121,6 +121,22 @@ const App: React.FC = () => {
     const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
 
+    // Playground autocomplete preference
+    const [isPlaygroundAutocompleteEnabled, setIsPlaygroundAutocompleteEnabled] = useState(() => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const saved = window.localStorage.getItem('playgroundAutocomplete');
+            return saved !== null ? saved === 'true' : true; // Default to true
+        }
+        return true;
+    });
+
+    // Persist autocomplete preference
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('playgroundAutocomplete', String(isPlaygroundAutocompleteEnabled));
+        }
+    }, [isPlaygroundAutocompleteEnabled]);
+
     // Mobile Detection
     const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
@@ -1136,7 +1152,8 @@ const App: React.FC = () => {
                                             onFileNameChange={isPlayground && activePlaygroundFileId ? (newName) => updateFile(activePlaygroundFileId, { name: newName }) : undefined}
                                             onBackToDashboard={isPlayground ? () => setPlaygroundView('dashboard') : isPractice ? () => setActivePracticeItem(null) : undefined}
                                             backButtonLabel={isPlayground ? "Files" : (isPractice ? "Back" : undefined)}
-                                            enableAutocomplete={currentView === 'playground'}
+                                            enableAutocomplete={isPlayground && isPlaygroundAutocompleteEnabled}
+                                            onToggleAutocomplete={isPlayground ? () => setIsPlaygroundAutocompleteEnabled(prev => !prev) : undefined}
                                         />
                                     </div>
 

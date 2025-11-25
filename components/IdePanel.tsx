@@ -23,6 +23,7 @@ interface IdePanelProps {
     onBackToDashboard?: () => void;
     backButtonLabel?: string;
     enableAutocomplete?: boolean;
+    onToggleAutocomplete?: () => void;
 }
 
 declare global {
@@ -48,6 +49,7 @@ import ExportIcon from '../assets/icons/ExportIcon.svg?react';
 import ImportIcon from '../assets/icons/ImportIcon.svg?react';
 import BackIcon from '../assets/icons/BackIcon.svg?react';
 import CheckIcon from '../assets/icons/CheckIcon.svg?react';
+import SettingsIcon from '../assets/icons/SettingsIcon.svg?react';
 
 const editorTypography: React.CSSProperties = {
     fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
@@ -120,7 +122,8 @@ export const IdePanel: React.FC<IdePanelProps> = ({
     onFileNameChange,
     onBackToDashboard,
     backButtonLabel,
-    enableAutocomplete = false
+    enableAutocomplete = false,
+    onToggleAutocomplete
 }) => {
     const lineNumbersRef = useRef<HTMLPreElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -130,6 +133,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
     const cursorRequestRef = useRef<number | null>(null);
 
     const [hoveredIssue, setHoveredIssue] = useState<{ x: number, y: number, issue: LintIssue } | null>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Autocomplete State
     const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -506,6 +510,47 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                         )}
 
                         <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block"></div>
+
+                        {onToggleAutocomplete && (
+                            <div className="relative">
+                                <IconButton
+                                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                    disabled={isLoading}
+                                    title="IDE Settings"
+                                    icon={<SettingsIcon className="w-4 h-4" />}
+                                    label=""
+                                    variant="secondary"
+                                    className="hidden sm:flex"
+                                />
+                                {isSettingsOpen && (
+                                    <>
+                                        <div
+                                            className="fixed inset-0 z-40"
+                                            onClick={() => setIsSettingsOpen(false)}
+                                        />
+                                        <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-4 min-w-[200px]">
+                                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">IDE Settings</h3>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">Auto Suggest</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onToggleAutocomplete();
+                                                    }}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enableAutocomplete ? 'bg-cyan-600' : 'bg-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enableAutocomplete ? 'translate-x-6' : 'translate-x-1'
+                                                            }`}
+                                                    />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
 
                         <IconButton
                             onClick={onGetHelp}
