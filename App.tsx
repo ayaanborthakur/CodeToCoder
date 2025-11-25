@@ -13,6 +13,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { SettingsIcon } from './components/SettingsIcon';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { HomePage } from './components/HomePage';
+import { MissionPage } from './components/MissionPage';
 import { PlaygroundDashboard } from './components/PlaygroundDashboard';
 import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
@@ -939,7 +940,18 @@ const App: React.FC = () => {
             <div className="flex-1 flex overflow-hidden relative">
                 {currentView === 'home' ? (
                     <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                        <HomePage onStart={() => {
+                        <HomePage
+                            onNavigate={handleNavigate}
+                            onSelectLesson={handleSelectLesson}
+                            completedLessons={completedLessons}
+                            playgroundFiles={playgroundFiles}
+                            mostRecentPlaygroundFile={mostRecentPlaygroundFile}
+                            onPlaygroundResume={handlePlaygroundResume}
+                        />
+                    </div>
+                ) : currentView === 'mission' ? (
+                    <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                        <MissionPage onStart={() => {
                             if (user) {
                                 handleNavigate('classroom');
                             } else {

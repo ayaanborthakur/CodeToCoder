@@ -1,200 +1,261 @@
 
-import React, { useState } from 'react';
-import { ContactModal } from './ContactModal';
+import React from 'react';
+import { LESSON_PLAN } from '../constants';
+import type { Module } from '../types';
 
 interface HomePageProps {
-  onStart: () => void;
-  onNavigate: (view: any) => void;
+  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'mission' | 'about') => void;
+  onSelectLesson: (moduleId: string, lessonId: string) => void;
+  completedLessons: Set<string>;
+  playgroundFiles: any[];
+  mostRecentPlaygroundFile: any;
+  onPlaygroundResume: (fileId: string) => void;
+  practiceCategories?: any;
 }
 
-import FooterLogo from '../assets/icons/FooterLogo.svg?react';
-import CheckIcon from '../assets/icons/CheckIcon.svg?react';
-import BoltIcon from '../assets/icons/BoltIcon.svg?react';
-import CommunityIcon from '../assets/icons/CommunityIcon.svg?react';
+import BookIcon from '../assets/icons/BookIcon.svg?react';
+import CodeIcon from '../assets/icons/CodeIcon.svg?react';
+import QuizIcon from '../assets/icons/QuizIcon.svg?react';
+import StarIcon from '../assets/icons/StarIcon.svg?react';
+import ArrowRightIcon from '../assets/icons/ArrowRightIcon.svg?react';
 
-export const HomePage: React.FC<HomePageProps> = ({ onStart, onNavigate }) => {
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+export const HomePage: React.FC<HomePageProps> = ({
+  onNavigate,
+  onSelectLesson,
+  completedLessons,
+  playgroundFiles,
+  mostRecentPlaygroundFile,
+  onPlaygroundResume,
+}) => {
 
-  const scrollToMission = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const missionSection = document.getElementById('mission');
-    if (missionSection) {
-      missionSection.scrollIntoView({ behavior: 'smooth' });
+  // Find the most recent lesson worked on
+  const getMostRecentLesson = () => {
+    for (const module of LESSON_PLAN) {
+      for (const lesson of module.lessons) {
+        if (completedLessons.has(lesson.id)) {
+          // Find the next incomplete lesson in the current module
+          const currentIndex = module.lessons.findIndex(l => l.id === lesson.id);
+          if (currentIndex < module.lessons.length - 1) {
+            return {
+              module,
+              lesson: module.lessons[currentIndex + 1],
+              status: 'next' as const
+            };
+          }
+        }
+      }
     }
+
+    // If no completed lessons, return first lesson
+    return {
+      module: LESSON_PLAN[0],
+      lesson: LESSON_PLAN[0].lessons[0],
+      status: 'start' as const
+    };
   };
 
+  const recentLesson = getMostRecentLesson();
+  const totalLessons = LESSON_PLAN.reduce((sum, m) => sum + m.lessons.length, 0);
+  const completionPercentage = Math.round((completedLessons.size / totalLessons) * 100);
+
   return (
-    <div className="min-h-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex flex-col font-sans transition-colors duration-300">
-      {/* Hero Section */}
-      <header className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-20 pb-32 animate-fade-in max-w-5xl mx-auto">
-        <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm font-semibold tracking-wide">
-          Empowering The Community
+    <div className="min-h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-200 overflow-y-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Welcome Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-3">
+            Welcome Back! 👋
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Pick up where you left off or explore something new
+          </p>
         </div>
-        <h1 className="text-5xl md:text-7xl font-extrabold mb-8 tracking-tight text-gray-900 dark:text-white leading-tight">
-          Building Bridges <br /> Through <span
-            className="text-cyan-600 dark:text-cyan-400 font-extrabold"
-            style={{
-              background: 'linear-gradient(to right, #06b6d4, #2563eb)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              display: 'inline-block',
-              paddingBottom: '0.15em',
-              overflow: 'visible',
-              // Ensure the gradient is always applied
-              backgroundImage: 'linear-gradient(to right, #06b6d4, #2563eb)',
-            }}
-          >Technology</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mb-12 leading-relaxed">
-          We are on a mission to make coding accessible to everyone. Join a community where education meets opportunity.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <button
-            onClick={onStart}
-            className="px-8 py-4 text-lg font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 transform transition-all hover:-translate-y-1"
-          >
-            Start Learning for Free
-          </button>
-          <button
-            type="button"
-            onClick={scrollToMission}
-            className="px-8 py-4 text-lg font-bold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border-2 border-gray-200 dark:border-gray-700 rounded-xl hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-          >
-            Our Mission
-          </button>
-        </div>
-      </header>
 
-      {/* Mission Section */}
-      <section id="mission" className="bg-gray-50 dark:bg-gray-800/50 py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-16 items-center mb-20">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                Why CodeToCoder?
-              </h2>
-              <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
-                In today's digital age, programming skills are a gateway to economic empowerment. However, quality education often comes with a high price tag.
-              </p>
-              <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                **CodeToCoder** was built to dismantle these barriers. We provide a free, high-quality, AI-powered learning environment designed to guide you from your first line of code to building real-world applications. Our focus isn't just on syntax, but on community growth and individual potential.
-              </p>
+        {/* Progress Overview */}
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Your Progress</h2>
+            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+              <StarIcon className="w-5 h-5 text-yellow-500" />
+              <span className="font-bold text-gray-900 dark:text-white">{completedLessons.size} Stars</span>
             </div>
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl opacity-20 blur-xl"></div>
-              <div className="relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="mt-1 bg-green-100 dark:bg-green-900/30 p-2 rounded-lg h-fit text-green-600 dark:text-green-400">
-                      <CheckIcon className="w-6 h-6" />
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            {completedLessons.size} of {totalLessons} lessons completed ({completionPercentage}%)
+          </p>
+        </div>
+
+        {/* Continue Where You Left Off */}
+        {(recentLesson || mostRecentPlaygroundFile) && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Continue Learning</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Recent Lesson */}
+              {recentLesson && (
+                <button
+                  onClick={() => {
+                    onNavigate('classroom');
+                    onSelectLesson(recentLesson.module.id, recentLesson.lesson.id);
+                  }}
+                  className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all text-left group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-white/20 rounded-xl">
+                      <BookIcon className="w-8 h-8 text-white" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">100% Free Education</h3>
-                      <p className="text-gray-500 dark:text-gray-400">No paywalls, no subscriptions. Just learning.</p>
-                    </div>
+                    <ArrowRightIcon className="w-6 h-6 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </div>
-                  <div className="flex gap-4">
-                    <div className="mt-1 bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg h-fit text-cyan-600 dark:text-cyan-400">
-                      <BoltIcon className="w-6 h-6" />
+                  <h3 className="text-xl font-bold text-white mb-2">
+                    {recentLesson.status === 'start' ? 'Start Learning' : 'Continue Lesson'}
+                  </h3>
+                  <p className="text-white/90 font-medium mb-1">{recentLesson.lesson.title}</p>
+                  <p className="text-white/70 text-sm">{recentLesson.module.title}</p>
+                </button>
+              )}
+
+              {/* Recent Playground File */}
+              {mostRecentPlaygroundFile && (
+                <button
+                  onClick={() => {
+                    onNavigate('playground');
+                    onPlaygroundResume(mostRecentPlaygroundFile.id);
+                  }}
+                  className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-6 shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all text-left group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-white/20 rounded-xl">
+                      <CodeIcon className="w-8 h-8 text-white" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">AI-Powered Mentorship</h3>
-                      <p className="text-gray-500 dark:text-gray-400">Instant feedback and guidance whenever you're stuck.</p>
-                    </div>
+                    <ArrowRightIcon className="w-6 h-6 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </div>
-                  <div className="flex gap-4">
-                    <div className="mt-1 bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg h-fit text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                      <CommunityIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 dark:text-white">Community Impact</h3>
-                      <p className="text-gray-500 dark:text-gray-400">Designed to uplift and empower underrepresented groups.</p>
-                    </div>
-                  </div>
-                </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Continue Coding</h3>
+                  <p className="text-white/90 font-medium mb-1">{mostRecentPlaygroundFile.name}</p>
+                  <p className="text-white/70 text-sm">
+                    Last edited: {new Date(mostRecentPlaygroundFile.lastModified).toLocaleDateString()}
+                  </p>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Access Cards */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Explore</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Classroom Card */}
+            <button
+              onClick={() => onNavigate('classroom')}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 transform hover:-translate-y-1 transition-all text-left group"
+            >
+              <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <BookIcon className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
               </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Classroom</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Structured lessons with AI guidance and instant feedback
+              </p>
+              <div className="flex items-center text-cyan-600 dark:text-cyan-400 font-semibold text-sm">
+                Start Learning
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+
+            {/* Playground Card */}
+            <button
+              onClick={() => onNavigate('playground')}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 transform hover:-translate-y-1 transition-all text-left group"
+            >
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <CodeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Playground</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Experiment freely with Python and test your own ideas
+              </p>
+              <div className="flex items-center text-purple-600 dark:text-purple-400 font-semibold text-sm">
+                Start Coding
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+
+            {/* Practice Card */}
+            <button
+              onClick={() => onNavigate('practice')}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transform hover:-translate-y-1 transition-all text-left group"
+            >
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <QuizIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Practice</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                Challenge yourself with quizzes and coding projects
+              </p>
+              <div className="flex items-center text-green-600 dark:text-green-400 font-semibold text-sm">
+                Start Practicing
+                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Suggestions */}
+        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-2xl p-8 border border-cyan-200 dark:border-cyan-800">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            💡 What to Try Next
+          </h2>
+          <div className="space-y-3">
+            {completedLessons.size === 0 && (
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-2" />
+                <p className="text-gray-700 dark:text-gray-300">
+                  <strong>New to coding?</strong> Start with our beginner-friendly lessons in the Classroom
+                </p>
+              </div>
+            )}
+            {completedLessons.size > 0 && completedLessons.size < 5 && (
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 mt-2" />
+                <p className="text-gray-700 dark:text-gray-300">
+                  <strong>Great start!</strong> Keep the momentum going with the next lesson
+                </p>
+              </div>
+            )}
+            {playgroundFiles.length === 0 && (
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2" />
+                <p className="text-gray-700 dark:text-gray-300">
+                  <strong>Try the Playground</strong> to experiment with code and build your own projects
+                </p>
+              </div>
+            )}
+            <div className="flex items-start gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2" />
+              <p className="text-gray-700 dark:text-gray-300">
+                <strong>Test your knowledge</strong> with practice quizzes and coding challenges
+              </p>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
+              <p className="text-gray-700 dark:text-gray-300">
+                <strong>Learn more</strong> about our{' '}
+                <button
+                  onClick={() => onNavigate('mission')}
+                  className="text-cyan-600 dark:text-cyan-400 font-semibold hover:underline"
+                >
+                  mission to make coding accessible
+                </button>
+              </p>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-24 px-6 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-8">Ready to start your journey?</h2>
-        <button
-          onClick={onStart}
-          className="px-10 py-4 text-xl font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-xl hover:transform hover:scale-105 transition-all"
-        >
-          Enter Classroom
-        </button>
-      </section>
-
-      {/* Contact Us Section */}
-      <section className="px-6 pb-24">
-        <div className="max-w-5xl mx-auto bg-[#1e232f] rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
-          <div className="text-left">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#fef08a] mb-2">Need Help?</h2>
-            <p className="text-gray-400 text-lg">Contact our support team or report an issue.</p>
-          </div>
-          <button
-            onClick={() => setIsContactModalOpen(true)}
-            className="px-8 py-3 text-lg font-bold bg-[#10b981] hover:bg-[#059669] text-white rounded-full shadow-lg transition-colors whitespace-nowrap"
-          >
-            Contact Us
-          </button>
-        </div>
-      </section>
-
-      <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
-
-      <footer className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 pt-16 pb-8 text-gray-500">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          <div className="col-span-1 md:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <FooterLogo className="h-10 w-auto" />
-              <span className="font-bold text-2xl text-gray-800 dark:text-white tracking-tight">CodeToCoder</span>
-            </div>
-            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
-              Empowering the future, one line of code at a time.
-            </p>
-            <div className="pt-2 space-y-1">
-              <p className="font-semibold text-gray-900 dark:text-white">Bellarmine College Preparatory</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">960 W Hedding St, San Jose, CA 95126</p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Connect</h3>
-            <ul className="space-y-3 text-gray-500 dark:text-gray-400">
-              <li><a href="#" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Contact Us</a></li>
-              <li><button onClick={() => onNavigate('about')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors text-left">About the Team</button></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Legal</h3>
-            <ul className="space-y-3 text-gray-500 dark:text-gray-400">
-              <li><a href="#" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Terms of Service</a></li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-100 dark:border-gray-800 pt-8 text-center">
-          <p className="text-gray-400 dark:text-gray-500 text-sm">{new Date().getFullYear()} CodeToCoder</p>
-        </div>
-      </footer>
-
-      <style>{`
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fade-in 0.8s ease-out forwards;
-        }
-      `}</style>
+      </div>
     </div>
   );
 };

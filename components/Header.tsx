@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -69,12 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
 
           <nav className="hidden md:flex items-center gap-2 ml-4">
             <NavLink view="home" label="Home" />
-            <button
-              onClick={scrollToMission}
-              className="px-3 py-2 rounded-md text-sm font-semibold transition-colors text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              Mission
-            </button>
+            <NavLink view="mission" label="Mission" />
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
@@ -129,12 +124,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 space-y-2 shadow-lg animate-slide-up">
             <NavLink view="home" label="Home" />
-            <button
-              onClick={scrollToMission}
-              className="w-full text-left px-3 py-2 rounded-md text-sm font-semibold transition-colors text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-            >
-              Mission
-            </button>
+            <NavLink view="mission" label="Mission" />
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
