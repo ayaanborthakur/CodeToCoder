@@ -27,7 +27,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onStart }) => {
           Empowering The Community
         </div>
         <h1 className="text-5xl md:text-7xl font-extrabold mb-8 tracking-tight text-gray-900 dark:text-white leading-tight">
-          Building Bridges <br /> Through <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">Technology</span>
+          Building Bridges <br /> Through <span
+            className="text-cyan-600 dark:text-cyan-400 font-extrabold"
+            style={{
+              background: 'linear-gradient(to right, #06b6d4, #2563eb)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              display: 'inline-block',
+              paddingBottom: '0.15em',
+              overflow: 'visible',
+              // Ensure the gradient is always applied
+              backgroundImage: 'linear-gradient(to right, #06b6d4, #2563eb)',
+            }}
+          >Technology</span>
         </h1>
         <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mb-12 leading-relaxed">
           We are on a mission to make coding accessible to everyone. Join a community where education meets opportunity.
