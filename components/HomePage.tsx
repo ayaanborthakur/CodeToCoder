@@ -161,9 +161,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                 Structured lessons with AI guidance and instant feedback
               </p>
-              <div className="flex items-center text-cyan-600 dark:text-cyan-400 font-semibold text-sm">
-                Start Learning
-                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-center font-bold text-sm">
+                <span
+                  className="text-cyan-600 dark:text-cyan-400"
+                  style={{
+                    background: 'linear-gradient(to right, #0891b2, #2563eb)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    display: 'inline-block',
+                    backgroundImage: 'linear-gradient(to right, #0891b2, #2563eb)',
+                  }}
+                >Start Learning</span>
+                <ArrowRightIcon className="w-4 h-4 ml-2 text-cyan-600 dark:text-cyan-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </button>
 
@@ -179,9 +189,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                 Experiment freely with Python and test your own ideas
               </p>
-              <div className="flex items-center text-purple-600 dark:text-purple-400 font-semibold text-sm">
-                Start Coding
-                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-center font-bold text-sm">
+                <span
+                  className="text-purple-600 dark:text-purple-400"
+                  style={{
+                    background: 'linear-gradient(to right, #9333ea, #db2777)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    display: 'inline-block',
+                    backgroundImage: 'linear-gradient(to right, #9333ea, #db2777)',
+                  }}
+                >Start Coding</span>
+                <ArrowRightIcon className="w-4 h-4 ml-2 text-purple-600 dark:text-purple-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </button>
 
@@ -197,9 +217,19 @@ export const HomePage: React.FC<HomePageProps> = ({
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
                 Challenge yourself with quizzes and coding projects
               </p>
-              <div className="flex items-center text-green-600 dark:text-green-400 font-semibold text-sm">
-                Start Practicing
-                <ArrowRightIcon className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              <div className="flex items-center font-bold text-sm">
+                <span
+                  className="text-green-600 dark:text-green-400"
+                  style={{
+                    background: 'linear-gradient(to right, #16a34a, #059669)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    display: 'inline-block',
+                    backgroundImage: 'linear-gradient(to right, #16a34a, #059669)',
+                  }}
+                >Start Practicing</span>
+                <ArrowRightIcon className="w-4 h-4 ml-2 text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </button>
           </div>

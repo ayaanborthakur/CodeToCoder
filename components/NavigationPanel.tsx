@@ -51,8 +51,8 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
             <div
               key={module.id}
               className={`rounded-xl transition-all duration-300 overflow-hidden border ${isOpen
-                  ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 shadow-sm'
-                  : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-white/5'
+                ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 shadow-sm'
+                : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-white/5'
                 } ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
             >
               <button
@@ -101,17 +101,17 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                           id={`nav-lesson-${lesson.id}`}
                           onClick={() => onSelectLesson(module.id, lesson.id)}
                           className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-all text-sm group ${isCurrent
-                              ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
-                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
+                            ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
                             }`}
                         >
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors flex-shrink-0 ${isCompleted
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : isCurrent
-                                ? 'border-cyan-500 text-cyan-500'
-                                : isFinalLesson
-                                  ? 'border-purple-400 text-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                                  : 'border-gray-300 dark:border-gray-600 text-transparent group-hover:border-gray-400 dark:group-hover:border-gray-500'
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : isCurrent
+                              ? 'border-cyan-500 text-cyan-500'
+                              : isFinalLesson
+                                ? 'border-purple-400 text-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                                : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 group-hover:border-gray-400 dark:group-hover:border-gray-500'
                             }`}>
                             {isCompleted ? (
                               <CheckIcon className="w-3 h-3" strokeWidth={3} />
