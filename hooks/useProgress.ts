@@ -122,7 +122,7 @@ export const useProgress = () => {
                     (async () => {
                         try {
                             const { syncProgress } = await import('../services/userDataService');
-                            await syncProgress(user.id, Array.from(newSet), Array.from(completedPracticeItems));
+                            await syncProgress(user.id, Array.from(newSet) as string[], Array.from(completedPracticeItems) as string[]);
                         } catch (error) {
                             console.error("Failed to sync progress to Firestore", error);
                         }
@@ -152,7 +152,7 @@ export const useProgress = () => {
                 (async () => {
                     try {
                         const { syncProgress } = await import('../services/userDataService');
-                        await syncProgress(user.id, Array.from(completedLessons), Array.from(newSet));
+                        await syncProgress(user.id, Array.from(completedLessons) as string[], Array.from(newSet) as string[]);
                     } catch (error) {
                         console.error("Failed to sync progress to Firestore", error);
                     }
