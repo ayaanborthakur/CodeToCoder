@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import { User } from '../types';
 import { authService } from '../services/authService';
 
@@ -7,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  loginAnonymously: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -17,55 +20,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
-      } catch (error) {
-        console.error('Failed to restore session:', error);
-      } finally {
-        setIsLoading(false);
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(authService.mapFirebaseUser(firebaseUser));
+      } else {
+        setUser(null);
       }
-    };
-    initAuth();
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-        const loggedInUser = await authService.login(email, password);
-        setUser(loggedInUser);
-    } finally {
-        setIsLoading(false);
-    }
+    // We don't need to set loading here as the auth listener handles the state update
+    // But we await the service call to propagate errors to the caller
+    await authService.login(email, password);
+    // Log analytics event
+    const { logLogin } = await import('../services/analyticsService');
+    logLogin('email');
   };
 
   const register = async (email: string, password: string, name: string) => {
-    setIsLoading(true);
-    try {
-        const newUser = await authService.register(email, password, name);
-        // Migrate guest data to this new user automatically
-        authService.migrateGuestData(newUser.id);
-        setUser(newUser);
-    } finally {
-        setIsLoading(false);
-    }
+    const newUser = await authService.register(email, password, name);
+    // Migrate guest data to this new user automatically
+    authService.migrateGuestData(newUser.id);
+    // Log analytics event
+    const { logSignUp } = await import('../services/analyticsService');
+    logSignUp('email');
+  };
+
+  const loginAnonymously = async () => {
+    await authService.loginAnonymously();
+    // Log analytics event
+    const { logSignUp, logLogin } = await import('../services/analyticsService');
+    logSignUp('anonymous');
+    logLogin('anonymous');
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    try {
-        await authService.logout();
-    } finally {
-        // Force a hard reload to ensure all application state (including complex 
-        // component states like active practice items, editor code, etc.) 
-        // is completely reset for the guest session.
-        window.location.reload();
-    }
+    await authService.logout();
+    // Log analytics event
+    const { logLogout } = await import('../services/analyticsService');
+    logLogout();
+    // Force a hard reload to ensure all application state is reset
+    window.location.reload();
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, logout }}>
       {children}
     </AuthContext.Provider>
   );

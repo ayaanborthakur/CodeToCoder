@@ -1,84 +1,86 @@
-
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  signInAnonymously,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { auth } from './firebase';
 import { User } from '../types';
 
-const USERS_KEY = 'codetocoder_users';
 const SESSION_KEY = 'codetocoder_session';
-
-// Simulate network delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const authService = {
   async login(email: string, password: string): Promise<User> {
-    await delay(800);
-    
-    const usersStr = localStorage.getItem(USERS_KEY);
-    const users: Record<string, any> = usersStr ? JSON.parse(usersStr) : {};
-    
-    // Simple lookup (In reality, verify hashed password)
-    const user = Object.values(users).find((u: any) => u.email === email && u.password === password) as User | undefined;
-    
-    if (!user) {
-      throw new Error('Invalid email or password');
-    }
-    
-    localStorage.setItem(SESSION_KEY, user.id);
-    return user;
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
+
+    return this.mapFirebaseUser(firebaseUser);
   },
 
   async register(email: string, password: string, name: string): Promise<User> {
-    await delay(800);
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
 
-    const usersStr = localStorage.getItem(USERS_KEY);
-    const users: Record<string, any> = usersStr ? JSON.parse(usersStr) : {};
+    // Update profile with name
+    await updateProfile(firebaseUser, {
+      displayName: name
+    });
 
-    if (Object.values(users).some((u: any) => u.email === email)) {
-      throw new Error('User already exists');
+    // Reload user to get updated profile
+    await firebaseUser.reload();
+
+    // Get the refreshed user from auth
+    const updatedUser = auth.currentUser;
+    if (updatedUser) {
+      return this.mapFirebaseUser(updatedUser, name);
     }
 
-    const newUser = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      email,
-      name,
-      password, // In a real app, never store plain text passwords!
-      joinedAt: Date.now()
-    };
+    return this.mapFirebaseUser(firebaseUser, name);
+  },
 
-    users[newUser.id] = newUser;
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    localStorage.setItem(SESSION_KEY, newUser.id);
+  async loginAnonymously(): Promise<User> {
+    const userCredential = await signInAnonymously(auth);
+    const firebaseUser = userCredential.user;
 
-    // Return safe user object
-    const { password: _, ...safeUser } = newUser;
-    return safeUser;
+    return this.mapFirebaseUser(firebaseUser, 'Guest');
   },
 
   async logout(): Promise<void> {
-    await delay(400);
+    await signOut(auth);
     localStorage.removeItem(SESSION_KEY);
   },
 
   async getCurrentUser(): Promise<User | null> {
-    const userId = localStorage.getItem(SESSION_KEY);
-    if (!userId) return null;
-
-    const usersStr = localStorage.getItem(USERS_KEY);
-    const users: Record<string, any> = usersStr ? JSON.parse(usersStr) : {};
-    
-    const user = users[userId];
-    if (!user) return null;
-
-    const { password: _, ...safeUser } = user;
-    return safeUser;
+    // This is mainly used for initial load if we wanted to check localStorage,
+    // but with Firebase we usually rely on the auth state listener.
+    // However, we can return the current auth user if initialized.
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+      return this.mapFirebaseUser(firebaseUser);
+    }
+    return null;
   },
-  
+
+  // Helper to map Firebase user to our app's User type
+  mapFirebaseUser(firebaseUser: FirebaseUser, fallbackName?: string): User {
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || fallbackName || 'User',
+      joinedAt: Date.now(), // Firebase metadata has creationTime but it's a string
+    };
+  },
+
   // Helper to migrate guest data to new user account
   migrateGuestData(userId: string) {
-      const guestProgress = localStorage.getItem('codetocoder_progress');
-      const guestPractice = localStorage.getItem('codetocoder_practice_progress');
-      const guestFiles = localStorage.getItem('codetocoder_playground_files');
-      
-      if (guestProgress) localStorage.setItem(`codetocoder_progress_${userId}`, guestProgress);
-      if (guestPractice) localStorage.setItem(`codetocoder_practice_progress_${userId}`, guestPractice);
-      if (guestFiles) localStorage.setItem(`codetocoder_playground_files_${userId}`, guestFiles);
+    const guestProgress = localStorage.getItem('codetocoder_progress');
+    const guestPractice = localStorage.getItem('codetocoder_practice_progress');
+    const guestFiles = localStorage.getItem('codetocoder_playground_files');
+
+    if (guestProgress) localStorage.setItem(`codetocoder_progress_${userId} `, guestProgress);
+    if (guestPractice) localStorage.setItem(`codetocoder_practice_progress_${userId} `, guestPractice);
+    if (guestFiles) localStorage.setItem(`codetocoder_playground_files_${userId} `, guestFiles);
   }
 };

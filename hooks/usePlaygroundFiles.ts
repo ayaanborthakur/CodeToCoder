@@ -18,56 +18,91 @@ export const usePlaygroundFiles = () => {
 
     const getFilesKey = useCallback(() => user ? `${BASE_FILES_KEY}_${user.id}` : BASE_FILES_KEY, [user]);
 
-    const saveFilesToStorage = useCallback((currentFiles: PlaygroundFile[]) => {
+    const saveFilesToStorage = useCallback(async (currentFiles: PlaygroundFile[]) => {
         try {
+            // Save to localStorage
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.setItem(getFilesKey(), JSON.stringify(currentFiles));
             }
+
+            // Sync to Firestore for logged-in users
+            if (user) {
+                const { syncPlaygroundFiles } = await import('../services/userDataService');
+                await syncPlaygroundFiles(user.id, currentFiles);
+            }
         } catch (error) {
-            console.error("Failed to save playground files to localStorage", error);
+            console.error("Failed to save playground files", error);
         }
-    }, [getFilesKey]);
+    }, [getFilesKey, user]);
 
     useEffect(() => {
         if (isAuthLoading) return;
         setIsLoaded(false);
 
-        const loadFiles = () => {
+        const loadFiles = async () => {
             try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    const key = getFilesKey();
-                    const savedFiles = window.localStorage.getItem(key);
-                    
-                    if (savedFiles) {
-                        return JSON.parse(savedFiles) as PlaygroundFile[];
-                    }
+                if (user) {
+                    // Load from Firestore for logged-in users
+                    const { loadPlaygroundFiles } = await import('../services/userDataService');
+                    const firestoreFiles = await loadPlaygroundFiles(user.id);
 
-                    // Migration logic only for guest mode
-                    if (!user) {
-                        const oldCode = window.localStorage.getItem(OLD_CODE_KEY);
-                        if (oldCode) {
-                            const migratedFile: PlaygroundFile = {
-                                id: `file_${Date.now()}`,
-                                name: 'My Playground.py',
-                                content: oldCode,
-                                terminalOutput: '> Playground Terminal Ready.',
-                                chatHistory: DEFAULT_PLAYGROUND_CHAT,
-                                lastModified: Date.now()
-                            };
-                            saveFilesToStorage([migratedFile]);
-                            window.localStorage.removeItem(OLD_CODE_KEY);
-                            return [migratedFile];
+                    if (firestoreFiles.length > 0) {
+                        setFiles(firestoreFiles);
+                        // Also save to localStorage as backup
+                        saveFilesToStorage(firestoreFiles);
+                    } else {
+                        // No Firestore data, check localStorage (migration case)
+                        const key = getFilesKey();
+                        const savedFiles = window.localStorage?.getItem(key);
+
+                        if (savedFiles) {
+                            const parsedFiles = JSON.parse(savedFiles) as PlaygroundFile[];
+                            setFiles(parsedFiles);
+                            // Migrate to Firestore
+                            const { syncPlaygroundFiles } = await import('../services/userDataService');
+                            await syncPlaygroundFiles(user.id, parsedFiles);
+                        } else {
+                            setFiles([]);
+                        }
+                    }
+                } else {
+                    // Guest mode: use localStorage only
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                        const key = getFilesKey();
+                        const savedFiles = window.localStorage.getItem(key);
+
+                        if (savedFiles) {
+                            setFiles(JSON.parse(savedFiles) as PlaygroundFile[]);
+                        } else {
+                            // Migration logic only for guest mode
+                            const oldCode = window.localStorage.getItem(OLD_CODE_KEY);
+                            if (oldCode) {
+                                const migratedFile: PlaygroundFile = {
+                                    id: `file_${Date.now()}`,
+                                    name: 'My Playground.py',
+                                    content: oldCode,
+                                    terminalOutput: '> Playground Terminal Ready.',
+                                    chatHistory: DEFAULT_PLAYGROUND_CHAT,
+                                    lastModified: Date.now()
+                                };
+                                saveFilesToStorage([migratedFile]);
+                                window.localStorage.removeItem(OLD_CODE_KEY);
+                                setFiles([migratedFile]);
+                            } else {
+                                setFiles([]);
+                            }
                         }
                     }
                 }
             } catch (error) {
                 console.error("Failed to load playground files", error);
+                setFiles([]);
+            } finally {
+                setIsLoaded(true);
             }
-            return [];
         };
 
-        setFiles(loadFiles());
-        setIsLoaded(true);
+        loadFiles();
     }, [user, isAuthLoading, getFilesKey, saveFilesToStorage]);
 
     const createFile = useCallback((name: string, content: string = DEFAULT_PLAYGROUND_CODE) => {
@@ -85,6 +120,12 @@ export const usePlaygroundFiles = () => {
             saveFilesToStorage(updatedFiles);
             return updatedFiles;
         });
+
+        // Log analytics event
+        import('../services/analyticsService').then(({ logPlaygroundCreate }) => {
+            logPlaygroundCreate(name);
+        });
+
         return newFile;
     }, [saveFilesToStorage]);
 

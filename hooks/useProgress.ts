@@ -19,38 +19,65 @@ export const useProgress = () => {
         if (isAuthLoading) return;
 
         setIsLoaded(false);
-        try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-                const progressKey = getProgressKey();
-                const practiceKey = getPracticeKey();
+        const loadProgressData = async () => {
+            try {
+                if (user) {
+                    // Load from Firestore for logged-in users
+                    const { loadProgress } = await import('../services/userDataService');
+                    const firestoreData = await loadProgress(user.id);
 
-                const savedProgress = window.localStorage.getItem(progressKey);
-                if (savedProgress) {
-                    const completedIds = JSON.parse(savedProgress) as string[];
-                    setCompletedLessons(new Set(completedIds));
-                } else {
-                    setCompletedLessons(new Set());
-                }
+                    if (firestoreData) {
+                        setCompletedLessons(new Set(firestoreData.completedLessons));
+                        setCompletedPracticeItems(new Set(firestoreData.completedPracticeItems));
 
-                const savedPractice = window.localStorage.getItem(practiceKey);
-                if (savedPractice) {
-                    const practiceIds = JSON.parse(savedPractice) as string[];
-                    setCompletedPracticeItems(new Set(practiceIds));
+                        // Also save to localStorage as backup
+                        if (typeof window !== 'undefined' && window.localStorage) {
+                            window.localStorage.setItem(getProgressKey(), JSON.stringify(firestoreData.completedLessons));
+                            window.localStorage.setItem(getPracticeKey(), JSON.stringify(firestoreData.completedPracticeItems));
+                        }
+                    } else {
+                        // No Firestore data, check localStorage (migration case)
+                        const savedProgress = window.localStorage?.getItem(getProgressKey());
+                        const savedPractice = window.localStorage?.getItem(getPracticeKey());
+
+                        const lessonsSet = savedProgress ? new Set(JSON.parse(savedProgress) as string[]) : new Set<string>();
+                        const practiceSet = savedPractice ? new Set(JSON.parse(savedPractice) as string[]) : new Set<string>();
+
+                        setCompletedLessons(lessonsSet);
+                        setCompletedPracticeItems(practiceSet);
+
+                        // Migrate to Firestore
+                        if (lessonsSet.size > 0 || practiceSet.size > 0) {
+                            const { syncProgress } = await import('../services/userDataService');
+                            await syncProgress(user.id, Array.from(lessonsSet), Array.from(practiceSet));
+                        }
+                    }
                 } else {
-                    setCompletedPracticeItems(new Set());
+                    // Guest mode: use localStorage only
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                        const savedProgress = window.localStorage.getItem(getProgressKey());
+                        const savedPractice = window.localStorage.getItem(getPracticeKey());
+
+                        setCompletedLessons(savedProgress ? new Set(JSON.parse(savedProgress) as string[]) : new Set());
+                        setCompletedPracticeItems(savedPractice ? new Set(JSON.parse(savedPractice) as string[]) : new Set());
+                    }
                 }
+            } catch (error) {
+                console.error("Failed to load progress", error);
+            } finally {
+                setIsLoaded(true);
             }
-        } catch (error) {
-            console.error("Failed to load progress from localStorage", error);
-        } finally {
-            setIsLoaded(true);
-        }
+        };
+
+        loadProgressData();
     }, [user, isAuthLoading, getProgressKey, getPracticeKey]);
 
-    const markLessonAsCompleted = useCallback((lessonId: string) => {
+    const markLessonAsCompleted = useCallback(async (lessonId: string) => {
         setCompletedLessons(prev => {
             const newSet = new Set(prev);
             newSet.add(lessonId);
+
+            // Save to localStorage
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
                     window.localStorage.setItem(getProgressKey(), JSON.stringify(Array.from(newSet)));
@@ -58,15 +85,30 @@ export const useProgress = () => {
             } catch (error) {
                 console.error("Failed to save progress to localStorage", error);
             }
+
+            // Sync to Firestore for logged-in users
+            if (user) {
+                (async () => {
+                    try {
+                        const { syncProgress } = await import('../services/userDataService');
+                        await syncProgress(user.id, Array.from(newSet) as string[], Array.from(completedPracticeItems) as string[]);
+                    } catch (error) {
+                        console.error("Failed to sync progress to Firestore", error);
+                    }
+                })();
+            }
+
             return newSet;
         });
-    }, [getProgressKey]);
+    }, [getProgressKey, user, completedPracticeItems]);
 
-    const markLessonAsIncomplete = useCallback((lessonId: string) => {
+    const markLessonAsIncomplete = useCallback(async (lessonId: string) => {
         setCompletedLessons(prev => {
             const newSet = new Set(prev);
             if (newSet.has(lessonId)) {
                 newSet.delete(lessonId);
+
+                // Save to localStorage
                 try {
                     if (typeof window !== 'undefined' && window.localStorage) {
                         window.localStorage.setItem(getProgressKey(), JSON.stringify(Array.from(newSet)));
@@ -74,15 +116,29 @@ export const useProgress = () => {
                 } catch (error) {
                     console.error("Failed to save progress to localStorage", error);
                 }
+
+                // Sync to Firestore for logged-in users
+                if (user) {
+                    (async () => {
+                        try {
+                            const { syncProgress } = await import('../services/userDataService');
+                            await syncProgress(user.id, Array.from(newSet), Array.from(completedPracticeItems));
+                        } catch (error) {
+                            console.error("Failed to sync progress to Firestore", error);
+                        }
+                    })();
+                }
             }
             return newSet;
         });
-    }, [getProgressKey]);
+    }, [getProgressKey, user, completedPracticeItems]);
 
-    const markPracticeAsCompleted = useCallback((itemId: string) => {
+    const markPracticeAsCompleted = useCallback(async (itemId: string) => {
         setCompletedPracticeItems(prev => {
             const newSet = new Set(prev);
             newSet.add(itemId);
+
+            // Save to localStorage
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
                     window.localStorage.setItem(getPracticeKey(), JSON.stringify(Array.from(newSet)));
@@ -90,14 +146,27 @@ export const useProgress = () => {
             } catch (error) {
                 console.error("Failed to save practice progress to localStorage", error);
             }
+
+            // Sync to Firestore for logged-in users
+            if (user) {
+                (async () => {
+                    try {
+                        const { syncProgress } = await import('../services/userDataService');
+                        await syncProgress(user.id, Array.from(completedLessons), Array.from(newSet));
+                    } catch (error) {
+                        console.error("Failed to sync progress to Firestore", error);
+                    }
+                })();
+            }
+
             return newSet;
         });
-    }, [getPracticeKey]);
+    }, [getPracticeKey, user, completedLessons]);
 
-    return { 
-        completedLessons, 
-        markLessonAsCompleted, 
-        markLessonAsIncomplete, 
+    return {
+        completedLessons,
+        markLessonAsCompleted,
+        markLessonAsIncomplete,
         completedPracticeItems,
         markPracticeAsCompleted,
         isProgressLoaded: isLoaded && !isAuthLoading

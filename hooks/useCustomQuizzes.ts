@@ -12,34 +12,67 @@ export const useCustomQuizzes = () => {
 
     const getKey = useCallback(() => user ? `${BASE_QUIZ_KEY}_${user.id}` : BASE_QUIZ_KEY, [user]);
 
-    const saveToStorage = useCallback((items: PracticeItem[]) => {
+    const saveToStorage = useCallback(async (items: PracticeItem[]) => {
         try {
+            // Save to localStorage
             if (typeof window !== 'undefined' && window.localStorage) {
                 window.localStorage.setItem(getKey(), JSON.stringify(items));
+            }
+
+            // Sync to Firestore for logged-in users
+            if (user) {
+                const { syncCustomQuizzes } = await import('../services/userDataService');
+                await syncCustomQuizzes(user.id, items);
             }
         } catch (error) {
             console.error("Failed to save custom quizzes", error);
         }
-    }, [getKey]);
+    }, [getKey, user]);
 
     useEffect(() => {
         if (isAuthLoading) return;
-        
-        try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-                const saved = window.localStorage.getItem(getKey());
-                if (saved) {
-                    setCustomQuizzes(JSON.parse(saved));
+
+        const loadQuizzes = async () => {
+            try {
+                if (user) {
+                    // Load from Firestore for logged-in users
+                    const { loadCustomQuizzes } = await import('../services/userDataService');
+                    const firestoreQuizzes = await loadCustomQuizzes(user.id);
+
+                    if (firestoreQuizzes.length > 0) {
+                        setCustomQuizzes(firestoreQuizzes);
+                        // Also save to localStorage as backup
+                        saveToStorage(firestoreQuizzes);
+                    } else {
+                        // No Firestore data, check localStorage (migration case)
+                        const saved = window.localStorage?.getItem(getKey());
+                        if (saved) {
+                            const parsedQuizzes = JSON.parse(saved) as PracticeItem[];
+                            setCustomQuizzes(parsedQuizzes);
+                            // Migrate to Firestore
+                            const { syncCustomQuizzes } = await import('../services/userDataService');
+                            await syncCustomQuizzes(user.id, parsedQuizzes);
+                        } else {
+                            setCustomQuizzes([]);
+                        }
+                    }
                 } else {
-                    setCustomQuizzes([]);
+                    // Guest mode: use localStorage only
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                        const saved = window.localStorage.getItem(getKey());
+                        setCustomQuizzes(saved ? JSON.parse(saved) : []);
+                    }
                 }
+            } catch (e) {
+                console.error("Failed to load custom quizzes", e);
+                setCustomQuizzes([]);
+            } finally {
+                setIsLoaded(true);
             }
-        } catch (e) {
-            console.error("Failed to load custom quizzes", e);
-        } finally {
-            setIsLoaded(true);
-        }
-    }, [user, isAuthLoading, getKey]);
+        };
+
+        loadQuizzes();
+    }, [user, isAuthLoading, getKey, saveToStorage]);
 
     const addCustomQuiz = useCallback((quiz: PracticeItem) => {
         setCustomQuizzes(prev => {
