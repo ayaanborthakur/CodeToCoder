@@ -2,7 +2,7 @@ import { logEvent } from 'firebase/analytics';
 import { analytics } from './firebase';
 
 // Authentication Events
-export const logSignUp = (method: 'email' | 'anonymous') => {
+export const logSignUp = (method: 'email' | 'anonymous' | 'google') => {
     try {
         logEvent(analytics, 'sign_up', {
             method
@@ -12,7 +12,7 @@ export const logSignUp = (method: 'email' | 'anonymous') => {
     }
 };
 
-export const logLogin = (method: 'email' | 'anonymous') => {
+export const logLogin = (method: 'email' | 'anonymous' | 'google') => {
     try {
         logEvent(analytics, 'login', {
             method

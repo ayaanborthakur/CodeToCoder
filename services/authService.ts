@@ -5,9 +5,10 @@ import {
   updateProfile,
   signInAnonymously,
   deleteUser,
+  signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, googleProvider } from './firebase';
 import { User } from '../types';
 
 const SESSION_KEY = 'codetocoder_session';
@@ -15,6 +16,13 @@ const SESSION_KEY = 'codetocoder_session';
 export const authService = {
   async login(email: string, password: string): Promise<User> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
+
+    return this.mapFirebaseUser(firebaseUser);
+  },
+
+  async loginWithGoogle(): Promise<User> {
+    const userCredential = await signInWithPopup(auth, googleProvider);
     const firebaseUser = userCredential.user;
 
     return this.mapFirebaseUser(firebaseUser);

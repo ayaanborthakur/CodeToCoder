@@ -10,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   loginAnonymously: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 }
@@ -60,6 +61,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logLogin('anonymous');
   };
 
+  const loginWithGoogle = async () => {
+    await authService.loginWithGoogle();
+    // Log analytics event
+    const { logLogin } = await import('../services/analyticsService');
+    logLogin('google');
+  };
+
   const logout = async () => {
     await authService.logout();
     // Log analytics event
@@ -79,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, logout, deleteAccount }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, loginWithGoogle, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
