@@ -4,6 +4,7 @@ import {
   signOut,
   updateProfile,
   signInAnonymously,
+  deleteUser,
   User as FirebaseUser
 } from 'firebase/auth';
 import { auth } from './firebase';
@@ -50,6 +51,25 @@ export const authService = {
   async logout(): Promise<void> {
     await signOut(auth);
     localStorage.removeItem(SESSION_KEY);
+  },
+
+  async deleteAccount(): Promise<void> {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      throw new Error('No user is currently signed in');
+    }
+
+    const userId = firebaseUser.uid;
+
+    // Delete all user data from localStorage
+    localStorage.removeItem(`codetocoder_progress_${userId}`);
+    localStorage.removeItem(`codetocoder_practice_progress_${userId}`);
+    localStorage.removeItem(`codetocoder_playground_files_${userId}`);
+    localStorage.removeItem(`codetocoder_custom_quizzes_${userId}`);
+    localStorage.removeItem(SESSION_KEY);
+
+    // Delete the user from Firebase Authentication
+    await deleteUser(firebaseUser);
   },
 
   async getCurrentUser(): Promise<User | null> {

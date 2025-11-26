@@ -30,6 +30,14 @@ export const logLogout = () => {
     }
 };
 
+export const logAccountDelete = () => {
+    try {
+        logEvent(analytics, 'account_delete');
+    } catch (error) {
+        console.error('Failed to log account_delete event:', error);
+    }
+};
+
 // Learning Events
 export const logLessonStart = (lessonId: string, lessonTitle: string) => {
     try {

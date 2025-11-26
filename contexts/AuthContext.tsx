@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   loginAnonymously: () => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,8 +69,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.reload();
   };
 
+  const deleteAccount = async () => {
+    await authService.deleteAccount();
+    // Log analytics event
+    const { logAccountDelete } = await import('../services/analyticsService');
+    logAccountDelete();
+    // Force a hard reload to ensure all application state is reset
+    window.location.reload();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, logout, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
