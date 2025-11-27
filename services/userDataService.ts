@@ -11,12 +11,13 @@ import {
     Timestamp
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { PlaygroundFile, PracticeItem, ChatMessage } from '../types';
+import type { PlaygroundFile, PracticeItem, ChatMessage, UserAchievements } from '../types';
 
 // Progress Data
 export interface ProgressData {
     completedLessons: string[];
     completedPracticeItems: string[];
+    achievements?: UserAchievements;
     lastUpdated: Timestamp;
 }
 
@@ -24,15 +25,22 @@ export interface ProgressData {
 export const syncProgress = async (
     userId: string,
     completedLessons: string[],
-    completedPracticeItems: string[]
+    completedPracticeItems: string[],
+    achievements?: UserAchievements
 ): Promise<void> => {
     try {
         const progressRef = doc(db, 'users', userId, 'progress', 'data');
-        await setDoc(progressRef, {
+        const data: any = {
             completedLessons,
             completedPracticeItems,
             lastUpdated: serverTimestamp()
-        });
+        };
+
+        if (achievements) {
+            data.achievements = achievements;
+        }
+
+        await setDoc(progressRef, data, { merge: true });
     } catch (error) {
         console.error('Failed to sync progress to Firestore:', error);
         throw error;
@@ -46,7 +54,16 @@ export const loadProgress = async (userId: string): Promise<ProgressData | null>
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
-            return progressSnap.data() as ProgressData;
+            const data = progressSnap.data() as ProgressData;
+
+            // Migration: Check for old achievements structure
+            if (data.achievements && !data.achievements.earnedBadgeIds && (data.achievements as any).earnedBadges) {
+                data.achievements.earnedBadgeIds = (data.achievements as any).earnedBadges;
+                // Optional: We could trigger a save here to persist the migration, 
+                // but usually it's safer to just handle it in memory and let the next save persist it.
+            }
+
+            return data;
         }
         return null;
     } catch (error) {

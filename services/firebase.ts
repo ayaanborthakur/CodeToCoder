@@ -6,7 +6,7 @@ import { getAnalytics } from 'firebase/analytics';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyBmr2cMMB_6UsmewYnVOxzW3-UahsbIVWI",
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: "code2coder-a324f.firebaseapp.com",
     projectId: "code2coder-a324f",
     storageBucket: "code2coder-a324f.firebasestorage.app",
@@ -17,11 +17,27 @@ const firebaseConfig = {
 
 
 // Initialize Firebase
+if (!firebaseConfig.apiKey) {
+    console.error("Firebase API Key is missing! Make sure VITE_FIREBASE_API_KEY is set in .env");
+}
 const app = initializeApp(firebaseConfig);
 
 // Export the initialized services you need
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = getAnalytics(app);
+
+// Initialize analytics with error handling
+let analytics: any;
+try {
+    analytics = getAnalytics(app);
+} catch (error) {
+    console.warn('Analytics initialization failed (non-critical):', error);
+    // Create a dummy analytics object to prevent crashes
+    analytics = {
+        app: null
+    };
+}
+
+export { analytics };
 export const googleProvider = new GoogleAuthProvider();
 export default app;

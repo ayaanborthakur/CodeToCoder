@@ -19,9 +19,10 @@ import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
 import { Header, ViewState } from './components/Header';
 import { FlyingStar } from './components/FlyingStar';
-import { ProfileModal } from './components/ProfileModal';
+import { ProfilePage } from './components/ProfilePage';
 import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
+import { BadgeNotification } from './components/BadgeNotification';
 import { LESSON_PLAN } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
 import { getChatResponse, runCodeWithAI, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
@@ -80,7 +81,7 @@ const triggerConfetti = () => {
 
 const App: React.FC = () => {
     const { user } = useAuth();
-    const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted } = useProgress();
+    const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
     const [theme, setTheme] = useTheme();
@@ -111,8 +112,8 @@ const App: React.FC = () => {
     const [playgroundEditorCode, setPlaygroundEditorCode] = useState<string>('');
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isHardMode, setIsHardMode] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
@@ -945,11 +946,14 @@ const App: React.FC = () => {
                     starTargetRef={starTargetRef}
                     onOpenAuth={handleOpenAuth}
                 />
-                {isProfileOpen && (
-                    <ProfileModal
-                        isOpen={isProfileOpen}
-                        onClose={() => setIsProfileOpen(false)}
-                        stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
+
+                {/* Badge Notifications */}
+                {newlyEarnedBadges.length > 0 && (
+                    <BadgeNotification
+                        badge={newlyEarnedBadges[0]}
+                        onClose={() => {
+                            clearNewBadges();
+                        }}
                     />
                 )}
 
@@ -977,6 +981,12 @@ const App: React.FC = () => {
                         </div>
                     ) : currentView === 'about' ? (
                         <AboutTeam onBack={() => handleNavigate('home')} />
+                    ) : currentView === 'profile' ? (
+                        <ProfilePage
+                            stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
+                            achievements={achievements}
+                            onNavigate={handleNavigate}
+                        />
                     ) : isReference ? (
                         <ReferencePanel />
                     ) : shouldShowDashboard ? (

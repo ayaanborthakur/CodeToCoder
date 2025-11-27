@@ -148,3 +148,25 @@ export const logPageView = (pageName: string) => {
         console.error('Failed to log page_view event:', error);
     }
 };
+
+// Badge Events
+export const logBadgeEarned = (badgeId: string, badgeName: string, tier: string) => {
+    try {
+        logEvent(analytics, 'badge_earned', {
+            badge_id: badgeId,
+            badge_name: badgeName,
+            tier
+        });
+    } catch (error) {
+        console.error('Failed to log badge_earned event:', error);
+    }
+};
+
+export const logProfileView = () => {
+    try {
+        logEvent(analytics, 'profile_view');
+    } catch (error) {
+        console.error('Failed to log profile_view event:', error);
+    }
+};
+

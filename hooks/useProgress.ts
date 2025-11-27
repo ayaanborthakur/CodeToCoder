@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import type { UserAchievements, Badge } from '../types';
 
 const BASE_PROGRESS_KEY = 'codetocoder_progress';
 const BASE_PRACTICE_KEY = 'codetocoder_practice_progress';
@@ -9,6 +10,8 @@ export const useProgress = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
     const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
     const [completedPracticeItems, setCompletedPracticeItems] = useState<Set<string>>(new Set());
+    const [achievements, setAchievements] = useState<UserAchievements | undefined>(undefined);
+    const [newlyEarnedBadges, setNewlyEarnedBadges] = useState<Badge[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Key logic: If user is logged in, append userId to key. Else use base key (guest).
@@ -27,8 +30,9 @@ export const useProgress = () => {
                     const firestoreData = await loadProgress(user.id);
 
                     if (firestoreData) {
-                        setCompletedLessons(new Set(firestoreData.completedLessons));
-                        setCompletedPracticeItems(new Set(firestoreData.completedPracticeItems));
+                        setCompletedLessons(new Set(firestoreData.completedLessons || []));
+                        setCompletedPracticeItems(new Set(firestoreData.completedPracticeItems || []));
+                        setAchievements(firestoreData.achievements);
 
                         // Also save to localStorage as backup
                         if (typeof window !== 'undefined' && window.localStorage) {
@@ -45,11 +49,12 @@ export const useProgress = () => {
 
                         setCompletedLessons(lessonsSet);
                         setCompletedPracticeItems(practiceSet);
+                        setAchievements(undefined);
 
                         // Migrate to Firestore
                         if (lessonsSet.size > 0 || practiceSet.size > 0) {
                             const { syncProgress } = await import('../services/userDataService');
-                            await syncProgress(user.id, Array.from(lessonsSet), Array.from(practiceSet));
+                            await syncProgress(user.id, Array.from(lessonsSet) as string[], Array.from(practiceSet) as string[]);
                         }
                     }
                 } else {
@@ -86,21 +91,54 @@ export const useProgress = () => {
                 console.error("Failed to save progress to localStorage", error);
             }
 
-            // Sync to Firestore for logged-in users
-            if (user) {
-                (async () => {
-                    try {
-                        const { syncProgress } = await import('../services/userDataService');
-                        await syncProgress(user.id, Array.from(newSet) as string[], Array.from(completedPracticeItems) as string[]);
-                    } catch (error) {
-                        console.error("Failed to sync progress to Firestore", error);
+            // Check for new badges (async)
+            (async () => {
+                try {
+                    const { checkAndAwardBadges } = await import('../services/achievementService');
+                    const { LESSON_PLAN } = await import('../constants');
+
+                    const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
+                    // Count practice items by type (for now, treat all as practice)
+                    const result = checkAndAwardBadges(achievements, {
+                        lessonsCompleted: newSet.size,
+                        practiceCompleted: completedPracticeItems.size,
+                        quizzesCompleted: 0, // TODO: Track separately
+                        projectsCompleted: 0, // TODO: Track separately
+                        totalLessons
+                    });
+
+                    if (result.newBadges.length > 0) {
+                        setNewlyEarnedBadges(result.newBadges);
+
+                        // Log analytics for each new badge
+                        const { logBadgeEarned } = await import('../services/analyticsService');
+                        result.newBadges.forEach(badge => {
+                            logBadgeEarned(badge.id, badge.name, badge.tier);
+                        });
                     }
-                })();
-            }
+
+                    // Always update achievements state to keep in sync
+                    setAchievements(result.updatedAchievements);
+
+                    // Sync to Firestore for logged-in users
+                    if (user) {
+                        const { syncProgress } = await import('../services/userDataService');
+                        await syncProgress(
+                            user.id,
+                            Array.from(newSet) as string[],
+                            Array.from(completedPracticeItems) as string[],
+                            result.updatedAchievements
+                        );
+                    }
+                } catch (error) {
+                    console.error("Failed to check badges or sync progress", error);
+                }
+            })();
 
             return newSet;
         });
-    }, [getProgressKey, user, completedPracticeItems]);
+    }, [getProgressKey, user, completedPracticeItems, achievements]);
 
     const markLessonAsIncomplete = useCallback(async (lessonId: string) => {
         setCompletedLessons(prev => {
@@ -122,7 +160,7 @@ export const useProgress = () => {
                     (async () => {
                         try {
                             const { syncProgress } = await import('../services/userDataService');
-                            await syncProgress(user.id, Array.from(newSet) as string[], Array.from(completedPracticeItems) as string[]);
+                            await syncProgress(user.id, Array.from(newSet) as string[], Array.from(completedPracticeItems) as string[], achievements);
                         } catch (error) {
                             console.error("Failed to sync progress to Firestore", error);
                         }
@@ -131,7 +169,7 @@ export const useProgress = () => {
             }
             return newSet;
         });
-    }, [getProgressKey, user, completedPracticeItems]);
+    }, [getProgressKey, user, completedPracticeItems, achievements]);
 
     const markPracticeAsCompleted = useCallback(async (itemId: string) => {
         setCompletedPracticeItems(prev => {
@@ -147,21 +185,52 @@ export const useProgress = () => {
                 console.error("Failed to save practice progress to localStorage", error);
             }
 
-            // Sync to Firestore for logged-in users
-            if (user) {
-                (async () => {
-                    try {
-                        const { syncProgress } = await import('../services/userDataService');
-                        await syncProgress(user.id, Array.from(completedLessons) as string[], Array.from(newSet) as string[]);
-                    } catch (error) {
-                        console.error("Failed to sync progress to Firestore", error);
+            // Check for new badges (async)
+            (async () => {
+                try {
+                    const { checkAndAwardBadges } = await import('../services/achievementService');
+                    const { LESSON_PLAN } = await import('../constants');
+
+                    const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
+                    const result = checkAndAwardBadges(achievements, {
+                        lessonsCompleted: completedLessons.size,
+                        practiceCompleted: newSet.size,
+                        quizzesCompleted: 0, // TODO: Track separately
+                        projectsCompleted: 0, // TODO: Track separately
+                        totalLessons
+                    });
+
+                    if (result.newBadges.length > 0) {
+                        setNewlyEarnedBadges(result.newBadges);
+
+                        // Log analytics for each new badge
+                        const { logBadgeEarned } = await import('../services/analyticsService');
+                        result.newBadges.forEach(badge => {
+                            logBadgeEarned(badge.id, badge.name, badge.tier);
+                        });
                     }
-                })();
-            }
+
+                    // Always update achievements state to keep in sync
+                    setAchievements(result.updatedAchievements);
+
+                    // Sync to Firestore for logged-in users
+                    if (user) {
+                        const { syncProgress } = await import('../services/userDataService');
+                        await syncProgress(user.id, Array.from(completedLessons) as string[], Array.from(newSet) as string[], result.updatedAchievements);
+                    }
+                } catch (error) {
+                    console.error("Failed to check badges or sync progress", error);
+                }
+            })();
 
             return newSet;
         });
-    }, [getPracticeKey, user, completedLessons]);
+    }, [getPracticeKey, user, completedLessons, achievements]);
+
+    const clearNewBadges = useCallback(() => {
+        setNewlyEarnedBadges([]);
+    }, []);
 
     return {
         completedLessons,
@@ -169,6 +238,9 @@ export const useProgress = () => {
         markLessonAsIncomplete,
         completedPracticeItems,
         markPracticeAsCompleted,
+        achievements,
+        newlyEarnedBadges,
+        clearNewBadges,
         isProgressLoaded: isLoaded && !isAuthLoading
     };
 };

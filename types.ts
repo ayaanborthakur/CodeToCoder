@@ -20,7 +20,7 @@ export interface Lesson {
 
 export interface Module {
   id: string;
-  title:string;
+  title: string;
   lessons: Lesson[];
 }
 
@@ -65,4 +65,25 @@ export interface User {
   name: string;
   avatar?: string;
   joinedAt: number;
+  achievements?: UserAchievements;
+}
+
+
+// Badge System Types
+export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project';
+export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  type: BadgeType;
+  tier: BadgeTier;
+  requirement: number;
+}
+
+export interface UserAchievements {
+  earnedBadgeIds: string[];
+  totalPoints: number;
+  lastUpdated: number;
 }

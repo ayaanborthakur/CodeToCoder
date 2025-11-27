@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission' | 'profile';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -43,8 +43,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
   );
 
   const handleOpenProfile = () => {
-    // Dispatch a custom event to be caught by App.tsx
-    window.dispatchEvent(new CustomEvent('openProfile'));
+    onNavigate('profile');
+    setIsMobileMenuOpen(false);
   };
 
   const scrollToMission = () => {
