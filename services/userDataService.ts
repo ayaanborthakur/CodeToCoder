@@ -162,3 +162,66 @@ export const loadCustomQuizzes = async (userId: string): Promise<PracticeItem[]>
         return [];
     }
 };
+
+// Profile Picture Management
+const PROFILE_PICTURE_KEY = 'codetocoder_profile_picture';
+const SUPPORTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Upload and save profile picture
+ * Converts image to base64 and stores in localStorage
+ */
+export const uploadProfilePicture = async (file: File, userId: string): Promise<string> => {
+    // Validate file type
+    if (!SUPPORTED_FORMATS.includes(file.type)) {
+        throw new Error(
+            `Unsupported image format. Please use one of the following: JPEG, PNG, GIF, or WebP.`
+        );
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+            `File size too large. Please use an image smaller than 5MB.`
+        );
+    }
+
+    // Convert to base64
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const base64String = reader.result as string;
+
+            // Save to localStorage
+            try {
+                localStorage.setItem(`${PROFILE_PICTURE_KEY}_${userId}`, base64String);
+                resolve(base64String);
+            } catch (error) {
+                reject(new Error('Failed to save profile picture. Storage might be full.'));
+            }
+        };
+
+        reader.onerror = () => {
+            reject(new Error('Failed to read the image file.'));
+        };
+
+        reader.readAsDataURL(file);
+    });
+};
+
+/**
+ * Get saved profile picture for a user
+ */
+export const getProfilePicture = (userId: string): string | null => {
+    return localStorage.getItem(`${PROFILE_PICTURE_KEY}_${userId}`);
+};
+
+/**
+ * Remove profile picture
+ */
+export const removeProfilePicture = (userId: string): void => {
+    localStorage.removeItem(`${PROFILE_PICTURE_KEY}_${userId}`);
+};
+

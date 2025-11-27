@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { BadgeDisplay } from './BadgeDisplay';
 import { getEarnedBadges, getBadgeProgress, BADGES } from '../services/achievementService';
+import { uploadProfilePicture, getProfilePicture, removeProfilePicture } from '../services/userDataService';
 import type { UserAchievements, Badge } from '../types';
 
 interface ProfilePageProps {
@@ -18,13 +19,22 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ stats, achievements, o
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const [profilePicture, setProfilePicture] = useState<string | null>(null);
+    const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         // Log analytics when profile is viewed
         import('../services/analyticsService').then(({ logProfileView }) => {
             logProfileView();
         });
-    }, []);
+
+        // Load saved profile picture
+        if (user) {
+            const savedPicture = getProfilePicture(user.id);
+            setProfilePicture(savedPicture);
+        }
+    }, [user]);
 
     if (!user) {
         onNavigate('home');
@@ -42,6 +52,32 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ stats, achievements, o
             alert('Failed to delete account. Please try again or contact support.');
             setIsDeleting(false);
         }
+    };
+
+    const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        setIsUploadingPicture(true);
+        try {
+            const base64Image = await uploadProfilePicture(file, user.id);
+            setProfilePicture(base64Image);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture';
+            alert(errorMessage);
+        } finally {
+            setIsUploadingPicture(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleRemoveProfilePicture = () => {
+        if (!user) return;
+        removeProfilePicture(user.id);
+        setProfilePicture(null);
     };
 
     const earnedBadges = getEarnedBadges(achievements);
@@ -79,8 +115,53 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ stats, achievements, o
                 {/* User Info Section */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-6 border border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl border-4 border-white dark:border-gray-800">
-                            {user.name.charAt(0).toUpperCase()}
+                        {/* Profile Picture with Upload Button */}
+                        <div className="flex flex-col items-center gap-2">
+                            <div className="relative group">
+                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl border-4 border-white dark:border-gray-800 overflow-hidden">
+                                    {profilePicture ? (
+                                        <img src={profilePicture} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        user.name.charAt(0).toUpperCase()
+                                    )}
+                                </div>
+                                {/* Upload Button */}
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isUploadingPicture}
+                                    className="absolute bottom-0 right-0 w-8 h-8 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-500 dark:hover:bg-cyan-400 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-white dark:border-gray-800"
+                                    title="Change profile picture"
+                                >
+                                    {isUploadingPicture ? (
+                                        <svg className="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-white">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+                                        </svg>
+                                    )}
+                                </button>
+                                {/* Hidden File Input */}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                                    onChange={handleProfilePictureUpload}
+                                    className="hidden"
+                                />
+                            </div>
+                            {/* Remove Picture Link */}
+                            {profilePicture && (
+                                <button
+                                    onClick={handleRemoveProfilePicture}
+                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition-colors font-medium"
+                                >
+                                    Remove Picture
+                                </button>
+                            )}
                         </div>
                         <div className="flex-1 text-center md:text-left">
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{user.name}</h1>
