@@ -112,6 +112,15 @@ export const BADGES: Badge[] = [
         type: 'project',
         tier: 'gold',
         requirement: 5
+    },
+    // Master badge – unlocked when all other badges are earned
+    {
+        id: 'code2code_master',
+        name: 'Code2Code Master',
+        description: 'Earn all other badges',
+        type: 'project',
+        tier: 'platinum',
+        requirement: 0 // handled programmatically
     }
 ];
 
@@ -180,6 +189,17 @@ export const checkAndAwardBadges = (
         if (count >= badge.requirement) {
             newlyEarnedBadges.push(badge);
             earnedBadgeIds.push(badge.id);
+        }
+    }
+
+    // After awarding regular badges, check for master badge
+    const allOtherBadgeIds = BADGES.filter(b => b.id !== 'code2code_master').map(b => b.id);
+    const hasAllOthers = allOtherBadgeIds.every(id => earnedBadgeIds.includes(id));
+    if (hasAllOthers && !earnedBadgeIds.includes('code2code_master')) {
+        const masterBadge = BADGES.find(b => b.id === 'code2code_master');
+        if (masterBadge) {
+            newlyEarnedBadges.push(masterBadge);
+            earnedBadgeIds.push(masterBadge.id);
         }
     }
 

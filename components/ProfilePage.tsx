@@ -137,10 +137,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ stats, achievements, o
                                                 <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{badge.name}</div>
                                                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">{badge.description}</div>
                                                 <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
-                                                        style={{ width: `${progressInfo.progress}%` }}
-                                                    />
+                                                    {progressInfo.progress > 0 && (
+                                                        <div
+                                                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+                                                            style={{ width: `${progressInfo.progress}%` }}
+                                                        />
+                                                    )}
                                                 </div>
                                                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                                     {progressInfo.current}/{progressInfo.required} {badge.type}
