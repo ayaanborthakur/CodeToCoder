@@ -87,3 +87,82 @@ export interface UserAchievements {
   totalPoints: number;
   lastUpdated: number;
 }
+
+// Token & Marketplace System Types
+export interface UserTokens {
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  lastUpdated: number;
+}
+
+export interface TokenTransaction {
+  id: string;
+  amount: number;
+  type: 'earn' | 'spend';
+  reason: string;
+  timestamp: number;
+}
+
+export type PackTier = 'starter' | 'premium' | 'elite';
+export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+
+export interface Collectible {
+  id: string;
+  name: string;
+  description: string;
+  rarity: Rarity;
+  image: string; // Emoji or image URL
+}
+
+export interface Pack {
+  id: string;
+  name: string;
+  tier: PackTier;
+  cost: number;
+  description: string;
+  rewards: {
+    minTokens: number;
+    maxTokens: number;
+    collectibles?: {
+      dropRate: number; // 0-1 probability
+      guaranteedRarity?: Rarity;
+    };
+    items?: string[];
+  };
+}
+
+export interface DailyPrize {
+  id: string;
+  name: string;
+  description: string;
+  rewards: {
+    tokens: number;
+    items?: string[];
+  };
+}
+
+export interface DailyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  requirement: {
+    type: 'lesson' | 'quiz' | 'practice' | 'project';
+    count: number;
+    difficulty?: Difficulty;
+  };
+  reward: number;
+  completed: boolean;
+  progress: number;
+}
+
+
+
+export interface MarketplaceData {
+  tokens: UserTokens;
+  ownedCollectibles: string[]; // IDs of owned collectibles
+  dailyPrizeClaimed: number; // timestamp
+  dailyChallenges: DailyChallenge[];
+  transactionHistory: TokenTransaction[];
+}
+

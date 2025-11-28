@@ -1,348 +1,222 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { BadgeDisplay } from './BadgeDisplay';
-import { getEarnedBadges, getBadgeProgress, BADGES } from '../services/achievementService';
-import { uploadProfilePicture, getProfilePicture, removeProfilePicture } from '../services/userDataService';
-import type { UserAchievements, Badge } from '../types';
+import { useProgress } from '../hooks/useProgress';
+import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
+import { BADGES, getBadgeColor } from '../services/achievementService';
+import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
+import type { User, UserAchievements, Collectible } from '../types';
 
 interface ProfilePageProps {
-    stats: {
-        lessons: number;
-        practice: number;
-    };
-    achievements?: UserAchievements;
     onNavigate: (view: string) => void;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ stats, achievements, onNavigate }) => {
-    const { user, logout, deleteAccount } = useAuth();
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [deleteConfirmText, setDeleteConfirmText] = useState('');
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [profilePicture, setProfilePicture] = useState<string | null>(null);
-    const [isUploadingPicture, setIsUploadingPicture] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
+    const { user, logout } = useAuth();
+    const { achievements } = useProgress();
+    const [collectibles, setCollectibles] = useState<Collectible[]>([]);
+    const [activeTab, setActiveTab] = useState<'stats' | 'badges' | 'collection'>('stats');
 
     useEffect(() => {
-        // Log analytics when profile is viewed
-        import('../services/analyticsService').then(({ logProfileView }) => {
-            logProfileView();
-        });
-
-        // Load saved profile picture
         if (user) {
-            const savedPicture = getProfilePicture(user.id);
-            setProfilePicture(savedPicture);
+            setCollectibles(getOwnedCollectibles(user.id));
         }
     }, [user]);
 
-    if (!user) {
-        onNavigate('home');
-        return null;
-    }
-
-    const handleDeleteAccount = async () => {
-        if (deleteConfirmText !== 'DELETE') return;
-
-        setIsDeleting(true);
-        try {
-            await deleteAccount();
-        } catch (error) {
-            console.error('Failed to delete account:', error);
-            alert('Failed to delete account. Please try again or contact support.');
-            setIsDeleting(false);
-        }
-    };
-
-    const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file || !user) return;
-
-        setIsUploadingPicture(true);
-        try {
-            const base64Image = await uploadProfilePicture(file, user.id);
-            setProfilePicture(base64Image);
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture';
-            alert(errorMessage);
-        } finally {
-            setIsUploadingPicture(false);
-            // Reset file input
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
-
-    const handleRemoveProfilePicture = () => {
-        if (!user) return;
-        removeProfilePicture(user.id);
-        setProfilePicture(null);
-    };
-
-    const earnedBadges = getEarnedBadges(achievements);
-    const earnedBadgeIds = achievements?.earnedBadgeIds || [];
-
-    // Get all locked badges
-    const lockedBadges = BADGES.filter(badge => !earnedBadgeIds.includes(badge.id));
-
-    // Get progress for each locked badge
-    const getBadgeProgressInfo = (badge: Badge) => {
-        const progress = getBadgeProgress(badge.type,
-            badge.type === 'lesson' ? stats.lessons :
-                badge.type === 'practice' ? stats.practice : 0,
-            earnedBadgeIds
-        );
-        return progress;
-    };
+    if (!user) return null;
 
     return (
-        <div className="h-full w-full overflow-y-auto bg-gray-50 dark:bg-gray-900 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-            <div className="max-w-6xl mx-auto p-6 md:p-8">
-                {/* Header with Back Button */}
-                <div className="mb-6">
+        <div className="h-full w-full overflow-y-auto bg-slate-950 text-slate-100">
+            <div className="max-w-4xl mx-auto p-6 md:p-8">
+                {/* Header */}
+                <div className="mb-8 flex items-center justify-between">
                     <button
                         onClick={() => onNavigate('home')}
-                        className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors mb-4"
+                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                         </svg>
                         <span className="font-medium">Back</span>
                     </button>
+                    <button
+                        onClick={logout}
+                        className="text-red-400 hover:text-red-300 font-medium"
+                    >
+                        Sign Out
+                    </button>
                 </div>
 
-                {/* User Info Section */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-6 border border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                        {/* Profile Picture with Upload Button */}
-                        <div className="flex flex-col items-center gap-2">
-                            <div className="relative group">
-                                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-4xl font-bold text-white shadow-xl border-4 border-white dark:border-gray-800 overflow-hidden">
-                                    {profilePicture ? (
-                                        <img src={profilePicture} alt={user.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        user.name.charAt(0).toUpperCase()
-                                    )}
+                {/* Profile Card */}
+                <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 p-8 mb-8 flex flex-col md:flex-row items-center gap-8">
+                    <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-lg">
+                        {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-center md:text-left flex-1">
+                        <h1 className="text-3xl font-bold text-white mb-2">{user.name}</h1>
+                        <p className="text-slate-400">{user.email}</p>
+                        <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
+                            <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                                <span className="text-slate-400 text-sm block">Joined</span>
+                                <span className="font-mono">{new Date(user.joinedAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                                <span className="text-slate-400 text-sm block">Total Points</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-cyan-400 font-bold">{achievements?.totalPoints || 0}</span>
+                                    <div className="group relative">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-500 cursor-help">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                        </svg>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-700 shadow-xl z-50">
+                                            Earn points by completing lessons and challenges!
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
+                                        </div>
+                                    </div>
                                 </div>
-                                {/* Upload Button */}
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isUploadingPicture}
-                                    className="absolute bottom-0 right-0 w-8 h-8 bg-cyan-600 hover:bg-cyan-500 dark:bg-cyan-500 dark:hover:bg-cyan-400 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border-2 border-white dark:border-gray-800"
-                                    title="Change profile picture"
-                                >
-                                    {isUploadingPicture ? (
-                                        <svg className="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-white">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-                                        </svg>
-                                    )}
-                                </button>
-                                {/* Hidden File Input */}
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                                    onChange={handleProfilePictureUpload}
-                                    className="hidden"
-                                />
                             </div>
-                            {/* Remove Picture Link */}
-                            {profilePicture && (
-                                <button
-                                    onClick={handleRemoveProfilePicture}
-                                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 transition-colors font-medium"
-                                >
-                                    Remove Picture
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex-1 text-center md:text-left">
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{user.name}</h1>
-                            <p className="text-gray-600 dark:text-gray-400 mb-1">{user.email}</p>
-                            <p className="text-sm text-gray-500 dark:text-gray-500">
-                                Member since {new Date(user.joinedAt).toLocaleDateString()}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Statistics Grid */}
-                    <div className="grid grid-cols-2 gap-4 mt-6">
-                        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 p-6 rounded-xl border border-cyan-200 dark:border-cyan-800">
-                            <div className="text-4xl font-bold text-cyan-600 dark:text-cyan-400 mb-2">{stats.lessons}</div>
-                            <div className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Lessons Completed</div>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-xl border border-purple-200 dark:border-purple-800">
-                            <div className="text-4xl font-bold text-purple-600 dark:text-purple-400 mb-2">{stats.practice}</div>
-                            <div className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Practice Completed</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Achievements Overview */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 mb-6 border border-gray-200 dark:border-gray-700">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
-                        <span className="text-3xl">🏆</span>
-                        Achievements ({earnedBadges.length}/{BADGES.length})
-                    </h2>
+                {/* Tabs */}
+                <div className="flex gap-4 mb-8 border-b border-slate-800 pb-1 overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('stats')}
+                        className={`pb-3 px-4 font-bold transition-colors relative whitespace-nowrap ${activeTab === 'stats' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        Stats
+                        {activeTab === 'stats' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 rounded-t-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('badges')}
+                        className={`pb-3 px-4 font-bold transition-colors relative whitespace-nowrap ${activeTab === 'badges' ? 'text-yellow-400' : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        Badges ({achievements?.earnedBadgeIds?.length || 0})
+                        {activeTab === 'badges' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-yellow-400 rounded-t-full" />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('collection')}
+                        className={`pb-3 px-4 font-bold transition-colors relative whitespace-nowrap ${activeTab === 'collection' ? 'text-purple-400' : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        Collection ({collectibles.length})
+                        {activeTab === 'collection' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-400 rounded-t-full" />
+                        )}
+                    </button>
+                </div>
 
-                    {/* Earned Badges Section */}
-                    {earnedBadges.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Earned Badges</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                {earnedBadges.map(badge => (
-                                    <BadgeDisplay key={badge.id} badge={badge} earned={true} size="large" />
-                                ))}
+                {/* Content */}
+                {activeTab === 'stats' ? (
+                    <div className="space-y-8">
+                        {/* Stats Overview */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                                <h3 className="text-slate-400 text-sm font-medium mb-2">Lessons Completed</h3>
+                                <div className="text-3xl font-bold text-white">{achievements?.earnedBadgeIds.filter(id => id.startsWith('lesson')).length || 0}</div>
+                            </div>
+                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                                <h3 className="text-slate-400 text-sm font-medium mb-2">Badges Earned</h3>
+                                <div className="text-3xl font-bold text-white">{achievements?.earnedBadgeIds.length || 0}</div>
+                            </div>
+                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                                <h3 className="text-slate-400 text-sm font-medium mb-2">Current Rank</h3>
+                                <div className="text-3xl font-bold text-yellow-400">Novice</div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                ) : activeTab === 'badges' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {BADGES.map(badge => {
+                            const isUnlocked = achievements?.earnedBadgeIds.includes(badge.id);
+                            const badgeColor = getBadgeColor(badge.tier);
 
-                    {/* Locked Achievements Section */}
-                    {lockedBadges.length > 0 && (
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Locked Achievements</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {lockedBadges.map(badge => {
-                                    const progressInfo = getBadgeProgressInfo(badge);
-                                    return (
-                                        <div key={badge.id} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                                            <BadgeDisplay badge={badge} earned={false} size="medium" />
-                                            <div className="flex-1">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">{badge.name}</div>
-                                                <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">{badge.description}</div>
-                                                <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
-                                                    {progressInfo.progress > 0 && (
-                                                        <div
-                                                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
-                                                            style={{ width: `${progressInfo.progress}%` }}
-                                                        />
-                                                    )}
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    {progressInfo.current}/{progressInfo.required} {badge.type}
-                                                </div>
+                            return (
+                                <div
+                                    key={badge.id}
+                                    className={`relative rounded-xl p-6 border-2 transition-all ${isUnlocked
+                                        ? 'bg-slate-900 border-slate-700 hover:border-slate-600'
+                                        : 'bg-slate-900/50 border-slate-800 opacity-60 grayscale'
+                                        }`}
+                                    style={isUnlocked ? { borderColor: `${badgeColor}40` } : {}}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div
+                                            className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg shrink-0 ${isUnlocked ? 'bg-slate-800' : 'bg-slate-800/50'
+                                                }`}
+                                            style={isUnlocked ? { color: badgeColor, boxShadow: `0 0 15px ${badgeColor}20` } : {}}
+                                        >
+                                            {badge.type === 'lesson' ? '📚' :
+                                                badge.type === 'practice' ? '💪' :
+                                                    badge.type === 'quiz' ? '📝' : '🏆'}
+                                        </div>
+                                        <div>
+                                            <h3 className={`font-bold mb-1 ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>
+                                                {badge.name}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 mb-2">{badge.description}</p>
+                                            <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-950 border border-slate-800"
+                                                style={isUnlocked ? { color: badgeColor, borderColor: `${badgeColor}30` } : { color: '#64748b' }}>
+                                                {badge.tier}
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {earnedBadges.length === BADGES.length && (
-                        <div className="text-center py-8">
-                            <div className="text-6xl mb-4">🎉</div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">All Badges Earned!</h3>
-                            <p className="text-gray-600 dark:text-gray-400">You're a master! You've unlocked every achievement.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Account Actions */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Account Settings</h2>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <button
-                            onClick={() => {
-                                logout();
-                                onNavigate('home');
-                            }}
-                            className="flex-1 px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border-2 border-gray-300 dark:border-gray-600"
-                        >
-                            Sign Out
-                        </button>
-                        <button
-                            onClick={() => setIsDeleteConfirmOpen(true)}
-                            className="flex-1 px-6 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border-2 border-red-300 dark:border-red-800"
-                        >
-                            Delete Account
-                        </button>
+                                    </div>
+                                    {!isUnlocked && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/20 backdrop-blur-[1px] rounded-xl">
+                                            <div className="bg-slate-900/90 text-slate-400 text-xs font-bold px-3 py-1 rounded-full border border-slate-700 flex items-center gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                                    <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                                                </svg>
+                                                Locked
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {collectibles.length > 0 ? (
+                            collectibles.map(item => (
+                                <div
+                                    key={item.id}
+                                    className={`bg-slate-900 rounded-xl p-4 border-2 transition-all hover:scale-105 group relative overflow-hidden ${RARITY_COLORS[item.rarity].split(' ')[1]}`} // Extract border color
+                                >
+                                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity ${RARITY_BG_COLORS[item.rarity]}`} />
+
+                                    <div className="relative z-10 text-center">
+                                        <div className="text-4xl mb-3 transform group-hover:scale-110 transition-transform duration-300">{item.image}</div>
+                                        <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${RARITY_COLORS[item.rarity]}`}>
+                                            {item.rarity}
+                                        </div>
+                                        <h3 className="font-bold text-white text-sm mb-1">{item.name}</h3>
+                                        <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-12 bg-slate-900 rounded-2xl border border-slate-800 border-dashed">
+                                <div className="text-4xl mb-4">📦</div>
+                                <h3 className="text-xl font-bold text-white mb-2">No Collectibles Yet</h3>
+                                <p className="text-slate-400 mb-6">Visit the Token Market to buy packs and start your collection!</p>
+                                <button
+                                    onClick={() => onNavigate('marketplace')}
+                                    className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+                                >
+                                    Go to Market
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
-
-            {/* Delete Confirmation Modal */}
-            {isDeleteConfirmOpen && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => !isDeleting && setIsDeleteConfirmOpen(false)}>
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-md w-full border-2 border-red-500 dark:border-red-700 animate-scale-in" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-red-600 dark:text-red-400">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Account?</h3>
-                        </div>
-
-                        <div className="mb-6 space-y-2">
-                            <p className="text-gray-700 dark:text-gray-300 text-sm">
-                                This action is <strong className="text-red-600 dark:text-red-400">permanent and cannot be undone</strong>.
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                All your data will be deleted:
-                            </p>
-                            <ul className="text-gray-600 dark:text-gray-400 text-sm list-disc list-inside space-y-1 ml-2">
-                                <li>Lesson progress ({stats.lessons} completed)</li>
-                                <li>Practice progress ({stats.practice} completed)</li>
-                                <li>All badges and achievements ({earnedBadges.length} earned)</li>
-                                <li>All playground files</li>
-                                <li>Account credentials</li>
-                            </ul>
-                        </div>
-
-                        <div className="mb-6">
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                                Type <span className="text-red-600 dark:text-red-400">DELETE</span> to confirm:
-                            </label>
-                            <input
-                                type="text"
-                                value={deleteConfirmText}
-                                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                placeholder="DELETE"
-                                disabled={isDeleting}
-                                className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-red-500 dark:focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
-                            />
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setIsDeleteConfirmOpen(false);
-                                    setDeleteConfirmText('');
-                                }}
-                                disabled={isDeleting}
-                                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleDeleteAccount}
-                                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
-                                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isDeleting ? 'Deleting...' : 'Delete Account'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <style>{`
-        @keyframes scale-in {
-            0% { transform: scale(0.95); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-scale-in {
-            animation: scale-in 0.2s ease-out forwards;
-        }
-      `}</style>
         </div>
     );
 };

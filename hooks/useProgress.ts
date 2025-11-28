@@ -96,8 +96,19 @@ export const useProgress = () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
                     const { LESSON_PLAN } = await import('../constants');
+                    const { calculateTokenReward, awardTokens } = await import('../services/tokenService');
+                    const { updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
+                    // Award tokens for lesson completion
+                    if (user) {
+                        const tokenReward = calculateTokenReward('lesson', undefined);
+                        awardTokens(user.id, tokenReward, `Completed lesson`);
+
+                        // Update daily challenges
+                        updateChallengeProgress(user.id, 'lesson');
+                    }
 
                     // Count practice items by type (for now, treat all as practice)
                     const result = checkAndAwardBadges(achievements, {
@@ -110,6 +121,13 @@ export const useProgress = () => {
 
                     if (result.newBadges.length > 0) {
                         setNewlyEarnedBadges(result.newBadges);
+
+                        // Award tokens for new badges
+                        if (user) {
+                            result.newBadges.forEach(badge => {
+                                awardTokens(user.id, 30, `Earned badge: ${badge.name}`);
+                            });
+                        }
 
                         // Log analytics for each new badge
                         const { logBadgeEarned } = await import('../services/analyticsService');
@@ -190,8 +208,19 @@ export const useProgress = () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
                     const { LESSON_PLAN } = await import('../constants');
+                    const { calculateTokenReward, awardTokens } = await import('../services/tokenService');
+                    const { updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
+                    // Award tokens for practice completion
+                    if (user) {
+                        const tokenReward = calculateTokenReward('practice', undefined);
+                        awardTokens(user.id, tokenReward, `Completed practice problem`);
+
+                        // Update daily challenges
+                        updateChallengeProgress(user.id, 'practice');
+                    }
 
                     const result = checkAndAwardBadges(achievements, {
                         lessonsCompleted: completedLessons.size,
@@ -203,6 +232,13 @@ export const useProgress = () => {
 
                     if (result.newBadges.length > 0) {
                         setNewlyEarnedBadges(result.newBadges);
+
+                        // Award tokens for new badges
+                        if (user) {
+                            result.newBadges.forEach(badge => {
+                                awardTokens(user.id, 30, `Earned badge: ${badge.name}`);
+                            });
+                        }
 
                         // Log analytics for each new badge
                         const { logBadgeEarned } = await import('../services/analyticsService');

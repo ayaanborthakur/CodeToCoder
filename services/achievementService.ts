@@ -194,7 +194,9 @@ export const checkAndAwardBadges = (
 
     // After awarding regular badges, check for master badge
     const allOtherBadgeIds = BADGES.filter(b => b.id !== 'code2code_master').map(b => b.id);
-    const hasAllOthers = allOtherBadgeIds.every(id => earnedBadgeIds.includes(id));
+    // Only award master badge if user has earned ALL other badges (and has at least one badge)
+    const hasAllOthers = allOtherBadgeIds.length > 0 &&
+        allOtherBadgeIds.every(id => earnedBadgeIds.includes(id));
     if (hasAllOthers && !earnedBadgeIds.includes('code2code_master')) {
         const masterBadge = BADGES.find(b => b.id === 'code2code_master');
         if (masterBadge) {

@@ -23,6 +23,8 @@ import { ProfilePage } from './components/ProfilePage';
 import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
+import { MarketplacePage } from './components/MarketplacePage';
+import { TokenNotification } from './components/TokenNotification';
 import { LESSON_PLAN } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
 import { getChatResponse, runCodeWithAI, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
@@ -86,9 +88,12 @@ const App: React.FC = () => {
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
     const [theme, setTheme] = useTheme();
 
-    const [currentView, setCurrentView] = useState<ViewState>('home');
+    const [currentView, setCurrentView] = useState<ViewState | 'marketplace'>('home');
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
+
+    const [tokenBalance, setTokenBalance] = useState<number>(0);
+    const [tokenNotification, setTokenNotification] = useState<{ amount: number; reason: string } | null>(null);
 
     const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
     const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
@@ -212,6 +217,33 @@ const App: React.FC = () => {
         window.addEventListener('openProfile', handleOpenProfile);
         return () => window.removeEventListener('openProfile', handleOpenProfile);
     }, []);
+
+    // Load token balance
+    useEffect(() => {
+        if (!user) {
+            setTokenBalance(0);
+            return;
+        }
+
+        const loadTokenBalance = async () => {
+            const { getTokenBalance } = await import('./services/tokenService');
+            const balance = getTokenBalance(user.id);
+            setTokenBalance(balance);
+        };
+
+        loadTokenBalance();
+
+        // Listen for token updates
+        const handleTokenUpdate = (event: CustomEvent) => {
+            setTokenBalance(event.detail.balance);
+            if (event.detail.amount > 0) {
+                setTokenNotification({ amount: event.detail.amount, reason: event.detail.reason });
+            }
+        };
+
+        window.addEventListener('tokenUpdate' as any, handleTokenUpdate);
+        return () => window.removeEventListener('tokenUpdate' as any, handleTokenUpdate);
+    }, [user]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");
@@ -945,6 +977,7 @@ const App: React.FC = () => {
                     stars={displayedStars}
                     starTargetRef={starTargetRef}
                     onOpenAuth={handleOpenAuth}
+                    tokenBalance={tokenBalance}
                 />
 
                 {/* Badge Notifications */}
@@ -954,6 +987,15 @@ const App: React.FC = () => {
                         onClose={() => {
                             clearNewBadges();
                         }}
+                    />
+                )}
+
+                {/* Token Notifications */}
+                {tokenNotification && (
+                    <TokenNotification
+                        amount={tokenNotification.amount}
+                        reason={tokenNotification.reason}
+                        onClose={() => setTokenNotification(null)}
                     />
                 )}
 
@@ -987,6 +1029,8 @@ const App: React.FC = () => {
                             achievements={achievements}
                             onNavigate={handleNavigate}
                         />
+                    ) : currentView === 'marketplace' ? (
+                        <MarketplacePage onNavigate={handleNavigate} />
                     ) : isReference ? (
                         <ReferencePanel />
                     ) : shouldShowDashboard ? (
