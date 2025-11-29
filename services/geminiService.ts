@@ -9,7 +9,7 @@ const getAiClient = (): GoogleGenAI => {
 };
 
 // FIX: Updated model to the latest stable version.
-const model = 'gemini-3.0-pro-preview';
+const model = 'gemini-2.5-flash';
 
 // Rate Limiting: Hard cap of 6 requests per minute.
 // 60 seconds / 6 requests = 10 seconds per request.
