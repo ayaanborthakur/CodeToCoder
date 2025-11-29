@@ -11,15 +11,35 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
-    const { user, logout } = useAuth();
+    const { user, logout, deleteAccount } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
     const [activeTab, setActiveTab] = useState<'stats' | 'badges' | 'collection'>('stats');
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'DELETE') return;
+
+        setIsDeleting(true);
+        try {
+            await deleteAccount();
+        } catch (error) {
+            console.error("Failed to delete account:", error);
+            alert("Failed to delete account. Please try again.");
+            setIsDeleting(false);
+        }
+    };
 
     useEffect(() => {
-        if (user) {
-            setCollectibles(getOwnedCollectibles(user.id));
-        }
+        const loadCollectibles = async () => {
+            if (user) {
+                const owned = await getOwnedCollectibles(user.id);
+                setCollectibles(owned);
+            }
+        };
+        loadCollectibles();
     }, [user]);
 
     if (!user) return null;
@@ -216,7 +236,96 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                         )}
                     </div>
                 )}
+                {/* Danger Zone */}
+                <div className="mt-12 border-t border-slate-800 pt-8">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-white font-bold mb-1">Delete Account</h4>
+                            <p className="text-slate-400 text-sm">Permanently delete your account and all progress. This action cannot be undone.</p>
+                        </div>
+                        <button
+                            onClick={() => setIsDeleteModalOpen(true)}
+                            className="px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-red-200 dark:border-red-800"
+                        >
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => !isDeleting && setIsDeleteModalOpen(false)}>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full border border-red-500 dark:border-red-700 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-red-600 dark:text-red-400">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Delete Account?</h3>
+                        </div>
+
+                        <div className="mb-6 space-y-2">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
+                                This action is <strong className="text-red-600 dark:text-red-400">permanent and cannot be undone</strong>.
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                All your data will be deleted:
+                            </p>
+                            <ul className="text-gray-600 dark:text-gray-400 text-sm list-disc list-inside space-y-1 ml-2">
+                                <li>Lesson progress ({achievements?.earnedBadgeIds.filter(id => id.startsWith('lesson')).length || 0} stars)</li>
+                                <li>Badges earned ({achievements?.earnedBadgeIds.length || 0})</li>
+                                <li>All playground files</li>
+                                <li>Account credentials</li>
+                            </ul>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                Type <span className="text-red-600 dark:text-red-400">DELETE</span> to confirm:
+                            </label>
+                            <input
+                                type="text"
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                placeholder="DELETE"
+                                disabled={isDeleting}
+                                className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-red-500 dark:focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setIsDeleteModalOpen(false);
+                                    setDeleteConfirmText('');
+                                }}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete Account'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <style>{`
+        @keyframes scale-in {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-scale-in {
+            animation: scale-in 0.2s ease-out forwards;
+        }
+      `}</style>
         </div>
     );
 };

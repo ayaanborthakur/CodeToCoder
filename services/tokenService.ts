@@ -1,7 +1,5 @@
 import type { UserTokens, TokenTransaction, Difficulty } from '../types';
-
-const TOKEN_STORAGE_KEY = 'codetocoder_tokens';
-const TRANSACTION_HISTORY_KEY = 'codetocoder_token_history';
+import { getMarketplaceData, addTokens, spendTokens as spendMarketplaceTokens } from './marketplaceService';
 
 // Token reward base amounts
 const TOKEN_REWARDS = {
@@ -39,129 +37,55 @@ export const calculateTokenReward = (
 
 /**
  * Get user's token data
+ * @deprecated Use getMarketplaceData instead
  */
-export const getTokenData = (userId: string): UserTokens => {
-    const key = `${TOKEN_STORAGE_KEY}_${userId}`;
-    const data = localStorage.getItem(key);
-
-    if (data) {
-        return JSON.parse(data);
-    }
-
-    // Return default token data
-    return {
-        balance: 0,
-        totalEarned: 0,
-        totalSpent: 0,
-        lastUpdated: Date.now()
-    };
-};
-
-/**
- * Save token data
- */
-const saveTokenData = (userId: string, tokenData: UserTokens): void => {
-    const key = `${TOKEN_STORAGE_KEY}_${userId}`;
-    localStorage.setItem(key, JSON.stringify({
-        ...tokenData,
-        lastUpdated: Date.now()
-    }));
+export const getTokenData = async (userId: string): Promise<UserTokens> => {
+    const data = await getMarketplaceData(userId);
+    return data.tokens;
 };
 
 /**
  * Get transaction history
  */
-export const getTransactionHistory = (userId: string, limit: number = 50): TokenTransaction[] => {
-    const key = `${TRANSACTION_HISTORY_KEY}_${userId}`;
-    const data = localStorage.getItem(key);
-
-    if (data) {
-        const history: TokenTransaction[] = JSON.parse(data);
-        return history.slice(0, limit);
-    }
-
-    return [];
-};
-
-/**
- * Add transaction to history
- */
-const addTransaction = (userId: string, transaction: TokenTransaction): void => {
-    const key = `${TRANSACTION_HISTORY_KEY}_${userId}`;
-    const history = getTransactionHistory(userId, 100);
-
-    history.unshift(transaction);
-    localStorage.setItem(key, JSON.stringify(history));
+export const getTransactionHistory = async (userId: string, limit: number = 50): Promise<TokenTransaction[]> => {
+    const data = await getMarketplaceData(userId);
+    return data.transactionHistory.slice(0, limit);
 };
 
 /**
  * Award tokens to user
  */
-export const awardTokens = (
+export const awardTokens = async (
     userId: string,
     amount: number,
     reason: string
-): UserTokens => {
-    const tokenData = getTokenData(userId);
+): Promise<UserTokens> => {
+    await addTokens(userId, amount, reason);
 
-    tokenData.balance += amount;
-    tokenData.totalEarned += amount;
-
-    saveTokenData(userId, tokenData);
-
-    // Add to transaction history
-    addTransaction(userId, {
-        id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        amount,
-        type: 'earn',
-        reason,
-        timestamp: Date.now()
-    });
-
-    // Dispatch custom event for UI notification
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('tokenUpdate', {
-            detail: { balance: tokenData.balance, amount, reason }
-        }));
-    }
-
-    return tokenData;
+    // Return updated data
+    const data = await getMarketplaceData(userId);
+    return data.tokens;
 };
 
 /**
  * Spend tokens
  */
-export const spendTokens = (
+export const spendTokens = async (
     userId: string,
     amount: number,
     reason: string
-): UserTokens => {
-    const tokenData = getTokenData(userId);
+): Promise<UserTokens> => {
+    await spendMarketplaceTokens(userId, amount, reason);
 
-    if (tokenData.balance < amount) {
-        throw new Error('Insufficient tokens');
-    }
-
-    tokenData.balance -= amount;
-    tokenData.totalSpent += amount;
-
-    saveTokenData(userId, tokenData);
-
-    // Add to transaction history
-    addTransaction(userId, {
-        id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        amount,
-        type: 'spend',
-        reason,
-        timestamp: Date.now()
-    });
-
-    return tokenData;
+    // Return updated data
+    const data = await getMarketplaceData(userId);
+    return data.tokens;
 };
 
 /**
  * Get token balance
  */
-export const getTokenBalance = (userId: string): number => {
-    return getTokenData(userId).balance;
+export const getTokenBalance = async (userId: string): Promise<number> => {
+    const data = await getMarketplaceData(userId);
+    return data.tokens.balance;
 };

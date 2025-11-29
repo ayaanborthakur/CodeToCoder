@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getTokenData } from '../services/tokenService';
 import {
     getMarketplaceData,
     purchasePack,
     claimDailyPrize,
     isDailyPrizeAvailable,
-    getTimeUntilDailyPrize
+    getTimeUntilDailyPrize,
+    claimChallengeReward
 } from '../services/marketplaceService';
 import { PACKS } from '../data/marketplaceData';
-import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
+import { RARITY_COLORS, RARITY_BG_COLORS, COLLECTIBLES } from '../data/collectiblesData';
 import type { UserTokens, DailyChallenge, Collectible } from '../types';
 
 interface MarketplacePageProps {
@@ -24,20 +24,25 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
     const [hoursUntilPrize, setHoursUntilPrize] = useState(0);
     const [purchasingPack, setPurchasingPack] = useState<string | null>(null);
     const [claimingPrize, setClaimingPrize] = useState(false);
+    const [claimingChallengeId, setClaimingChallengeId] = useState<string | null>(null);
+    const [showRarityInfo, setShowRarityInfo] = useState(false);
 
     // New Collectible Modal State
     const [newCollectible, setNewCollectible] = useState<Collectible | null>(null);
+    const [ownedCollectibles, setOwnedCollectibles] = useState<string[]>([]);
+
+    const loadData = async () => {
+        if (!user) return;
+        const data = await getMarketplaceData(user.id);
+        setTokens(data.tokens);
+        setDailyChallenges(data.dailyChallenges);
+        setOwnedCollectibles(data.ownedCollectibles);
+        setDailyPrizeAvailable(isDailyPrizeAvailable(user.id, data));
+        setHoursUntilPrize(getTimeUntilDailyPrize(user.id, data));
+    };
 
     useEffect(() => {
-        if (!user) return;
-
-        const marketplaceData = getMarketplaceData(user.id);
-        const tokenData = getTokenData(user.id);
-
-        setTokens(tokenData);
-        setDailyChallenges(marketplaceData.dailyChallenges);
-        setDailyPrizeAvailable(isDailyPrizeAvailable(user.id));
-        setHoursUntilPrize(getTimeUntilDailyPrize(user.id));
+        loadData();
     }, [user]);
 
     const handlePurchasePack = async (packId: string) => {
@@ -45,15 +50,15 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
         setPurchasingPack(packId);
         try {
-            const result = purchasePack(user.id, packId);
-
-            setTokens(getTokenData(user.id));
+            const result = await purchasePack(user.id, packId);
+            await loadData(); // Refresh data
 
             if (result.collectible) {
                 setNewCollectible(result.collectible);
             }
         } catch (error) {
             console.error('Failed to purchase pack:', error);
+            alert('Failed to purchase pack. Please try again.');
         } finally {
             setPurchasingPack(null);
         }
@@ -64,11 +69,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
         setClaimingPrize(true);
         try {
-            claimDailyPrize(user.id);
-
-            setTokens(getTokenData(user.id));
-            setDailyPrizeAvailable(false);
-            setHoursUntilPrize(24);
+            await claimDailyPrize(user.id);
+            await loadData(); // Refresh data
         } catch (error) {
             console.error('Failed to claim prize:', error);
         } finally {
@@ -76,12 +78,70 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
         }
     };
 
+    const handleClaimChallenge = async (challengeId: string) => {
+        if (!user) return;
+        setClaimingChallengeId(challengeId);
+        try {
+            await claimChallengeReward(user.id, challengeId);
+            await loadData();
+        } catch (error) {
+            console.error('Failed to claim challenge reward:', error);
+        } finally {
+            setClaimingChallengeId(null);
+        }
+    };
+
     if (!user || !tokens) {
-        return null;
+        return <div className="h-full w-full flex items-center justify-center bg-slate-950 text-slate-400">Loading Market...</div>;
     }
 
     return (
         <div className="h-full w-full overflow-y-auto bg-slate-950 text-slate-100 relative">
+            {/* Rarity Info Modal */}
+            {showRarityInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowRarityInfo(false)}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white">Rarity Drop Rates</h3>
+                            <button onClick={() => setShowRarityInfo(false)} className="text-slate-400 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                                <span className="font-bold text-slate-400">Common</span>
+                                <span className="font-mono text-white">50%</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-green-900/30">
+                                <span className="font-bold text-green-400">Uncommon</span>
+                                <span className="font-mono text-white">30%</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-blue-900/30">
+                                <span className="font-bold text-blue-400">Rare</span>
+                                <span className="font-mono text-white">12%</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-purple-900/30">
+                                <span className="font-bold text-purple-400">Epic</span>
+                                <span className="font-mono text-white">5%</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-yellow-900/30">
+                                <span className="font-bold text-yellow-400">Legendary</span>
+                                <span className="font-mono text-white">2%</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-red-900/30">
+                                <span className="font-bold text-red-500 animate-pulse">Mythic</span>
+                                <span className="font-mono text-white">1%</span>
+                            </div>
+                        </div>
+                        <p className="mt-4 text-xs text-slate-500 text-center">
+                            Higher tier packs increase your chances for rarer items!
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* New Collectible Modal */}
             {newCollectible && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -127,7 +187,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                     </div>
 
                     {/* Token Balance */}
-                    <div className="flex justify-center mb-12">
+                    <div className="flex flex-col items-center gap-4 mb-12">
                         <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-800 px-10 py-6 relative group overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             <div className="relative z-10">
@@ -138,6 +198,16 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                 </div>
                             </div>
                         </div>
+
+                        {/* View Collection Button */}
+                        <button
+                            onClick={() => onNavigate('collection')}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-purple-500/30 transform hover:scale-105 flex items-center gap-2"
+                        >
+                            <span className="text-xl">💎</span>
+                            <span>View My Collection</span>
+                            <span className="text-sm opacity-75">({ownedCollectibles.length}/{COLLECTIBLES.length})</span>
+                        </button>
                     </div>
                 </div>
 
@@ -179,8 +249,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                             <div
                                 key={challenge.id}
                                 className={`relative bg-slate-900 rounded-2xl shadow-lg border-2 ${challenge.completed
-                                        ? 'border-green-500/50 hover:border-green-400'
-                                        : 'border-slate-800 hover:border-cyan-500/50'
+                                    ? 'border-green-500/50 hover:border-green-400'
+                                    : 'border-slate-800 hover:border-cyan-500/50'
                                     } p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group overflow-hidden`}
                             >
                                 <div className={`absolute inset-0 bg-gradient-to-br ${challenge.completed ? 'from-green-500/10' : 'from-cyan-500/10'
@@ -208,8 +278,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                         <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full ${challenge.completed
-                                                        ? 'bg-green-500'
-                                                        : 'bg-cyan-500'
+                                                    ? 'bg-green-500'
+                                                    : 'bg-cyan-500'
                                                     } transition-all duration-500 relative`}
                                                 style={{ width: `${Math.min(100, (challenge.progress / challenge.requirement.count) * 100)}%` }}
                                             >
@@ -218,9 +288,24 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-yellow-400 font-bold bg-slate-950/50 py-2 px-3 rounded-lg border border-slate-800 w-fit">
-                                        <span>⚡</span>
-                                        <span>{challenge.reward} tokens</span>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-yellow-400 font-bold bg-slate-950/50 py-2 px-3 rounded-lg border border-slate-800 w-fit">
+                                            <span>⚡</span>
+                                            <span>{challenge.reward} tokens</span>
+                                        </div>
+
+                                        {challenge.completed && !challenge.claimed && (
+                                            <button
+                                                onClick={() => handleClaimChallenge(challenge.id)}
+                                                disabled={claimingChallengeId === challenge.id}
+                                                className="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-green-900/20"
+                                            >
+                                                {claimingChallengeId === challenge.id ? '...' : 'CLAIM'}
+                                            </button>
+                                        )}
+                                        {challenge.claimed && (
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Claimed</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -230,9 +315,19 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                 {/* Packs */}
                 <div>
-                    <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
-                        <span className="text-purple-400">📦</span> Token Packs
-                    </h2>
+                    <div className="flex items-center gap-4 mb-8">
+                        <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+                            <span className="text-purple-400">📦</span> Token Packs
+                        </h2>
+                        <button
+                            onClick={() => setShowRarityInfo(true)}
+                            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center hover:bg-slate-700 hover:text-white transition-colors border border-slate-700"
+                            title="View Rarity Info"
+                        >
+                            <span className="font-serif font-bold italic">i</span>
+                        </button>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {PACKS.map(pack => {
                             const canAfford = tokens.balance >= pack.cost;
@@ -242,13 +337,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                 <div
                                     key={pack.id}
                                     className={`relative bg-slate-900 rounded-2xl shadow-lg border-2 ${pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
-                                            pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
-                                                'border-slate-800 hover:border-cyan-400 hover:shadow-cyan-500/20'
+                                        pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
+                                            'border-slate-800 hover:border-cyan-400 hover:shadow-cyan-500/20'
                                         } p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group overflow-hidden`}
                                 >
                                     <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'elite' ? 'from-purple-500/10' :
-                                            pack.tier === 'premium' ? 'from-blue-500/10' :
-                                                'from-cyan-500/10'
+                                        pack.tier === 'premium' ? 'from-blue-500/10' :
+                                            'from-cyan-500/10'
                                         } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
                                     <div className="relative z-10">
@@ -268,10 +363,10 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                             </div>
                                             {pack.rewards.collectibles && (
                                                 <div className={`flex items-center gap-3 bg-slate-950/50 rounded-xl p-4 border border-slate-800 transition-colors ${pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
-                                                        pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
-                                                            'text-slate-300 group-hover:border-slate-500/30'
+                                                    pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
+                                                        'text-slate-300 group-hover:border-slate-500/30'
                                                     }`}>
-                                                    <span className="text-xl">�</span>
+                                                    <span className="text-xl">💎</span>
                                                     <span className="font-bold">
                                                         {pack.tier === 'elite' ? 'Guaranteed Epic+' :
                                                             pack.tier === 'premium' ? 'High Rare Chance' :
@@ -285,8 +380,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                             onClick={() => handlePurchasePack(pack.id)}
                                             disabled={!canAfford || isPurchasing}
                                             className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${canAfford
-                                                    ? 'bg-white text-slate-900 hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
-                                                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                                                ? 'bg-white text-slate-900 hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
+                                                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
                                                 }`}
                                         >
                                             {isPurchasing ? (

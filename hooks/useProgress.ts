@@ -78,6 +78,9 @@ export const useProgress = () => {
     }, [user, isAuthLoading, getProgressKey, getPracticeKey]);
 
     const markLessonAsCompleted = useCallback(async (lessonId: string) => {
+        // Prevent duplicate rewards
+        if (completedLessons.has(lessonId)) return;
+
         setCompletedLessons(prev => {
             const newSet = new Set(prev);
             newSet.add(lessonId);
@@ -156,7 +159,7 @@ export const useProgress = () => {
 
             return newSet;
         });
-    }, [getProgressKey, user, completedPracticeItems, achievements]);
+    }, [getProgressKey, user, completedLessons, completedPracticeItems, achievements]);
 
     const markLessonAsIncomplete = useCallback(async (lessonId: string) => {
         setCompletedLessons(prev => {
@@ -190,6 +193,9 @@ export const useProgress = () => {
     }, [getProgressKey, user, completedPracticeItems, achievements]);
 
     const markPracticeAsCompleted = useCallback(async (itemId: string) => {
+        // Prevent duplicate rewards
+        if (completedPracticeItems.has(itemId)) return;
+
         setCompletedPracticeItems(prev => {
             const newSet = new Set(prev);
             newSet.add(itemId);
@@ -262,7 +268,7 @@ export const useProgress = () => {
 
             return newSet;
         });
-    }, [getPracticeKey, user, completedLessons, achievements]);
+    }, [getPracticeKey, user, completedLessons, completedPracticeItems, achievements]);
 
     const clearNewBadges = useCallback(() => {
         setNewlyEarnedBadges([]);

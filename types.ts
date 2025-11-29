@@ -105,7 +105,7 @@ export interface TokenTransaction {
 }
 
 export type PackTier = 'starter' | 'premium' | 'elite';
-export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export interface Collectible {
   id: string;
@@ -132,16 +132,6 @@ export interface Pack {
   };
 }
 
-export interface DailyPrize {
-  id: string;
-  name: string;
-  description: string;
-  rewards: {
-    tokens: number;
-    items?: string[];
-  };
-}
-
 export interface DailyChallenge {
   id: string;
   title: string;
@@ -154,9 +144,8 @@ export interface DailyChallenge {
   reward: number;
   completed: boolean;
   progress: number;
+  claimed?: boolean;
 }
-
-
 
 export interface MarketplaceData {
   tokens: UserTokens;
@@ -164,5 +153,6 @@ export interface MarketplaceData {
   dailyPrizeClaimed: number; // timestamp
   dailyChallenges: DailyChallenge[];
   transactionHistory: TokenTransaction[];
+  version?: number;
 }
 

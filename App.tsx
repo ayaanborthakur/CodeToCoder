@@ -226,9 +226,9 @@ const App: React.FC = () => {
         }
 
         const loadTokenBalance = async () => {
-            const { getTokenBalance } = await import('./services/tokenService');
-            const balance = getTokenBalance(user.id);
-            setTokenBalance(balance);
+            const { getMarketplaceData } = await import('./services/marketplaceService');
+            const data = await getMarketplaceData(user.id, user.email || undefined);
+            setTokenBalance(data.tokens.balance);
         };
 
         loadTokenBalance();
