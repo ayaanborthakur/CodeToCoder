@@ -1,5 +1,5 @@
-import type { UserTokens, TokenTransaction, Difficulty } from '../types';
-import { getMarketplaceData, addTokens, spendTokens as spendMarketplaceTokens } from './marketplaceService';
+import type { UserStars, StarTransaction, Difficulty } from '../types';
+import { getMarketplaceData, addStars, spendStars } from './marketplaceService';
 
 // Token reward base amounts
 const TOKEN_REWARDS = {
@@ -39,15 +39,15 @@ export const calculateTokenReward = (
  * Get user's token data
  * @deprecated Use getMarketplaceData instead
  */
-export const getTokenData = async (userId: string): Promise<UserTokens> => {
+export const getTokenData = async (userId: string): Promise<UserStars> => {
     const data = await getMarketplaceData(userId);
-    return data.tokens;
+    return data.stars;
 };
 
 /**
  * Get transaction history
  */
-export const getTransactionHistory = async (userId: string, limit: number = 50): Promise<TokenTransaction[]> => {
+export const getTransactionHistory = async (userId: string, limit: number = 50): Promise<StarTransaction[]> => {
     const data = await getMarketplaceData(userId);
     return data.transactionHistory.slice(0, limit);
 };
@@ -59,12 +59,12 @@ export const awardTokens = async (
     userId: string,
     amount: number,
     reason: string
-): Promise<UserTokens> => {
-    await addTokens(userId, amount, reason);
+): Promise<UserStars> => {
+    await addStars(userId, amount, reason);
 
     // Return updated data
     const data = await getMarketplaceData(userId);
-    return data.tokens;
+    return data.stars;
 };
 
 /**
@@ -74,12 +74,12 @@ export const spendTokens = async (
     userId: string,
     amount: number,
     reason: string
-): Promise<UserTokens> => {
-    await spendMarketplaceTokens(userId, amount, reason);
+): Promise<UserStars> => {
+    await spendStars(userId, amount, reason);
 
     // Return updated data
     const data = await getMarketplaceData(userId);
-    return data.tokens;
+    return data.stars;
 };
 
 /**
@@ -87,5 +87,5 @@ export const spendTokens = async (
  */
 export const getTokenBalance = async (userId: string): Promise<number> => {
     const data = await getMarketplaceData(userId);
-    return data.tokens.balance;
+    return data.stars.balance;
 };
