@@ -24,6 +24,7 @@ import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
+import { CollectionPage } from './components/CollectionPage';
 import { TokenNotification } from './components/TokenNotification';
 import { LESSON_PLAN } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
@@ -82,7 +83,7 @@ const triggerConfetti = () => {
 
 
 const App: React.FC = () => {
-    const { user } = useAuth();
+    const { user, isLoading: isAuthLoading } = useAuth();
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
@@ -92,8 +93,16 @@ const App: React.FC = () => {
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
-    const [tokenBalance, setTokenBalance] = useState<number>(0);
-    const [tokenNotification, setTokenNotification] = useState<{ amount: number; reason: string } | null>(null);
+    const [starBalance, setStarBalance] = useState<number>(0);
+    const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
+    const [isPyodideReady, setIsPyodideReady] = useState(false);
+
+    // Initialize Pyodide
+    useEffect(() => {
+        import('./services/pyodideService').then(({ initializePyodide }) => {
+            initializePyodide().then(() => setIsPyodideReady(true)).catch(console.error);
+        });
+    }, []);
 
     const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
     const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
@@ -218,32 +227,51 @@ const App: React.FC = () => {
         return () => window.removeEventListener('openProfile', handleOpenProfile);
     }, []);
 
-    // Load token balance
+    // Load star balance
     useEffect(() => {
         if (!user) {
-            setTokenBalance(0);
+            setStarBalance(0);
             return;
         }
 
-        const loadTokenBalance = async () => {
+        const loadStarBalance = async () => {
             const { getMarketplaceData } = await import('./services/marketplaceService');
-            const data = await getMarketplaceData(user.id, user.email || undefined);
-            setTokenBalance(data.tokens.balance);
+            const data = await getMarketplaceData(user.id);
+            setStarBalance(data.stars.balance);
         };
 
-        loadTokenBalance();
+        loadStarBalance();
 
-        // Listen for token updates
-        const handleTokenUpdate = (event: CustomEvent) => {
-            setTokenBalance(event.detail.balance);
+        // Listen for star updates
+        const handleStarUpdate = (event: CustomEvent) => {
+            setStarBalance(event.detail.balance);
             if (event.detail.amount > 0) {
-                setTokenNotification({ amount: event.detail.amount, reason: event.detail.reason });
+                setStarNotification({ amount: event.detail.amount, reason: event.detail.reason });
             }
         };
 
-        window.addEventListener('tokenUpdate' as any, handleTokenUpdate);
-        return () => window.removeEventListener('tokenUpdate' as any, handleTokenUpdate);
+        window.addEventListener('starUpdate' as any, handleStarUpdate);
+        return () => window.removeEventListener('starUpdate' as any, handleStarUpdate);
     }, [user]);
+
+    // Auth-based Routing Logic
+
+    // 1. Protect Home from Guests (Always enforce)
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (!user && currentView === 'home') {
+            setCurrentView('mission');
+        }
+    }, [user, isAuthLoading, currentView]);
+
+    // 2. Redirect to Home on Login (Only trigger on user change)
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (user && currentView === 'mission') {
+            setCurrentView('home');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, isAuthLoading]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");
@@ -548,21 +576,37 @@ const App: React.FC = () => {
 
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
-            markPracticeAsCompleted(activePracticeItem.id);
-            // Log analytics event
-            import('./services/analyticsService').then(({ logPracticeComplete }) => {
-                logPracticeComplete(activePracticeItem.id, activePracticeItem.title, activePracticeItem.type);
-            });
+            if (!completedPracticeItems.has(activePracticeItem.id)) {
+                markPracticeAsCompleted(activePracticeItem.id);
+                // Award stars
+                if (user) {
+                    import('./services/marketplaceService').then(({ addStars }) => {
+                        addStars(user.id, 5, `Completed Practice: ${activePracticeItem.title}`);
+                    });
+                }
+                // Log analytics event
+                import('./services/analyticsService').then(({ logPracticeComplete }) => {
+                    logPracticeComplete(activePracticeItem.id, activePracticeItem.title, activePracticeItem.type);
+                });
+            }
             setTimeout(() => setActivePracticeItem(null), 2000);
         } else if (currentLesson) {
-            markLessonAsCompleted(currentLesson.id);
-            // Log analytics event
-            import('./services/analyticsService').then(({ logLessonComplete }) => {
-                logLessonComplete(currentLesson.id, currentLesson.title);
-            });
+            if (!completedLessons.has(currentLesson.id)) {
+                markLessonAsCompleted(currentLesson.id);
+                // Award stars
+                if (user) {
+                    import('./services/marketplaceService').then(({ addStars }) => {
+                        addStars(user.id, 10, `Completed Lesson: ${currentLesson.title}`);
+                    });
+                }
+                // Log analytics event
+                import('./services/analyticsService').then(({ logLessonComplete }) => {
+                    logLessonComplete(currentLesson.id, currentLesson.title);
+                });
+            }
             advanceToNextLesson();
         }
-    }, [currentLesson, markLessonAsCompleted, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted]);
+    }, [currentLesson, markLessonAsCompleted, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, user, completedLessons, completedPracticeItems]);
 
     const handleRunCode = useCallback(async () => {
         if (isTerminalLoading) return;
@@ -571,47 +615,67 @@ const App: React.FC = () => {
         if (!contextItem && currentView !== 'practice') return;
 
         setIsTerminalLoading(true);
-        setTerminalOutput('Evaluating your code...');
+        setTerminalOutput('Running code...');
         setActiveBottomTab('terminal');
         setLintIssues([]);
 
         try {
-            const objective = (contextItem as any).objective || contextItem?.objective;
-            const result = await runCodeWithAI(code, objective, isHardMode);
+            // 1. Run Code Locally (Pyodide)
+            const { runPythonCode } = await import('./services/pyodideService');
+            const result = await runPythonCode(code);
+
             setTerminalOutput(result.output);
 
-            if (result.explanation) {
-                setChatHistory(prev => [...prev, { role: 'model', content: result.explanation }]);
-
-                // Open chat panel if collapsed
-                if (isMobile) {
-                    // On mobile, keep it closed to avoid disruption
-                } else {
-                    setPanelsCollapsed(prev => ({ ...prev, chat: false }));
-                }
+            // 2. Get AI Feedback (Async, if not Hard Mode)
+            if (!isHardMode) {
+                const objective = (contextItem as any).objective || contextItem?.objective;
+                import('./services/geminiService').then(async ({ getFeedback }) => {
+                    const feedback = await getFeedback(code, result.output, objective, isHardMode);
+                    if (feedback) {
+                        setChatHistory(prev => [...prev, { role: 'model', content: feedback }]);
+                        if (!isMobile) {
+                            setPanelsCollapsed(prev => ({ ...prev, chat: false }));
+                        }
+                    }
+                });
             }
 
+            // 3. Check Success (Simple check based on stderr for now, can be enhanced)
             if (result.success && contextItem) {
                 if (currentView === 'practice') {
-                    markPracticeAsCompleted(contextItem.id);
+                    if (!completedPracticeItems.has(contextItem.id)) {
+                        markPracticeAsCompleted(contextItem.id);
+                        if (user) {
+                            import('./services/marketplaceService').then(({ addStars }) => {
+                                addStars(user.id, 5, `Completed Practice: ${contextItem.title}`);
+                            });
+                        }
+                    }
                 } else {
-                    markLessonAsCompleted(contextItem.id);
+                    if (!completedLessons.has(contextItem.id)) {
+                        markLessonAsCompleted(contextItem.id);
+                        if (user) {
+                            import('./services/marketplaceService').then(({ addStars }) => {
+                                addStars(user.id, 10, `Completed Lesson: ${contextItem.title}`);
+                            });
+                        }
+                    }
                     advanceToNextLesson();
                 }
             }
         } catch (error) {
             console.error("Error running code:", error);
-            setTerminalOutput("An error occurred while running the code. Please check the console.");
+            setTerminalOutput("An error occurred while running the code.");
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, isHardMode, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile]);
+    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, isHardMode, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
 
         setIsTerminalLoading(true);
-        updateFile(activePlaygroundFileId, { terminalOutput: 'Running playground code...' });
+        updateFile(activePlaygroundFileId, { terminalOutput: 'Running...' });
         setActiveBottomTab('terminal');
         setLintIssues([]);
 
@@ -621,13 +685,24 @@ const App: React.FC = () => {
         });
 
         try {
-            const result = await runCodeWithAI(playgroundEditorCode, undefined, isHardMode);
+            // 1. Run Code Locally
+            const { runPythonCode } = await import('./services/pyodideService');
+            const result = await runPythonCode(playgroundEditorCode);
 
-            const newChatHistory = activePlaygroundFile?.chatHistory ? [...activePlaygroundFile.chatHistory] : [];
-            if (result.explanation) {
-                newChatHistory.push({ role: 'model', content: result.explanation });
+            // 2. Update Output Immediately
+            updateFile(activePlaygroundFileId, { terminalOutput: result.output });
+
+            // 3. Get Feedback (Async)
+            if (!isHardMode) {
+                import('./services/geminiService').then(async ({ getFeedback }) => {
+                    const feedback = await getFeedback(playgroundEditorCode, result.output, undefined, isHardMode);
+                    if (feedback) {
+                        const newChatHistory = activePlaygroundFile?.chatHistory ? [...activePlaygroundFile.chatHistory] : [];
+                        newChatHistory.push({ role: 'model', content: feedback });
+                        updateFile(activePlaygroundFileId, { chatHistory: newChatHistory });
+                    }
+                });
             }
-            updateFile(activePlaygroundFileId, { terminalOutput: result.output, chatHistory: newChatHistory });
         } catch (error) {
             updateFile(activePlaygroundFileId, { terminalOutput: "An error occurred while running the playground code." });
         } finally {
@@ -911,7 +986,7 @@ const App: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     }, [panelSizes, isMobile]);
 
-    if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
+    if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
         return <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex items-center justify-center">Loading...</div>;
     }
 
@@ -977,7 +1052,7 @@ const App: React.FC = () => {
                     stars={displayedStars}
                     starTargetRef={starTargetRef}
                     onOpenAuth={handleOpenAuth}
-                    tokenBalance={tokenBalance}
+                    starBalance={starBalance}
                 />
 
                 {/* Badge Notifications */}
@@ -990,12 +1065,12 @@ const App: React.FC = () => {
                     />
                 )}
 
-                {/* Token Notifications */}
-                {tokenNotification && (
+                {/* Star Notifications */}
+                {starNotification && (
                     <TokenNotification
-                        amount={tokenNotification.amount}
-                        reason={tokenNotification.reason}
-                        onClose={() => setTokenNotification(null)}
+                        amount={starNotification.amount}
+                        reason={starNotification.reason}
+                        onClose={() => setStarNotification(null)}
                     />
                 )}
 
@@ -1031,6 +1106,8 @@ const App: React.FC = () => {
                         />
                     ) : currentView === 'marketplace' ? (
                         <MarketplacePage onNavigate={handleNavigate} />
+                    ) : currentView === 'collection' ? (
+                        <CollectionPage onNavigate={handleNavigate} />
                     ) : isReference ? (
                         <ReferencePanel />
                     ) : shouldShowDashboard ? (

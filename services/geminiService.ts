@@ -9,7 +9,7 @@ const getAiClient = (): GoogleGenAI => {
 };
 
 // FIX: Updated model to the latest stable version.
-const model = 'gemini-2.5-flash';
+const model = 'gemini-2.5-flash-lite';
 
 // Rate Limiting: Hard cap of 6 requests per minute.
 // 60 seconds / 6 requests = 10 seconds per request.
@@ -181,46 +181,38 @@ export interface RunCodeResult {
     explanation: string;
 }
 
-export const runCodeWithAI = async (code: string, objective?: string, isHardMode: boolean = false): Promise<RunCodeResult> => {
-    const isPlayground = !objective;
-    const finalObjective = objective || "Execute the provided Python code and display the output. The user is exploring freely.";
+// New Feedback Function (Decoupled from Execution)
+export const getFeedback = async (code: string, output: string, objective?: string, isHardMode: boolean = false): Promise<string | null> => {
+    if (isHardMode) return null; // No feedback in hard mode
 
-    // Updated Feedback Rules: Focus on hints, not fixes.
-    const explanationRules = isHardMode && !isPlayground
-        ? `*   \`explanation\`: Provide exactly 1 sentence of feedback. Be brief. State what failed but do NOT give the solution.`
-        : `*   \`explanation\`: Provide exactly 3 sentences of feedback. 
-            *   Sentence 1: Pass/Fail status.
-            *   Sentence 2: A specific hint about the logic or error (without giving the code answer).
-            *   Sentence 3: A conceptual tip or encouragement.`;
+    const finalObjective = objective || "The user is exploring freely.";
 
     const prompt = `
-You are a Python interpreter and code evaluator. Your task is to execute a Python code snippet and determine if it meets a specific objective.
-
-**Rules:**
-1.  **Execute the Code:** Analyze and "run" the provided Python code.
-2.  **Evaluate Against Objective:** Determine if the code's behavior and output successfully achieve the user's objective.
-3.  **Return JSON:** You MUST respond with a JSON object with the following structure:
-    \`\`\`json
-    {
-      "success": boolean,
-      "output": "string",
-      "explanation": "string"
-    }
+    You are a Python tutor. The user has run some code.
+    
+    **User's Code:**
+    \`\`\`python
+    ${code}
     \`\`\`
-4.  **Field Explanations:**
-    *   \`success\`: \`true\` if the code correctly meets the objective, \`false\` otherwise. (In playground mode, return true if code runs without error).
-    *   \`output\`: The text that would be printed to a terminal. If there is an error, this should be the Python error message. If there's no output but the code is valid, state that. E.g., "> Code executed successfully with no output."
-    ${explanationRules}
-    *   **CRITICAL:** Any time you reference specific code, output, or variable names, you MUST use a markdown code block with python syntax highlighting for clarity. 
-    *   Example format: "Your code printed \`\`\`python "Hello" \`\`\` which is correct." or "You defined the variable \`\`\`python x = 10 \`\`\` correctly."
-
-**User's Objective:** ${finalObjective}
-
-**Python Code to Execute:**
-\`\`\`python
-${code}
-\`\`\`
-`;
+    
+    **Execution Output:**
+    \`\`\`text
+    ${output}
+    \`\`\`
+    
+    **Objective:** ${finalObjective}
+    
+    **Task:**
+    Provide brief, helpful feedback.
+    1. If the code failed (error in output), explain *why* it failed in simple terms.
+    2. If the code succeeded but didn't meet the objective, give a hint.
+    3. If it succeeded and met the objective, say "Great job!" and maybe a small tip.
+    
+    **Constraints:**
+    - MAX 2-3 sentences.
+    - NO direct code solutions.
+    - Be encouraging.
+    `;
 
     try {
         const client = getAiClient();
@@ -228,41 +220,24 @@ ${code}
             const response = await client.models.generateContent({
                 model,
                 contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            success: { type: Type.BOOLEAN },
-                            output: { type: Type.STRING },
-                            explanation: { type: Type.STRING },
-                        },
-                        required: ['success', 'output', 'explanation'],
-                    }
-                }
             });
-
-            try {
-                const text = response.text;
-                if (!text) throw new Error("Empty response text");
-                return JSON.parse(text.trim());
-            } catch (e) {
-                console.error("Failed to parse AI response as JSON:", response.text, e);
-                return {
-                    success: false,
-                    output: '> An unexpected error occurred while evaluating the code.',
-                    explanation: 'Sorry, I had trouble interpreting the result from the code execution.'
-                };
-            }
+            return response.text || null;
         });
     } catch (error) {
-        console.error("Error running code:", error);
-        return {
-            success: false,
-            output: '> Error connecting to AI service.',
-            explanation: 'Please check your internet connection or API key configuration.'
-        };
+        console.error("Error getting feedback:", error);
+        return null;
     }
+};
+
+// DEPRECATED: Kept for reference but should be replaced by pyodideService + getFeedback
+export const runCodeWithAI = async (code: string, objective?: string, isHardMode: boolean = false): Promise<RunCodeResult> => {
+    // This function is now deprecated in favor of client-side execution.
+    // We will return a dummy response to avoid breaking existing calls until refactor is complete.
+    return {
+        success: false,
+        output: "Please refresh the page to use the new execution engine.",
+        explanation: "System update required."
+    };
 };
 
 // Deduplication for linting

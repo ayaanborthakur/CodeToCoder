@@ -2,17 +2,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission' | 'profile' | 'marketplace';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission' | 'profile' | 'marketplace' | 'collection';
 
 interface HeaderProps {
   currentView: ViewState;
   onNavigate: (view: ViewState) => void;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
-  stars: number;
   starTargetRef?: React.RefObject<HTMLDivElement | null>;
   onOpenAuth: () => void;
-  tokenBalance?: number;
+  starBalance?: number;
 }
 import Logo from '../assets/logo.svg?react';
 import SunIcon from '../assets/icons/SunIcon.svg?react';
@@ -24,7 +23,7 @@ import CloseIcon from '../assets/icons/CloseIcon.svg?react';
 
 
 
-export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, setTheme, stars, starTargetRef, onOpenAuth, tokenBalance }) => {
+export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, setTheme, starTargetRef, onOpenAuth, starBalance }) => {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -70,29 +69,22 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
 
           <nav className="hidden md:flex items-center gap-2 ml-4">
             <NavLink view="home" label="Home" />
-            <NavLink view="mission" label="Mission" />
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
+            <NavLink view="collection" label="Collection" />
             <NavLink view="reference" label="Reference" />
+            <NavLink view="mission" label="Mission" />
           </nav>
         </div>
 
         <div className="flex items-center gap-3">
-          {user && (
-            <>
-              <div ref={starTargetRef as React.RefObject<HTMLDivElement>} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full">
-                <StarIcon className="w-5 h-5 text-yellow-500" />
-                <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{stars}</span>
-              </div>
-              {tokenBalance !== undefined && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 dark:border-cyan-500/30 rounded-full">
-                  <span className="text-lg">⚡</span>
-                  <span className="font-bold text-sm text-cyan-600 dark:text-cyan-400">{tokenBalance.toLocaleString()}</span>
-                </div>
-              )}
-            </>
+          {user && starBalance !== undefined && (
+            <div ref={starTargetRef as React.RefObject<HTMLDivElement>} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-full border border-yellow-400/30">
+              <StarIcon className="w-5 h-5 text-yellow-500" />
+              <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance.toLocaleString()}</span>
+            </div>
           )}
 
           <button
@@ -134,12 +126,13 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 space-y-2 shadow-lg animate-slide-up">
             <NavLink view="home" label="Home" />
-            <NavLink view="mission" label="Mission" />
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
+            <NavLink view="collection" label="Collection" />
             <NavLink view="reference" label="Reference" />
+            <NavLink view="mission" label="Mission" />
             {!user && (
               <button
                 onClick={() => { onOpenAuth(); setIsMobileMenuOpen(false); }}

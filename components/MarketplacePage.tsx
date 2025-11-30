@@ -10,7 +10,7 @@ import {
 } from '../services/marketplaceService';
 import { PACKS } from '../data/marketplaceData';
 import { RARITY_COLORS, RARITY_BG_COLORS, COLLECTIBLES } from '../data/collectiblesData';
-import type { UserTokens, DailyChallenge, Collectible } from '../types';
+import type { UserStars, DailyChallenge, Collectible } from '../types';
 
 interface MarketplacePageProps {
     onNavigate: (view: string) => void;
@@ -18,7 +18,7 @@ interface MarketplacePageProps {
 
 export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) => {
     const { user } = useAuth();
-    const [tokens, setTokens] = useState<UserTokens | null>(null);
+    const [stars, setStars] = useState<UserStars | null>(null);
     const [dailyChallenges, setDailyChallenges] = useState<DailyChallenge[]>([]);
     const [dailyPrizeAvailable, setDailyPrizeAvailable] = useState(false);
     const [hoursUntilPrize, setHoursUntilPrize] = useState(0);
@@ -34,7 +34,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
     const loadData = async () => {
         if (!user) return;
         const data = await getMarketplaceData(user.id);
-        setTokens(data.tokens);
+        setStars(data.stars);
         setDailyChallenges(data.dailyChallenges);
         setOwnedCollectibles(data.ownedCollectibles);
         setDailyPrizeAvailable(isDailyPrizeAvailable(user.id, data));
@@ -91,7 +91,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
         }
     };
 
-    if (!user || !tokens) {
+    if (!user || !stars) {
         return <div className="h-full w-full flex items-center justify-center bg-slate-950 text-slate-400">Loading Market...</div>;
     }
 
@@ -181,7 +181,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                     <div className="text-center mb-10">
                         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4 tracking-tight">
-                            Token Market
+                            Star Market
                         </h1>
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">Unlock rewards, collect rare items, and dominate challenges.</p>
                     </div>
@@ -193,8 +193,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                             <div className="relative z-10">
                                 <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                 <div className="text-5xl font-black text-white font-mono flex items-center gap-4 justify-center">
-                                    <span className="text-4xl animate-pulse">⚡</span>
-                                    <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{tokens.balance.toLocaleString()}</span>
+                                    <span className="text-4xl animate-pulse text-yellow-500">★</span>
+                                    <span className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{stars.balance.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -290,8 +290,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-yellow-400 font-bold bg-slate-950/50 py-2 px-3 rounded-lg border border-slate-800 w-fit">
-                                            <span>⚡</span>
-                                            <span>{challenge.reward} tokens</span>
+                                            <span>★</span>
+                                            <span>{challenge.reward} stars</span>
                                         </div>
 
                                         {challenge.completed && !challenge.claimed && (
@@ -317,7 +317,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                 <div>
                     <div className="flex items-center gap-4 mb-8">
                         <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-                            <span className="text-purple-400">📦</span> Token Packs
+                            <span className="text-purple-400">📦</span> Star Packs
                         </h2>
                         <button
                             onClick={() => setShowRarityInfo(true)}
@@ -330,7 +330,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {PACKS.map(pack => {
-                            const canAfford = tokens.balance >= pack.cost;
+                            const canAfford = stars.balance >= pack.cost;
                             const isPurchasing = purchasingPack === pack.id;
 
                             return (
@@ -358,8 +358,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                                         <div className="space-y-3 mb-8">
                                             <div className="flex items-center gap-3 text-cyan-300 bg-slate-950/50 rounded-xl p-4 border border-slate-800 group-hover:border-cyan-500/30 transition-colors">
-                                                <span className="text-xl">💰</span>
-                                                <span className="font-bold">{pack.rewards.minTokens}-{pack.rewards.maxTokens} tokens</span>
+                                                <span className="text-xl text-yellow-500">★</span>
+                                                <span className="font-bold">{pack.rewards.minStars}-{pack.rewards.maxStars} stars</span>
                                             </div>
                                             {pack.rewards.collectibles && (
                                                 <div className={`flex items-center gap-3 bg-slate-950/50 rounded-xl p-4 border border-slate-800 transition-colors ${pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
@@ -395,7 +395,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                             ) : (
                                                 <>
                                                     <span>{pack.cost}</span>
-                                                    <span className="text-xl">⚡</span>
+                                                    <span className="text-xl text-yellow-500">★</span>
                                                 </>
                                             )}
                                         </button>

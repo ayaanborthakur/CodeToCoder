@@ -89,14 +89,14 @@ export interface UserAchievements {
 }
 
 // Token & Marketplace System Types
-export interface UserTokens {
+export interface UserStars {
   balance: number;
   totalEarned: number;
   totalSpent: number;
   lastUpdated: number;
 }
 
-export interface TokenTransaction {
+export interface StarTransaction {
   id: string;
   amount: number;
   type: 'earn' | 'spend';
@@ -122,8 +122,8 @@ export interface Pack {
   cost: number;
   description: string;
   rewards: {
-    minTokens: number;
-    maxTokens: number;
+    minStars: number;
+    maxStars: number;
     collectibles?: {
       dropRate: number; // 0-1 probability
       guaranteedRarity?: Rarity;
@@ -148,11 +148,11 @@ export interface DailyChallenge {
 }
 
 export interface MarketplaceData {
-  tokens: UserTokens;
+  stars: UserStars;
   ownedCollectibles: string[]; // IDs of owned collectibles
   dailyPrizeClaimed: number; // timestamp
   dailyChallenges: DailyChallenge[];
-  transactionHistory: TokenTransaction[];
+  transactionHistory: StarTransaction[];
   version?: number;
 }
 

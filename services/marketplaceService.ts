@@ -2,10 +2,10 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import {
     MarketplaceData,
-    UserTokens,
+    UserStars,
     Pack,
     DailyChallenge,
-    TokenTransaction,
+    StarTransaction,
     Collectible,
     Rarity
 } from '../types';
@@ -18,7 +18,7 @@ const CURRENT_MARKETPLACE_VERSION = 2;
 
 // Helper to get initial state
 const getInitialMarketplaceData = (): MarketplaceData => ({
-    tokens: {
+    stars: {
         balance: 0,
         totalEarned: 0,
         totalSpent: 0,
@@ -54,8 +54,8 @@ export const getMarketplaceData = async (userId: string): Promise<MarketplaceDat
 
             // Check version and reset if needed
             if (!data.version || data.version < CURRENT_MARKETPLACE_VERSION) {
-                // Reset tokens
-                data.tokens = {
+                // Reset stars
+                data.stars = {
                     balance: 0,
                     totalEarned: 0,
                     totalSpent: 0,
@@ -66,7 +66,7 @@ export const getMarketplaceData = async (userId: string): Promise<MarketplaceDat
                     id: Date.now().toString(),
                     amount: 0,
                     type: 'earn',
-                    reason: 'System Token Reset',
+                    reason: 'System Star Reset',
                     timestamp: Date.now()
                 }];
 
@@ -78,7 +78,7 @@ export const getMarketplaceData = async (userId: string): Promise<MarketplaceDat
             }
 
             // Check if daily challenges need refresh (new day)
-            const lastUpdated = new Date(data.tokens.lastUpdated);
+            const lastUpdated = new Date(data.stars.lastUpdated);
             const now = new Date();
             if (lastUpdated.getDate() !== now.getDate() || lastUpdated.getMonth() !== now.getMonth() || lastUpdated.getFullYear() !== now.getFullYear()) {
                 data.dailyChallenges = getRandomDailyChallenges(3);
@@ -104,40 +104,40 @@ export const saveMarketplaceData = async (userId: string, data: MarketplaceData)
     if (!userId) return;
     try {
         const docRef = doc(db, MARKETPLACE_COLLECTION, userId);
-        data.tokens.lastUpdated = Date.now();
+        data.stars.lastUpdated = Date.now();
         await setDoc(docRef, data);
     } catch (error) {
         console.error('Error saving marketplace data:', error);
     }
 };
 
-// Helper to dispatch token update event
-const dispatchTokenUpdate = (balance: number, amount: number, reason: string) => {
+// Helper to dispatch star update event
+const dispatchStarUpdate = (balance: number, amount: number, reason: string) => {
     if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('tokenUpdate', {
+        window.dispatchEvent(new CustomEvent('starUpdate', {
             detail: { balance, amount, reason }
         }));
     }
 };
 
-export const purchasePack = async (userId: string, packId: string): Promise<{ tokens: number, collectible?: Collectible }> => {
+export const purchasePack = async (userId: string, packId: string): Promise<{ stars: number, collectible?: Collectible }> => {
     const data = await getMarketplaceData(userId);
     const pack = PACKS.find(p => p.id === packId);
 
     if (!pack) throw new Error('Pack not found');
-    if (data.tokens.balance < pack.cost) throw new Error('Insufficient tokens');
+    if (data.stars.balance < pack.cost) throw new Error('Insufficient stars');
 
     // Deduct cost
-    data.tokens.balance -= pack.cost;
-    data.tokens.totalSpent += pack.cost;
+    data.stars.balance -= pack.cost;
+    data.stars.totalSpent += pack.cost;
 
     // Generate rewards
-    const rewardTokens = Math.floor(Math.random() * (pack.rewards.maxTokens - pack.rewards.minTokens + 1)) + pack.rewards.minTokens;
-    data.tokens.balance += rewardTokens;
-    data.tokens.totalEarned += rewardTokens;
+    const rewardStars = Math.floor(Math.random() * (pack.rewards.maxStars - pack.rewards.minStars + 1)) + pack.rewards.minStars;
+    data.stars.balance += rewardStars;
+    data.stars.totalEarned += rewardStars;
 
     // Record transaction
-    const transaction: TokenTransaction = {
+    const transaction: StarTransaction = {
         id: Date.now().toString(),
         amount: -pack.cost,
         type: 'spend',
@@ -196,10 +196,12 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ to
 
     await saveMarketplaceData(userId, data);
 
-    // Dispatch update for net change (reward - cost)
-    dispatchTokenUpdate(data.tokens.balance, rewardTokens - pack.cost, `Purchased ${pack.name}`);
+    await saveMarketplaceData(userId, data);
 
-    return { tokens: data.tokens.balance, collectible: newCollectible };
+    // Dispatch update for net change (reward - cost)
+    dispatchStarUpdate(data.stars.balance, rewardStars - pack.cost, `Purchased ${pack.name}`);
+
+    return { stars: data.stars.balance, collectible: newCollectible };
 };
 
 export const claimDailyPrize = async (userId: string): Promise<number> => {
@@ -209,12 +211,12 @@ export const claimDailyPrize = async (userId: string): Promise<number> => {
         throw new Error('Daily prize not available yet');
     }
 
-    const prizeAmount = Math.floor(Math.random() * 50) + 10; // 10-60 tokens
-    data.tokens.balance += prizeAmount;
-    data.tokens.totalEarned += prizeAmount;
+    const prizeAmount = Math.floor(Math.random() * 50) + 10; // 10-60 stars
+    data.stars.balance += prizeAmount;
+    data.stars.totalEarned += prizeAmount;
     data.dailyPrizeClaimed = Date.now();
 
-    const transaction: TokenTransaction = {
+    const transaction: StarTransaction = {
         id: Date.now().toString(),
         amount: prizeAmount,
         type: 'earn',
@@ -224,7 +226,7 @@ export const claimDailyPrize = async (userId: string): Promise<number> => {
     data.transactionHistory.unshift(transaction);
 
     await saveMarketplaceData(userId, data);
-    dispatchTokenUpdate(data.tokens.balance, prizeAmount, 'Daily Prize');
+    dispatchStarUpdate(data.stars.balance, prizeAmount, 'Daily Prize');
 
     return prizeAmount;
 };
@@ -285,10 +287,10 @@ export const claimChallengeReward = async (userId: string, challengeId: string):
     if (challenge.claimed) throw new Error('Reward already claimed');
 
     challenge.claimed = true;
-    data.tokens.balance += challenge.reward;
-    data.tokens.totalEarned += challenge.reward;
+    data.stars.balance += challenge.reward;
+    data.stars.totalEarned += challenge.reward;
 
-    const transaction: TokenTransaction = {
+    const transaction: StarTransaction = {
         id: Date.now().toString(),
         amount: challenge.reward,
         type: 'earn',
@@ -298,7 +300,7 @@ export const claimChallengeReward = async (userId: string, challengeId: string):
     data.transactionHistory.unshift(transaction);
 
     await saveMarketplaceData(userId, data);
-    dispatchTokenUpdate(data.tokens.balance, challenge.reward, `Challenge: ${challenge.title}`);
+    dispatchStarUpdate(data.stars.balance, challenge.reward, `Challenge: ${challenge.title}`);
 
     return challenge.reward;
 };
@@ -308,12 +310,12 @@ export const getOwnedCollectibles = async (userId: string): Promise<Collectible[
     return COLLECTIBLES.filter(c => data.ownedCollectibles.includes(c.id));
 };
 
-export const addTokens = async (userId: string, amount: number, reason: string): Promise<number> => {
+export const addStars = async (userId: string, amount: number, reason: string): Promise<number> => {
     const data = await getMarketplaceData(userId);
-    data.tokens.balance += amount;
-    data.tokens.totalEarned += amount;
+    data.stars.balance += amount;
+    data.stars.totalEarned += amount;
 
-    const transaction: TokenTransaction = {
+    const transaction: StarTransaction = {
         id: Date.now().toString(),
         amount,
         type: 'earn',
@@ -323,19 +325,19 @@ export const addTokens = async (userId: string, amount: number, reason: string):
     data.transactionHistory.unshift(transaction);
 
     await saveMarketplaceData(userId, data);
-    dispatchTokenUpdate(data.tokens.balance, amount, reason);
+    dispatchStarUpdate(data.stars.balance, amount, reason);
 
-    return data.tokens.balance;
+    return data.stars.balance;
 };
 
-export const spendTokens = async (userId: string, amount: number, reason: string): Promise<number> => {
+export const spendStars = async (userId: string, amount: number, reason: string): Promise<number> => {
     const data = await getMarketplaceData(userId);
-    if (data.tokens.balance < amount) throw new Error('Insufficient tokens');
+    if (data.stars.balance < amount) throw new Error('Insufficient stars');
 
-    data.tokens.balance -= amount;
-    data.tokens.totalSpent += amount;
+    data.stars.balance -= amount;
+    data.stars.totalSpent += amount;
 
-    const transaction: TokenTransaction = {
+    const transaction: StarTransaction = {
         id: Date.now().toString(),
         amount: -amount,
         type: 'spend',
@@ -345,7 +347,7 @@ export const spendTokens = async (userId: string, amount: number, reason: string
     data.transactionHistory.unshift(transaction);
 
     await saveMarketplaceData(userId, data);
-    dispatchTokenUpdate(data.tokens.balance, -amount, reason);
+    dispatchStarUpdate(data.stars.balance, -amount, reason);
 
-    return data.tokens.balance;
+    return data.stars.balance;
 };
