@@ -127,6 +127,8 @@ export interface Pack {
     collectibles?: {
       dropRate: number; // 0-1 probability
       guaranteedRarity?: Rarity;
+      minDrops?: number; // Minimum number of collectibles to drop
+      maxDrops?: number; // Maximum number of collectibles to drop
     };
     items?: string[];
   };
@@ -153,6 +155,11 @@ export interface MarketplaceData {
   dailyPrizeClaimed: number; // timestamp
   dailyChallenges: DailyChallenge[];
   transactionHistory: StarTransaction[];
+  completedActivities: {
+    lessons: string[]; // lesson IDs that have awarded stars
+    quizzes: string[]; // quiz IDs that have awarded stars
+    practice: string[]; // practice item IDs that have awarded stars
+  };
   version?: number;
 }
 

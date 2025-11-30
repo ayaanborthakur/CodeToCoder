@@ -91,7 +91,27 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
         }
     };
 
-    if (!user || !stars) {
+    if (!user) {
+        return (
+            <div className="h-full w-full flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6">
+                <div className="max-w-md text-center">
+                    <div className="text-6xl mb-6">🔒</div>
+                    <h2 className="text-3xl font-bold text-white mb-4">Sign In Required</h2>
+                    <p className="text-slate-400 mb-8">
+                        You need to create an account to access the Star Market, purchase packs, and claim daily prizes.
+                    </p>
+                    <button
+                        onClick={() => onNavigate('home')}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg"
+                    >
+                        Go to Home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!stars) {
         return <div className="h-full w-full flex items-center justify-center bg-slate-950 text-slate-400">Loading Market...</div>;
     }
 
@@ -186,7 +206,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                         <p className="text-slate-400 text-lg max-w-2xl mx-auto">Unlock rewards, collect rare items, and dominate challenges.</p>
                     </div>
 
-                    {/* Token Balance */}
+                    {/* Star Balance */}
                     <div className="flex flex-col items-center gap-4 mb-12">
                         <div className="bg-slate-900/50 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-800 px-10 py-6 relative group overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -347,20 +367,10 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                         } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
                                     <div className="relative z-10">
-                                        {pack.tier === 'elite' && (
-                                            <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                                                POPULAR
-                                            </div>
-                                        )}
-
                                         <h3 className="text-2xl font-black text-white mb-3 text-center tracking-tight">{pack.name}</h3>
                                         <p className="text-slate-400 text-sm mb-8 text-center min-h-[40px] leading-relaxed">{pack.description}</p>
 
                                         <div className="space-y-3 mb-8">
-                                            <div className="flex items-center gap-3 text-cyan-300 bg-slate-950/50 rounded-xl p-4 border border-slate-800 group-hover:border-cyan-500/30 transition-colors">
-                                                <span className="text-xl text-yellow-500">★</span>
-                                                <span className="font-bold">{pack.rewards.minStars}-{pack.rewards.maxStars} stars</span>
-                                            </div>
                                             {pack.rewards.collectibles && (
                                                 <div className={`flex items-center gap-3 bg-slate-950/50 rounded-xl p-4 border border-slate-800 transition-colors ${pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
                                                     pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
@@ -368,9 +378,10 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                                     }`}>
                                                     <span className="text-xl">💎</span>
                                                     <span className="font-bold">
-                                                        {pack.tier === 'elite' ? 'Guaranteed Epic+' :
-                                                            pack.tier === 'premium' ? 'High Rare Chance' :
-                                                                'Common Collectibles'}
+                                                        {pack.id === 'designer_pack' ? 'Guaranteed Mythic+' :
+                                                            pack.tier === 'elite' ? 'Guaranteed Epic+' :
+                                                                pack.tier === 'premium' ? 'High Rare Chance' :
+                                                                    'Common Collectibles'}
                                                     </span>
                                                 </div>
                                             )}

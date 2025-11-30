@@ -36,6 +36,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         const loadCollectibles = async () => {
             if (user) {
                 const owned = await getOwnedCollectibles(user.id);
+                // Profile page just shows unique items, so we can use the array as is or filter duplicates if needed
+                // Since getOwnedCollectibles returns unique items with counts, we can just use it directly
                 setCollectibles(owned);
             }
         };
@@ -225,7 +227,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                             <div className="col-span-full text-center py-12 bg-slate-900 rounded-2xl border border-slate-800 border-dashed">
                                 <div className="text-4xl mb-4">📦</div>
                                 <h3 className="text-xl font-bold text-white mb-2">No Collectibles Yet</h3>
-                                <p className="text-slate-400 mb-6">Visit the Token Market to buy packs and start your collection!</p>
+                                <p className="text-slate-400 mb-6">Visit the Star Market to buy packs and start your collection!</p>
                                 <button
                                     onClick={() => onNavigate('marketplace')}
                                     className="bg-cyan-500 hover:bg-cyan-400 text-white font-bold py-2 px-6 rounded-lg transition-colors"

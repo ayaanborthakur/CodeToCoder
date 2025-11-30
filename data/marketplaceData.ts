@@ -5,14 +5,16 @@ export const PACKS: Pack[] = [
         id: 'starter_pack',
         name: 'Starter Pack',
         tier: 'starter',
-        cost: 100,
-        description: 'Begin your journey with bonus tokens and a chance for common collectibles',
+        cost: 50,
+        description: 'Begin your journey with 1-2 guaranteed collectibles',
         rewards: {
-            minTokens: 50,
-            maxTokens: 100,
+            minStars: 0,
+            maxStars: 0,
             collectibles: {
-                dropRate: 0.5, // 50% chance
-                guaranteedRarity: 'common'
+                dropRate: 1.0,
+                guaranteedRarity: 'common',
+                minDrops: 1,
+                maxDrops: 2
             }
         }
     },
@@ -20,14 +22,16 @@ export const PACKS: Pack[] = [
         id: 'premium_pack',
         name: 'Premium Pack',
         tier: 'premium',
-        cost: 250,
-        description: 'Unlock greater rewards with higher chances for rare items',
+        cost: 100,
+        description: 'Unlock 2-3 rare items with higher quality',
         rewards: {
-            minTokens: 150,
-            maxTokens: 300,
+            minStars: 0,
+            maxStars: 0,
             collectibles: {
-                dropRate: 0.8, // 80% chance
-                guaranteedRarity: 'rare'
+                dropRate: 1.0,
+                guaranteedRarity: 'rare',
+                minDrops: 2,
+                maxDrops: 3
             }
         }
     },
@@ -35,14 +39,50 @@ export const PACKS: Pack[] = [
         id: 'elite_pack',
         name: 'Elite Pack',
         tier: 'elite',
-        cost: 500,
-        description: 'The ultimate package. High chance for Epic and Legendary collectibles',
+        cost: 200,
+        description: 'Premium package with 2-4 Epic and Legendary collectibles',
         rewards: {
-            minTokens: 400,
-            maxTokens: 800,
+            minStars: 0,
+            maxStars: 0,
             collectibles: {
-                dropRate: 1.0, // 100% chance
-                guaranteedRarity: 'epic'
+                dropRate: 1.0,
+                guaranteedRarity: 'epic',
+                minDrops: 2,
+                maxDrops: 4
+            }
+        }
+    },
+    {
+        id: 'developer_pack',
+        name: 'Developer Pack',
+        tier: 'starter',
+        cost: 200,
+        description: 'Bulk pack - 5-10 common items for building your collection',
+        rewards: {
+            minStars: 0,
+            maxStars: 0,
+            collectibles: {
+                dropRate: 1.0,
+                guaranteedRarity: 'common',
+                minDrops: 5,
+                maxDrops: 10
+            }
+        }
+    },
+    {
+        id: 'designer_pack',
+        name: 'Designer Pack',
+        tier: 'elite',
+        cost: 200,
+        description: 'Premium single item - guaranteed Legendary or Mythic collectible',
+        rewards: {
+            minStars: 0,
+            maxStars: 0,
+            collectibles: {
+                dropRate: 1.0,
+                guaranteedRarity: 'legendary',
+                minDrops: 1,
+                maxDrops: 1
             }
         }
     }

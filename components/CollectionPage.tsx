@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getOwnedCollectibles } from '../services/marketplaceService';
+import { getOwnedCollectibles, sellCollectible } from '../services/marketplaceService';
 import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW } from '../data/collectiblesData';
 import type { Collectible, Rarity } from '../types';
 
@@ -8,12 +8,15 @@ interface CollectionPageProps {
     onNavigate: (view: string) => void;
 }
 
+type OwnedCollectible = Collectible & { count: number };
+
 export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) => {
     const { user } = useAuth();
-    const [ownedCollectibles, setOwnedCollectibles] = useState<Collectible[]>([]);
+    const [ownedCollectibles, setOwnedCollectibles] = useState<OwnedCollectible[]>([]);
     const [selectedRarity, setSelectedRarity] = useState<Rarity | 'all'>('all');
-    const [selectedCollectible, setSelectedCollectible] = useState<Collectible | null>(null);
+    const [selectedCollectible, setSelectedCollectible] = useState<OwnedCollectible | null>(null);
     const [loading, setLoading] = useState(true);
+    const [selling, setSelling] = useState(false);
 
     useEffect(() => {
         loadCollection();
@@ -29,6 +32,36 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
             console.error('Failed to load collection:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSell = async (collectible: OwnedCollectible) => {
+        if (!user || selling) return;
+
+        if (!window.confirm(`Are you sure you want to sell ${collectible.name}?`)) return;
+
+        setSelling(true);
+        try {
+            await sellCollectible(user.id, collectible.id);
+            await loadCollection(); // Refresh list
+            setSelectedCollectible(null); // Close modal
+        } catch (error) {
+            console.error('Failed to sell item:', error);
+            alert('Failed to sell item. Please try again.');
+        } finally {
+            setSelling(false);
+        }
+    };
+
+    const getSellValue = (rarity: Rarity) => {
+        switch (rarity) {
+            case 'common': return 10;
+            case 'uncommon': return 20;
+            case 'rare': return 50;
+            case 'epic': return 100;
+            case 'legendary': return 250;
+            case 'mythic': return 500;
+            default: return 0;
         }
     };
 
@@ -82,12 +115,35 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
                             </div>
                             <h3 className="text-3xl font-bold text-white mb-3">{selectedCollectible.name}</h3>
                             <p className="text-slate-400 mb-6 text-lg">{selectedCollectible.description}</p>
-                            <button
-                                onClick={() => setSelectedCollectible(null)}
-                                className="bg-white text-slate-900 font-bold py-3 px-8 rounded-xl hover:scale-105 transition-transform"
-                            >
-                                Close
-                            </button>
+
+                            <div className="flex items-center justify-center gap-4 mb-6">
+                                <div className="bg-slate-950/50 px-4 py-2 rounded-lg border border-slate-800">
+                                    <span className="text-slate-400 text-xs uppercase block">Owned</span>
+                                    <span className="text-xl font-mono font-bold">{selectedCollectible.count}</span>
+                                </div>
+                                <div className="bg-slate-950/50 px-4 py-2 rounded-lg border border-slate-800">
+                                    <span className="text-slate-400 text-xs uppercase block">Sell Value</span>
+                                    <span className="text-xl font-mono font-bold text-yellow-500 flex items-center gap-1">
+                                        {getSellValue(selectedCollectible.rarity)} <span className="text-sm">★</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setSelectedCollectible(null)}
+                                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition-colors"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => handleSell(selectedCollectible)}
+                                    disabled={selling}
+                                    className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {selling ? 'Selling...' : 'Sell Item'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -156,10 +212,10 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
                             key={rarity}
                             onClick={() => setSelectedRarity(rarity)}
                             className={`px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${selectedRarity === rarity
-                                    ? rarity === 'all'
-                                        ? 'bg-white text-slate-900'
-                                        : `${RARITY_BG_COLORS[rarity as Rarity]} ${RARITY_COLORS[rarity as Rarity]} border-2 ${RARITY_BORDER_COLORS[rarity as Rarity]}`
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? rarity === 'all'
+                                    ? 'bg-white text-slate-900'
+                                    : `${RARITY_BG_COLORS[rarity as Rarity]} ${RARITY_COLORS[rarity as Rarity]} border-2 ${RARITY_BORDER_COLORS[rarity as Rarity]}`
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             {rarity}
@@ -170,18 +226,27 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
                 {/* Collection Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {filteredCollectibles.map(collectible => {
-                        const isOwned = ownedCollectibles.some(c => c.id === collectible.id);
+                        const ownedItem = ownedCollectibles.find(c => c.id === collectible.id);
+                        const isOwned = !!ownedItem;
+
                         return (
                             <div
                                 key={collectible.id}
-                                onClick={() => isOwned && setSelectedCollectible(collectible)}
+                                onClick={() => isOwned && setSelectedCollectible(ownedItem)}
                                 className={`relative bg-slate-900 rounded-xl p-4 border-2 transition-all duration-300 ${isOwned
-                                        ? `${RARITY_BORDER_COLORS[collectible.rarity]} ${RARITY_GLOW[collectible.rarity]} cursor-pointer hover:scale-105 hover:-translate-y-1`
-                                        : 'border-slate-800 opacity-40 grayscale'
+                                    ? `${RARITY_BORDER_COLORS[collectible.rarity]} ${RARITY_GLOW[collectible.rarity]} cursor-pointer hover:scale-105 hover:-translate-y-1`
+                                    : 'border-slate-800 opacity-40 grayscale'
                                     }`}
                             >
                                 {isOwned && (
-                                    <div className={`absolute inset-0 opacity-10 rounded-xl ${RARITY_BG_COLORS[collectible.rarity]}`} />
+                                    <>
+                                        <div className={`absolute inset-0 opacity-10 rounded-xl ${RARITY_BG_COLORS[collectible.rarity]}`} />
+                                        {ownedItem.count > 1 && (
+                                            <div className="absolute top-2 right-2 bg-slate-900 text-white text-xs font-bold px-2 py-1 rounded-full border border-slate-700 z-20">
+                                                x{ownedItem.count}
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                                 <div className="relative z-10">
                                     <div className="text-5xl mb-2 text-center">

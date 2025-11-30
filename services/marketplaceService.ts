@@ -28,6 +28,11 @@ const getInitialMarketplaceData = (): MarketplaceData => ({
     dailyPrizeClaimed: 0,
     dailyChallenges: [],
     transactionHistory: [],
+    completedActivities: {
+        lessons: [],
+        quizzes: [],
+        practice: []
+    },
     version: CURRENT_MARKETPLACE_VERSION
 });
 
@@ -77,6 +82,16 @@ export const getMarketplaceData = async (userId: string): Promise<MarketplaceDat
                 await saveMarketplaceData(userId, data);
             }
 
+            // Migration: Initialize completedActivities if it doesn't exist
+            if (!data.completedActivities) {
+                data.completedActivities = {
+                    lessons: [],
+                    quizzes: [],
+                    practice: []
+                };
+                await saveMarketplaceData(userId, data);
+            }
+
             // Check if daily challenges need refresh (new day)
             const lastUpdated = new Date(data.stars.lastUpdated);
             const now = new Date();
@@ -120,21 +135,17 @@ const dispatchStarUpdate = (balance: number, amount: number, reason: string) => 
     }
 };
 
-export const purchasePack = async (userId: string, packId: string): Promise<{ stars: number, collectible?: Collectible }> => {
+export const purchasePack = async (userId: string, packId: string): Promise<{ stars: number, collectible?: Collectible, collectibles?: Collectible[] }> => {
+    if (!userId) throw new Error('You must be logged in to purchase packs');
     const data = await getMarketplaceData(userId);
     const pack = PACKS.find(p => p.id === packId);
 
     if (!pack) throw new Error('Pack not found');
     if (data.stars.balance < pack.cost) throw new Error('Insufficient stars');
 
-    // Deduct cost
+    // Deduct cost (this is the only star change - no reward stars)
     data.stars.balance -= pack.cost;
     data.stars.totalSpent += pack.cost;
-
-    // Generate rewards
-    const rewardStars = Math.floor(Math.random() * (pack.rewards.maxStars - pack.rewards.minStars + 1)) + pack.rewards.minStars;
-    data.stars.balance += rewardStars;
-    data.stars.totalEarned += rewardStars;
 
     // Record transaction
     const transaction: StarTransaction = {
@@ -146,16 +157,23 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
     };
     data.transactionHistory.unshift(transaction);
 
-    // Handle Collectibles
-    let newCollectible: Collectible | undefined;
+    // Handle Collectibles - can now get multiple
+    const newCollectibles: Collectible[] = [];
     if (pack.rewards.collectibles) {
-        const roll = Math.random();
-        if (roll <= pack.rewards.collectibles.dropRate) {
+        const numDrops = pack.rewards.collectibles.minDrops || 1;
+        const maxDrops = pack.rewards.collectibles.maxDrops || numDrops;
+        const actualDrops = Math.floor(Math.random() * (maxDrops - numDrops + 1)) + numDrops;
+
+        for (let i = 0; i < actualDrops; i++) {
             // Determine rarity based on pack tier with weighted probabilities
             let rarity: Rarity = 'common';
             const rarityRoll = Math.random();
 
-            if (pack.tier === 'elite') {
+            // Special case for Designer Pack - only Legendary or Mythic
+            if (pack.id === 'designer_pack') {
+                // 50% Legendary, 50% Mythic
+                rarity = rarityRoll < 0.50 ? 'mythic' : 'legendary';
+            } else if (pack.tier === 'elite') {
                 // Elite Pack: Guaranteed Epic or better
                 // 50% Epic, 30% Legendary, 20% Mythic
                 if (rarityRoll < 0.20) rarity = 'mythic';
@@ -184,27 +202,29 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
             // Get random collectible of that rarity
             const availableCollectibles = COLLECTIBLES.filter(c => c.rarity === rarity);
             if (availableCollectibles.length > 0) {
-                newCollectible = availableCollectibles[Math.floor(Math.random() * availableCollectibles.length)];
+                const newCollectible = availableCollectibles[Math.floor(Math.random() * availableCollectibles.length)];
+                newCollectibles.push(newCollectible);
 
-                // Add to owned if not already owned
-                if (!data.ownedCollectibles.includes(newCollectible.id)) {
-                    data.ownedCollectibles.push(newCollectible.id);
-                }
+                // Add to owned (allow duplicates)
+                data.ownedCollectibles.push(newCollectible.id);
             }
         }
     }
 
     await saveMarketplaceData(userId, data);
 
-    await saveMarketplaceData(userId, data);
+    // Dispatch update for the cost (negative amount)
+    dispatchStarUpdate(data.stars.balance, -pack.cost, `Purchased ${pack.name}`);
 
-    // Dispatch update for net change (reward - cost)
-    dispatchStarUpdate(data.stars.balance, rewardStars - pack.cost, `Purchased ${pack.name}`);
-
-    return { stars: data.stars.balance, collectible: newCollectible };
+    return {
+        stars: data.stars.balance,
+        collectible: newCollectibles[0], // For backwards compatibility
+        collectibles: newCollectibles
+    };
 };
 
 export const claimDailyPrize = async (userId: string): Promise<number> => {
+    if (!userId) throw new Error('You must be logged in to claim the daily prize');
     const data = await getMarketplaceData(userId);
 
     if (!isDailyPrizeAvailable(userId, data)) {
@@ -305,9 +325,62 @@ export const claimChallengeReward = async (userId: string, challengeId: string):
     return challenge.reward;
 };
 
-export const getOwnedCollectibles = async (userId: string): Promise<Collectible[]> => {
+export const getOwnedCollectibles = async (userId: string): Promise<(Collectible & { count: number })[]> => {
     const data = await getMarketplaceData(userId);
-    return COLLECTIBLES.filter(c => data.ownedCollectibles.includes(c.id));
+    const counts: Record<string, number> = {};
+
+    data.ownedCollectibles.forEach(id => {
+        counts[id] = (counts[id] || 0) + 1;
+    });
+
+    return COLLECTIBLES
+        .filter(c => counts[c.id])
+        .map(c => ({
+            ...c,
+            count: counts[c.id]
+        }));
+};
+
+export const sellCollectible = async (userId: string, collectibleId: string): Promise<number> => {
+    const data = await getMarketplaceData(userId);
+    const index = data.ownedCollectibles.indexOf(collectibleId);
+
+    if (index === -1) throw new Error('Collectible not owned');
+
+    // Remove one instance
+    data.ownedCollectibles.splice(index, 1);
+
+    // Calculate sell value based on rarity
+    const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
+    let sellValue = 10; // Default common
+
+    if (collectible) {
+        switch (collectible.rarity) {
+            case 'common': sellValue = 10; break;
+            case 'uncommon': sellValue = 20; break;
+            case 'rare': sellValue = 50; break;
+            case 'epic': sellValue = 100; break;
+            case 'legendary': sellValue = 250; break;
+            case 'mythic': sellValue = 500; break;
+        }
+    }
+
+    data.stars.balance += sellValue;
+    data.stars.totalEarned += sellValue;
+
+    const transaction: StarTransaction = {
+        id: Date.now().toString(),
+        amount: sellValue,
+        type: 'earn',
+        reason: `Sold ${collectible?.name || 'Item'}`,
+        timestamp: Date.now()
+    };
+    data.transactionHistory.unshift(transaction);
+
+    await saveMarketplaceData(userId, data);
+    dispatchStarUpdate(data.stars.balance, sellValue, `Sold ${collectible?.name || 'Item'}`);
+
+    return sellValue;
 };
 
 export const addStars = async (userId: string, amount: number, reason: string): Promise<number> => {

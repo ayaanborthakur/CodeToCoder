@@ -25,7 +25,7 @@ import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
 import { CollectionPage } from './components/CollectionPage';
-import { TokenNotification } from './components/TokenNotification';
+import { StarNotification } from './components/StarNotification';
 import { LESSON_PLAN } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
 import { getChatResponse, runCodeWithAI, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
@@ -578,10 +578,17 @@ const App: React.FC = () => {
         if (currentView === 'practice' && activePracticeItem) {
             if (!completedPracticeItems.has(activePracticeItem.id)) {
                 markPracticeAsCompleted(activePracticeItem.id);
-                // Award stars
+                // Award stars (one-time only)
                 if (user) {
-                    import('./services/marketplaceService').then(({ addStars }) => {
-                        addStars(user.id, 5, `Completed Practice: ${activePracticeItem.title}`);
+                    import('./services/starService').then(({ awardStarsForActivity }) => {
+                        awardStarsForActivity(user.id, 'practice', activePracticeItem.id).then(result => {
+                            if (result.awarded) {
+                                setStarNotification({
+                                    amount: result.amount,
+                                    reason: `Completed ${activePracticeItem.title}`
+                                });
+                            }
+                        });
                     });
                 }
                 // Log analytics event
@@ -593,10 +600,17 @@ const App: React.FC = () => {
         } else if (currentLesson) {
             if (!completedLessons.has(currentLesson.id)) {
                 markLessonAsCompleted(currentLesson.id);
-                // Award stars
+                // Award stars (one-time only)
                 if (user) {
-                    import('./services/marketplaceService').then(({ addStars }) => {
-                        addStars(user.id, 10, `Completed Lesson: ${currentLesson.title}`);
+                    import('./services/starService').then(({ awardStarsForActivity }) => {
+                        awardStarsForActivity(user.id, 'lesson', currentLesson.id).then(result => {
+                            if (result.awarded) {
+                                setStarNotification({
+                                    amount: result.amount,
+                                    reason: `Completed ${currentLesson.title}`
+                                });
+                            }
+                        });
                     });
                 }
                 // Log analytics event
@@ -646,8 +660,15 @@ const App: React.FC = () => {
                     if (!completedPracticeItems.has(contextItem.id)) {
                         markPracticeAsCompleted(contextItem.id);
                         if (user) {
-                            import('./services/marketplaceService').then(({ addStars }) => {
-                                addStars(user.id, 5, `Completed Practice: ${contextItem.title}`);
+                            import('./services/starService').then(({ awardStarsForActivity }) => {
+                                awardStarsForActivity(user.id, 'practice', contextItem.id).then(result => {
+                                    if (result.awarded) {
+                                        setStarNotification({
+                                            amount: result.amount,
+                                            reason: `Completed ${contextItem.title}`
+                                        });
+                                    }
+                                });
                             });
                         }
                     }
@@ -655,8 +676,15 @@ const App: React.FC = () => {
                     if (!completedLessons.has(contextItem.id)) {
                         markLessonAsCompleted(contextItem.id);
                         if (user) {
-                            import('./services/marketplaceService').then(({ addStars }) => {
-                                addStars(user.id, 10, `Completed Lesson: ${contextItem.title}`);
+                            import('./services/starService').then(({ awardStarsForActivity }) => {
+                                awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
+                                    if (result.awarded) {
+                                        setStarNotification({
+                                            amount: result.amount,
+                                            reason: `Completed ${contextItem.title}`
+                                        });
+                                    }
+                                });
                             });
                         }
                     }
@@ -1067,7 +1095,7 @@ const App: React.FC = () => {
 
                 {/* Star Notifications */}
                 {starNotification && (
-                    <TokenNotification
+                    <StarNotification
                         amount={starNotification.amount}
                         reason={starNotification.reason}
                         onClose={() => setStarNotification(null)}

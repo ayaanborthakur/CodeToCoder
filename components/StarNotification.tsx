@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-interface TokenNotificationProps {
+interface StarNotificationProps {
     amount: number;
     reason: string;
     onClose: () => void;
 }
 
-export const TokenNotification: React.FC<TokenNotificationProps> = ({ amount, reason, onClose }) => {
+export const StarNotification: React.FC<StarNotificationProps> = ({ amount, reason, onClose }) => {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
@@ -45,7 +45,7 @@ export const TokenNotification: React.FC<TokenNotificationProps> = ({ amount, re
                                     +{amount.toLocaleString()}
                                 </span>
                                 <span className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">
-                                    tokens
+                                    stars
                                 </span>
                             </div>
                         </div>
