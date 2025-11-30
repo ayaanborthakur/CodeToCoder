@@ -52,13 +52,29 @@ export const runPythonCode = async (code: string): Promise<PyodideResult> => {
     try {
         const pyodide = await initializePyodide();
 
-        // Redirect stdout/stderr to capture output
+        // Redirect stdout/stderr to capture output and implement custom input()
         pyodide.runPython(`
 import sys
 import io
 sys.stdout = io.StringIO()
 sys.stderr = io.StringIO()
+
+# Custom input function for browser environment
+def input(prompt=''):
+    """
+    Custom input function that works in the browser using JS prompts.
+    This replaces the default input() which doesn't work in Pyodide.
+    """
+    import js
+    result = js.prompt(str(prompt))
+    if result is None:
+        raise KeyboardInterrupt("User cancelled input")
+    return str(result)
+
+# Make input available globally
+__builtins__.input = input
 `);
+
 
         await pyodide.runPythonAsync(code);
 

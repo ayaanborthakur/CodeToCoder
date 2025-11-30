@@ -1,7 +1,7 @@
 import { Collectible } from '../types';
 
 export const COLLECTIBLES: Collectible[] = [
-    // ========== COMMON (60% drop rate) ==========
+    // ========== COMMON (60% drop rate) - 87 total ==========
     // Basic Programming Concepts
     { id: 'c_hello_world', name: 'Hello World', description: 'The first program everyone writes.', rarity: 'common', image: '👋' },
     { id: 'c_semicolon', name: 'Missing Semicolon', description: 'The cause of many headaches.', rarity: 'common', image: ';' },
@@ -15,8 +15,84 @@ export const COLLECTIBLES: Collectible[] = [
     { id: 'c_pencil', name: 'Pencil', description: 'Old school debugging tool.', rarity: 'common', image: '✏️' },
     { id: 'c_sticky_note', name: 'Sticky Note', description: 'Password reminder: "password123"', rarity: 'common', image: '📌' },
     { id: 'c_glasses', name: 'Reading Glasses', description: 'For reading tiny error messages.', rarity: 'common', image: '👓' },
+    // New common items
+    { id: 'c_variable', name: 'Variable', description: 'A container for data.', rarity: 'common', image: '📦' },
+    { id: 'c_function', name: 'Basic Function', description: 'Reusable block of code.', rarity: 'common', image: '🔧' },
+    { id: 'c_loop', name: 'For Loop', description: 'Going in circles.', rarity: 'common', image: '🔄' },
+    { id: 'c_if_statement', name: 'If Statement', description: 'Making decisions.', rarity: 'common', image: '❓' },
+    { id: 'c_string', name: 'String', description: 'Just some text.', rarity: 'common', image: '🧵' },
+    { id: 'c_integer', name: 'Integer', description: 'Whole numbers only.', rarity: 'common', image: '🔢' },
+    { id: 'c_boolean', name: 'Boolean', description: 'True or false? That is the question.', rarity: 'common', image: '⚡' },
+    { id: 'c_array', name: 'Array', description: 'A list of things.', rarity: 'common', image: '📋' },
+    { id: 'c_comment', name: 'Comment', description: '// TODO: write better code', rarity: 'common', image: '💬' },
+    { id: 'c_indentation', name: 'Proper Indentation', description: 'Makes code readable.', rarity: 'common', image: '↔️' },
+    { id: 'c_print', name: 'Print Statement', description: 'Outputting to console.', rarity: 'common', image: '🖨️' },
+    { id: 'c_input', name: 'User Input', description: 'Getting data from users.', rarity: 'common', image: '⌨️' },
+    { id: 'c_error', name: 'Error Message', description: 'Something went wrong.', rarity: 'common', image: '❌' },
+    { id: 'c_warning', name: 'Warning', description: 'Proceed with caution.', rarity: 'common', image: '⚠️' },
+    { id: 'c_syntax', name: 'Syntax Checker', description: 'Catching typos.', rarity: 'common', image: '🔍' },
+    { id: 'c_compiler', name: 'Basic Compiler', description: 'Turning code into action.', rarity: 'common', image: '⚙️' },
+    { id: 'c_interpreter', name: 'Interpreter', description: 'Running code line by line.', rarity: 'common', image: '▶️' },
+    { id: 'c_ide', name: 'Basic IDE', description: 'Where the magic happens.', rarity: 'common', image: '💻' },
+    { id: 'c_text_editor', name: 'Text Editor', description: 'Simple yet powerful.', rarity: 'common', image: '📄' },
+    { id: 'c_terminal_basic', name: 'Terminal', description: 'Command line interface.', rarity: 'common', image: '🖤' },
+    { id: 'c_bracket', name: 'Curly Bracket', description: 'Defining scope since always.', rarity: 'common', image: '{}' },
+    { id: 'c_parenthesis', name: 'Parenthesis', description: 'Grouping things together.', rarity: 'common', image: '()' },
+    { id: 'c_equal_sign', name: 'Assignment Operator', description: 'Making things equal.', rarity: 'common', image: '=' },
+    { id: 'c_plus', name: 'Plus Operator', description: 'Adding values together.', rarity: 'common', image: '+' },
+    { id: 'c_minus', name: 'Minus Operator', description: 'Subtracting values.', rarity: 'common', image: '-' },
+    { id: 'c_multiply', name: 'Multiply Operator', description: 'Multiplying numbers.', rarity: 'common', image: '×' },
+    { id: 'c_divide', name: 'Divide Operator', description: 'Dividing values.', rarity: 'common', image: '÷' },
+    { id: 'c_dot', name: 'Dot Operator', description: 'Accessing properties.', rarity: 'common', image: '.' },
+    { id: 'c_colon', name: 'Colon', description: 'Syntax essential.', rarity: 'common', image: ':' },
+    { id: 'c_comma', name: 'Comma', description: 'Separating items.', rarity: 'common', image: ',' },
+    { id: 'c_quote', name: 'Quote Mark', description: 'Wrapping strings.', rarity: 'common', image: '"' },
+    { id: 'c_backslash', name: 'Backslash', description: 'Escaping characters.', rarity: 'common', image: '\\' },
+    { id: 'c_hash', name: 'Hash Symbol', description: 'Comments and more.', rarity: 'common', image: '#' },
+    { id: 'c_dollar', name: 'Dollar Sign', description: 'Variables in some languages.', rarity: 'common', image: '$' },
+    { id: 'c_ampersand', name: 'Ampersand', description: 'AND operator.', rarity: 'common', image: '&' },
+    { id: 'c_pipe', name: 'Pipe Symbol', description: 'OR operator.', rarity: 'common', image: '|' },
+    { id: 'c_exclamation', name: 'Exclamation Mark', description: 'NOT operator.', rarity: 'common', image: '!' },
+    { id: 'c_question', name: 'Question Mark', description: 'Ternary operator.', rarity: 'common', image: '?' },
+    { id: 'c_at', name: 'At Symbol', description: 'Decorators and mentions.', rarity: 'common', image: '@' },
+    { id: 'c_tilde', name: 'Tilde', description: 'Bitwise NOT.', rarity: 'common', image: '~' },
+    { id: 'c_caret', name: 'Caret', description: 'XOR operator.', rarity: 'common', image: '^' },
+    { id: 'c_percent', name: 'Percent', description: 'Modulo operator.', rarity: 'common', image: '%' },
+    { id: 'c_asterisk', name: 'Asterisk', description: 'Pointer or multiply.', rarity: 'common', image: '*' },
+    { id: 'c_null', name: 'Null Value', description: 'Nothing here.', rarity: 'common', image: '∅' },
+    { id: 'c_undefined', name: 'Undefined', description: 'Not yet defined.', rarity: 'common', image: '❔' },
+    { id: 'c_zero', name: 'Zero Index', description: 'Starting from zero.', rarity: 'common', image: '0' },
+    { id: 'c_one', name: 'One', description: 'The loneliest number.', rarity: 'common', image: '1' },
+    { id: 'c_binary', name: 'Binary Code', description: '01010101', rarity: 'common', image: '10' },
+    { id: 'c_hex', name: 'Hexadecimal', description: 'Base 16 numbers.', rarity: 'common', image: '0x' },
+    { id: 'c_ascii', name: 'ASCII Table', description: 'Character encoding.', rarity: 'common', image: '🔤' },
+    { id: 'c_unicode', name: 'Unicode', description: 'Universal characters.', rarity: 'common', image: '🌐' },
+    { id: 'c_bit', name: 'Bit', description: 'Smallest unit of data.', rarity: 'common', image: '0/1' },
+    { id: 'c_byte', name: 'Byte', description: '8 bits make a byte.', rarity: 'common', image: '💾' },
+    { id: 'c_kilobyte', name: 'Kilobyte', description: '1024 bytes.', rarity: 'common', image: 'KB' },
+    { id: 'c_ram', name: 'RAM Stick', description: 'Random Access Memory.', rarity: 'common', image: '🧠' },
+    { id: 'c_cpu', name: 'CPU', description: 'The brain of the computer.', rarity: 'common', image: '🔲' },
+    { id: 'c_disk', name: 'Hard Disk', description: 'Storing data.', rarity: 'common', image: '💿' },
+    { id: 'c_fan', name: 'Cooling Fan', description: 'Keeping things cool.', rarity: 'common', image: '🌀' },
+    { id: 'c_power', name: 'Power Button', description: 'Turn it on!', rarity: 'common', image: '🔘' },
+    { id: 'c_cable', name: 'Cable', description: 'Connecting devices.', rarity: 'common', image: '🔌' },
+    { id: 'c_adapter', name: 'Adapter', description: 'Making things fit.', rarity: 'common', image: '🔄' },
+    { id: 'c_charger', name: 'Laptop Charger', description: 'Powering up.', rarity: 'common', image: '🔋' },
+    { id: 'c_wifi', name: 'WiFi Signal', description: 'Internet connection.', rarity: 'common', image: '📶' },
+    { id: 'c_ethernet', name: 'Ethernet Cable', description: 'Wired connection.', rarity: 'common', image: '🔗' },
+    { id: 'c_router', name: 'Router', description: 'Network hub.', rarity: 'common', image: '📡' },
+    { id: 'c_server', name: 'Server Rack', description: 'Where websites live.', rarity: 'common', image: '🗄️' },
+    { id: 'c_cloud', name: 'Cloud Storage', description: 'Data in the sky.', rarity: 'common', image: '☁️' },
+    { id: 'c_backup', name: 'Backup Drive', description: 'Safety first.', rarity: 'common', image: '💽' },
+    { id: 'c_folder', name: 'Folder', description: 'Organizing files.', rarity: 'common', image: '📁' },
+    { id: 'c_file', name: 'File', description: 'A single file.', rarity: 'common', image: '📄' },
+    { id: 'c_zip', name: 'ZIP Archive', description: 'Compressed files.', rarity: 'common', image: '🗜️' },
+    { id: 'c_pdf', name: 'PDF Document', description: 'Portable format.', rarity: 'common', image: '📕' },
+    { id: 'c_jpg', name: 'JPG Image', description: 'Image file.', rarity: 'common', image: '🖼️' },
+    { id: 'c_mp3', name: 'MP3 Audio', description: 'Music file.', rarity: 'common', image: '🎵' },
+    { id: 'c_video', name: 'Video File', description: 'Moving pictures.', rarity: 'common', image: '🎞️' },
 
-    // ========== UNCOMMON (25% drop rate) ==========
+    // ========== UNCOMMON (25% drop rate) - 62 total ==========
     // Intermediate Tools & Concepts
     { id: 'u_git_branch', name: 'Git Branch', description: 'Branching out into new features.', rarity: 'uncommon', image: '🌿' },
     { id: 'u_stack_overflow', name: 'Stack Overflow Tab', description: 'The answer to all your questions.', rarity: 'uncommon', image: '📚' },
@@ -30,8 +106,48 @@ export const COLLECTIBLES: Collectible[] = [
     { id: 'u_pizza', name: 'Pizza Box', description: 'Dinner of champions.', rarity: 'uncommon', image: '🍕' },
     { id: 'u_whiteboard', name: 'Whiteboard', description: 'For sketching out algorithms.', rarity: 'uncommon', image: '📋' },
     { id: 'u_terminal', name: 'Terminal Window', description: 'The command line is your friend.', rarity: 'uncommon', image: '💻' },
+    // New uncommon items
+    { id: 'u_git_commit', name: 'Git Commit', description: 'Saving your progress.', rarity: 'uncommon', image: '💾' },
+    { id: 'u_git_merge', name: 'Git Merge', description: 'Combining branches.', rarity: 'uncommon', image: '🔀' },
+    { id: 'u_pull_request', name: 'Pull Request', description: 'Requesting code review.', rarity: 'uncommon', image: '🔔' },
+    { id: 'u_github', name: 'GitHub Account', description: 'Where code lives.', rarity: 'uncommon', image: '🐙' },
+    { id: 'u_npm', name: 'NPM Package', description: 'Node Package Manager.', rarity: 'uncommon', image: '📦' },
+    { id: 'u_pip', name: 'PIP Package', description: 'Python package installer.', rarity: 'uncommon', image: '🐍' },
+    { id: 'u_docker', name: 'Docker Container', description: 'Containerized apps.', rarity: 'uncommon', image: '🐳' },
+    { id: 'u_api', name: 'REST API', description: 'Communicating with servers.', rarity: 'uncommon', image: '🔌' },
+    { id: 'u_json', name: 'JSON Object', description: 'Data interchange format.', rarity: 'uncommon', image: '{ }' },
+    { id: 'u_xml', name: 'XML Document', description: 'Structured data.', rarity: 'uncommon', image: '📋' },
+    { id: 'u_css', name: 'CSS Stylesheet', description: 'Styling the web.', rarity: 'uncommon', image: '🎨' },
+    { id: 'u_html', name: 'HTML Page', description: 'The backbone of web.', rarity: 'uncommon', image: '🌐' },
+    { id: 'u_javascript', name: 'JavaScript File', description: 'Making pages interactive.', rarity: 'uncommon', image: '📜' },
+    { id: 'u_python', name: 'Python Script', description: 'Simplicity at its best.', rarity: 'uncommon', image: '🐍' },
+    { id: 'u_java', name: 'Java Class', description: 'Write once, run anywhere.', rarity: 'uncommon', image: '☕' },
+    { id: 'u_cpp', name: 'C++ Program', description: 'High performance code.', rarity: 'uncommon', image: '➕' },
+    { id: 'u_csharp', name: 'C# Application', description: 'Microsoft\'s language.', rarity: 'uncommon', image: '#️⃣' },
+    { id: 'u_ruby', name: 'Ruby Script', description: 'Programmer happiness.', rarity: 'uncommon', image: '💎' },
+    { id: 'u_go', name: 'Go Program', description: 'Fast and simple.', rarity: 'uncommon', image: '🏃' },
+    { id: 'u_rust', name: 'Rust Application', description: 'Memory safe code.', rarity: 'uncommon', image: '🦀' },
+    { id: 'u_swift', name: 'Swift App', description: 'iOS development.', rarity: 'uncommon', image: '🍎' },
+    { id: 'u_kotlin', name: 'Kotlin Code', description: 'Android development.', rarity: 'uncommon', image: '🤖' },
+    { id: 'u_php', name: 'PHP Script', description: 'Server-side scripting.', rarity: 'uncommon', image: '🐘' },
+    { id: 'u_sql', name: 'SQL Query', description: 'Database language.', rarity: 'uncommon', image: '🗃️' },
+    { id: 'u_database', name: 'Database', description: 'Storing structured data.', rarity: 'uncommon', image: '💾' },
+    { id: 'u_regex', name: 'Regular Expression', description: 'Pattern matching magic.', rarity: 'uncommon', image: '🔍' },
+    { id: 'u_debugger', name: 'Debugger Tool', description: 'Finding what\'s wrong.', rarity: 'uncommon', image: '🔧' },
+    { id: 'u_profiler', name: 'Code Profiler', description: 'Measuring performance.', rarity: 'uncommon', image: '📊' },
+    { id: 'u_linter', name: 'Code Linter', description: 'Enforcing style.', rarity: 'uncommon', image: '✔️' },
+    { id: 'u_formatter', name: 'Code Formatter', description: 'Making code pretty.', rarity: 'uncommon', image: '✨' },
+    { id: 'u_version_control', name: 'Version Control', description: 'Tracking changes.', rarity: 'uncommon', image: '📈' },
+    { id: 'u_ssh_key', name: 'SSH Key', description: 'Secure connection.', rarity: 'uncommon', image: '🔑' },
+    { id: 'u_environment', name: 'Dev Environment', description: 'Setting up workspace.', rarity: 'uncommon', image: '🏗️' },
+    { id: 'u_package_manager', name: 'Package Manager', description: 'Managing dependencies.', rarity: 'uncommon', image: '📦' },
+    { id: 'u_build_tool', name: 'Build Tool', description: 'Compiling projects.', rarity: 'uncommon', image: '🔨' },
+    { id: 'u_task_runner', name: 'Task Runner', description: 'Automating workflows.', rarity: 'uncommon', image: '⚙️' },
+    { id: 'u_transpiler', name: 'Transpiler', description: 'Converting code.', rarity: 'uncommon', image: '🔄' },
+    { id: 'u_bundler', name: 'Module Bundler', description: 'Bundling assets.', rarity: 'uncommon', image: '📦' },
+    { id: 'u_test_file', name: 'Test File', description: 'Testing your code.', rarity: 'uncommon', image: '🧪' },
 
-    // ========== RARE (10% drop rate) ==========
+    // ========== RARE (10% drop rate) - 42 total ==========
     // Advanced Concepts & Skills
     { id: 'r_clean_code', name: 'Clean Code', description: 'Easy to read, easy to maintain.', rarity: 'rare', image: '✨' },
     { id: 'r_git_commit', name: 'Perfect Commit', description: 'A commit message that actually makes sense.', rarity: 'rare', image: '📝' },
@@ -45,8 +161,38 @@ export const COLLECTIBLES: Collectible[] = [
     { id: 'r_ultrawide', name: 'Ultrawide Monitor', description: 'See all the code at once.', rarity: 'rare', image: '🖥️' },
     { id: 'r_mechanical_numpad', name: 'Custom Numpad', description: 'For the true enthusiast.', rarity: 'rare', image: '🔢' },
     { id: 'r_rgb_lights', name: 'RGB Lighting', description: 'Makes your code run faster.', rarity: 'rare', image: '🌈' },
+    // New rare items
+    { id: 'r_algorithm', name: 'Efficient Algorithm', description: 'O(n log n) complexity.', rarity: 'rare', image: '📐' },
+    { id: 'r_data_structure', name: 'Optimal Data Structure', description: 'The right tool for the job.', rarity: 'rare', image: '🗂️' },
+    { id: 'r_design_pattern', name: 'Design Pattern', description: 'Proven solutions to common problems.', rarity: 'rare', image: '🎨' },
+    { id: 'r_singleton', name: 'Singleton Pattern', description: 'One instance to rule them all.', rarity: 'rare', image: '1️⃣' },
+    { id: 'r_observer', name: 'Observer Pattern', description: 'Watching for changes.', rarity: 'rare', image: '👁️' },
+    { id: 'r_factory', name: 'Factory Pattern', description: 'Creating objects.', rarity: 'rare', image: '🏭' },
+    { id: 'r_mvc', name: 'MVC Architecture', description: 'Model-View-Controller.', rarity: 'rare', image: '🏛️' },
+    { id: 'r_solid', name: 'SOLID Principles', description: 'Object-oriented design.', rarity: 'rare', image: '🎯' },
+    { id: 'r_dry', name: 'DRY Principle', description: 'Don\'t Repeat Yourself.', rarity: 'rare', image: '🔁' },
+    { id: 'r_kiss', name: 'KISS Principle', description: 'Keep It Simple, Stupid.', rarity: 'rare', image: '💋' },
+    { id: 'r_yagni', name: 'YAGNI Principle', description: 'You Aren\'t Gonna Need It.', rarity: 'rare', image: '🚫' },
+    { id: 'r_tdd', name: 'TDD', description: 'Test-Driven Development.', rarity: 'rare', image: '🧪' },
+    { id: 'r_ci_cd', name: 'CI/CD Pipeline', description: 'Continuous integration and deployment.', rarity: 'rare', image: '🔄' },
+    { id: 'r_microservices', name: 'Microservices', description: 'Distributed architecture.', rarity: 'rare', image: '🧩' },
+    { id: 'r_kubernetes', name: 'Kubernetes Cluster', description: 'Container orchestration.', rarity: 'rare', image: '☸️' },
+    { id: 'r_aws', name: 'AWS Instance', description: 'Cloud computing platform.', rarity: 'rare', image: '☁️' },
+    { id: 'r_load_balancer', name: 'Load Balancer', description: 'Distributing traffic.', rarity: 'rare', image: '⚖️' },
+    { id: 'r_cache', name: 'Redis Cache', description: 'Fast data storage.', rarity: 'rare', image: '⚡' },
+    { id: 'r_queue', name: 'Message Queue', description: 'Async processing.', rarity: 'rare', image: '📬' },
+    { id: 'r_webhook', name: 'Webhook', description: 'Event-driven communication.', rarity: 'rare', image: '🪝' },
+    { id: 'r_graphql', name: 'GraphQL API', description: 'Query language for APIs.', rarity: 'rare', image: '📊' },
+    { id: 'r_websocket', name: 'WebSocket Connection', description: 'Real-time communication.', rarity: 'rare', image: '🔌' },
+    { id: 'r_oauth', name: 'OAuth Token', description: 'Secure authentication.', rarity: 'rare', image: '🔐' },
+    { id: 'r_jwt', name: 'JWT Token', description: 'JSON Web Token.', rarity: 'rare', image: '🎫' },
+    { id: 'r_encryption', name: 'Encryption Key', description: 'Keeping data safe.', rarity: 'rare', image: '🔒' },
+    { id: 'r_hash', name: 'Hash Function', description: 'One-way transformation.', rarity: 'rare', image: '#️⃣' },
+    { id: 'r_binary_search', name: 'Binary Search', description: 'Divide and conquer.', rarity: 'rare', image: '🔍' },
+    { id: 'r_quicksort', name: 'Quicksort', description: 'Fast sorting algorithm.', rarity: 'rare', image: '⚡' },
+    { id: 'r_recursion', name: 'Recursion', description: 'A function that calls itself.', rarity: 'rare', image: '🔁' },
 
-    // ========== EPIC (4% drop rate) ==========
+    // ========== EPIC (4% drop rate) - 30 total ==========
     // Expert Level & Achievements
     { id: 'e_algo_master', name: 'Algorithm Master', description: 'Sorting arrays in your sleep.', rarity: 'epic', image: '🧠' },
     { id: 'e_full_stack', name: 'Full Stack Hero', description: 'Frontend, backend, and everything in between.', rarity: 'epic', image: '🌐' },
@@ -58,8 +204,29 @@ export const COLLECTIBLES: Collectible[] = [
     { id: 'e_open_source', name: 'Open Source Contributor', description: 'Giving back to the community.', rarity: 'epic', image: '🤝' },
     { id: 'e_mentor', name: 'Code Mentor', description: 'Teaching the next generation.', rarity: 'epic', image: '👨‍🏫' },
     { id: 'e_hackathon', name: 'Hackathon Winner', description: '48 hours of pure coding.', rarity: 'epic', image: '🏆' },
+    // New epic items
+    { id: 'e_react', name: 'React Mastery', description: 'Building modern UIs.', rarity: 'epic', image: '⚛️' },
+    { id: 'e_vue', name: 'Vue.js Expert', description: 'Progressive framework.', rarity: 'epic', image: '💚' },
+    { id: 'e_angular', name: 'Angular Pro', description: 'Enterprise framework.', rarity: 'epic', image: '🅰️' },
+    { id: 'e_node', name: 'Node.js Specialist', description: 'JavaScript on the server.', rarity: 'epic', image: '🟢' },
+    { id: 'e_django', name: 'Django Developer', description: 'Python web framework.', rarity: 'epic', image: '🎸' },
+    { id: 'e_rails', name: 'Rails Developer', description: 'Ruby web framework.', rarity: 'epic', image: '🛤️' },
+    { id: 'e_spring', name: 'Spring Framework', description: 'Java enterprise.', rarity: 'epic', image: '🌸' },
+    { id: 'e_dotnet', name: '.NET Developer', description: 'Microsoft ecosystem.', rarity: 'epic', image: '🟣' },
+    { id: 'e_ml', name: 'Machine Learning Engineer', description: 'Teaching machines to learn.', rarity: 'epic', image: '🤖' },
+    { id: 'e_ai', name: 'AI Specialist', description: 'Artificial intelligence.', rarity: 'epic', image: '🧠' },
+    { id: 'e_blockchain', name: 'Blockchain Developer', description: 'Decentralized apps.', rarity: 'epic', image: '⛓️' },
+    { id: 'e_webgl', name: 'WebGL Graphics', description: '3D in the browser.', rarity: 'epic', image: '🎮' },
+    { id: 'e_compiler_design', name: 'Compiler Designer', description: 'Building languages.', rarity: 'epic', image: '⚙️' },
+    { id: 'e_os_dev', name: 'OS Developer', description: 'Building operating systems.', rarity: 'epic', image: '💻' },
+    { id: 'e_embedded', name: 'Embedded Systems', description: 'Programming hardware.', rarity: 'epic', image: '🔧' },
+    { id: 'e_cloud_architect', name: 'Cloud Architect', description: 'Designing cloud infrastructure.', rarity: 'epic', image: '☁️' },
+    { id: 'e_devops', name: 'DevOps Master', description: 'Bridging dev and ops.', rarity: 'epic', image: '🔄' },
+    { id: 'e_sre', name: 'Site Reliability Engineer', description: 'Keeping systems running.', rarity: 'epic', image: '🛡️' },
+    { id: 'e_pentester', name: 'Penetration Tester', description: 'Ethical hacking.', rarity: 'epic', image: '🕵️' },
+    { id: 'e_cryptographer', name: 'Cryptographer', description: 'Securing communications.', rarity: 'epic', image: '🔐' },
 
-    // ========== LEGENDARY (0.8% drop rate) ==========
+    // ========== LEGENDARY (0.8% drop rate) - 17 total ==========
     // Legendary Achievements
     { id: 'l_10x_dev', name: '10x Developer', description: 'A mythical creature of productivity.', rarity: 'legendary', image: '🚀' },
     { id: 'l_unicorn', name: 'Unicorn Startup', description: 'A billion dollar idea.', rarity: 'legendary', image: '🦄' },
@@ -68,14 +235,35 @@ export const COLLECTIBLES: Collectible[] = [
     { id: 'l_legacy_code', name: 'Legacy Code Survivor', description: 'Understood code from 2005.', rarity: 'legendary', image: '📜' },
     { id: 'l_perfect_uptime', name: 'Perfect Uptime', description: '99.999% availability achieved.', rarity: 'legendary', image: '💯' },
     { id: 'l_viral_project', name: 'Viral Project', description: '10k+ GitHub stars.', rarity: 'legendary', image: '⭐' },
+    // New legendary items
+    { id: 'l_turing', name: 'Turing Machine', description: 'The foundation of computing.', rarity: 'legendary', image: '⚙️' },
+    { id: 'l_dijkstra', name: 'Dijkstra\'s Algorithm', description: 'Shortest path finder.', rarity: 'legendary', image: '🗺️' },
+    { id: 'l_unix', name: 'UNIX System', description: 'The operating system that changed everything.', rarity: 'legendary', image: '🖥️' },
+    { id: 'l_internet', name: 'Internet Protocol', description: 'Connecting the world.', rarity: 'legendary', image: '🌐' },
+    { id: 'l_www', name: 'World Wide Web', description: 'Tim Berners-Lee\'s creation.', rarity: 'legendary', image: '🕸️' },
+    { id: 'l_linux', name: 'Linux Kernel', description: 'Open source revolution.', rarity: 'legendary', image: '🐧' },
+    { id: 'l_git_linus', name: 'Git VCS', description: 'Linus Torvalds\' version control.', rarity: 'legendary', image: '📚' },
+    { id: 'l_tcp_ip', name: 'TCP/IP Stack', description: 'The internet backbone.', rarity: 'legendary', image: '🌍' },
+    { id: 'l_ssl', name: 'SSL Certificate', description: 'Secure web communications.', rarity: 'legendary', image: '🔐' },
+    { id: 'l_docker_platform', name: 'Docker Platform', description: 'Revolutionized deployment.', rarity: 'legendary', image: '🐋' },
 
-    // ========== MYTHIC (0.2% drop rate) ==========
+    // ========== MYTHIC (0.5% drop rate) - 8 total ==========
     // Ultra Rare Mythical Items
     { id: 'm_ai_overlord', name: 'AI Overlord', description: 'The code writes itself.', rarity: 'mythic', image: '🤖' },
     { id: 'm_quantum_pc', name: 'Quantum Computer', description: 'Solving problems before they exist.', rarity: 'mythic', image: '⚛️' },
     { id: 'm_time_traveler', name: 'Time Traveling Debugger', description: 'Fix bugs before they happen.', rarity: 'mythic', image: '⏰' },
     { id: 'm_infinite_coffee', name: 'Infinite Coffee Machine', description: 'Never run out of fuel.', rarity: 'mythic', image: '☕' },
     { id: 'm_bug_free', name: 'Bug-Free Code Generator', description: 'Writes perfect code every time.', rarity: 'mythic', image: '✨' },
+    // New mythic items
+    { id: 'm_eniac', name: 'ENIAC', description: 'The first electronic computer.', rarity: 'mythic', image: '🖥️' },
+    { id: 'm_apollo', name: 'Apollo Guidance Computer', description: 'Took humanity to the moon.', rarity: 'mythic', image: '🌙' },
+    { id: 'm_deep_blue', name: 'Deep Blue', description: 'Defeated the chess grandmaster.', rarity: 'mythic', image: '♟️' },
+
+    // ========== DIVINE (0.1% drop rate) - 3 total ==========
+    // Ultimate Programming Artifacts
+    { id: 'd_source_code', name: 'The Source Code', description: 'The fundamental code of the universe itself.', rarity: 'divine', image: '✨' },
+    { id: 'd_first_program', name: 'Ada Lovelace\'s Algorithm', description: 'The very first computer program ever written.', rarity: 'divine', image: '📜' },
+    { id: 'd_singularity', name: 'The Singularity', description: 'When AI surpasses human intelligence.', rarity: 'divine', image: '🌟' },
 ];
 
 export const RARITY_COLORS = {
@@ -84,7 +272,8 @@ export const RARITY_COLORS = {
     rare: 'text-blue-400',
     epic: 'text-purple-400',
     legendary: 'text-yellow-400',
-    mythic: 'text-red-500'
+    mythic: 'text-red-500',
+    divine: 'text-cyan-300'
 };
 
 export const RARITY_BG_COLORS = {
@@ -93,7 +282,8 @@ export const RARITY_BG_COLORS = {
     rare: 'bg-blue-500/10',
     epic: 'bg-purple-500/10',
     legendary: 'bg-yellow-500/10',
-    mythic: 'bg-red-500/10'
+    mythic: 'bg-red-500/10',
+    divine: 'bg-cyan-500/20'
 };
 
 export const RARITY_BORDER_COLORS = {
@@ -102,7 +292,8 @@ export const RARITY_BORDER_COLORS = {
     rare: 'border-blue-400',
     epic: 'border-purple-400',
     legendary: 'border-yellow-400',
-    mythic: 'border-red-500'
+    mythic: 'border-red-500',
+    divine: 'border-cyan-300'
 };
 
 export const RARITY_GLOW = {
@@ -111,7 +302,8 @@ export const RARITY_GLOW = {
     rare: 'shadow-blue-500/40',
     epic: 'shadow-purple-500/50',
     legendary: 'shadow-yellow-500/60 animate-pulse',
-    mythic: 'shadow-red-500/70 animate-pulse'
+    mythic: 'shadow-red-500/70 animate-pulse',
+    divine: 'shadow-cyan-400/80 animate-pulse'
 };
 
 // Drop rate percentages for reference
@@ -121,5 +313,6 @@ export const RARITY_DROP_RATES = {
     rare: 0.10,        // 10%
     epic: 0.04,        // 4%
     legendary: 0.008,  // 0.8%
-    mythic: 0.002      // 0.2%
+    mythic: 0.005,     // 0.5% (decreased from 0.2%)
+    divine: 0.001      // 0.1%
 };

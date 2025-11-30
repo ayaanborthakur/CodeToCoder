@@ -66,6 +66,7 @@ export interface User {
   avatar?: string;
   joinedAt: number;
   achievements?: UserAchievements;
+  totalStars?: number;
 }
 
 
@@ -105,7 +106,7 @@ export interface StarTransaction {
 }
 
 export type PackTier = 'starter' | 'premium' | 'elite';
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
 
 export interface Collectible {
   id: string;

@@ -14,6 +14,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     const { user, logout, deleteAccount } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
+    const [starBalance, setStarBalance] = useState(0);
     const [activeTab, setActiveTab] = useState<'stats' | 'badges' | 'collection'>('stats');
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -33,15 +34,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     };
 
     useEffect(() => {
-        const loadCollectibles = async () => {
+        const loadData = async () => {
             if (user) {
+                const data = await getMarketplaceData(user.id);
+                setStarBalance(data.stars.balance);
                 const owned = await getOwnedCollectibles(user.id);
                 // Profile page just shows unique items, so we can use the array as is or filter duplicates if needed
                 // Since getOwnedCollectibles returns unique items with counts, we can just use it directly
                 setCollectibles(owned);
             }
         };
-        loadCollectibles();
+        loadData();
     }, [user]);
 
     if (!user) return null;
@@ -82,15 +85,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                                 <span className="font-mono">{new Date(user.joinedAt).toLocaleDateString()}</span>
                             </div>
                             <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
-                                <span className="text-slate-400 text-sm block">Total Points</span>
+                                <span className="text-slate-400 text-sm block">Total Stars</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-mono text-cyan-400 font-bold">{achievements?.totalPoints || 0}</span>
+                                    <span className="font-mono text-yellow-400 font-bold">{starBalance} ★</span>
                                     <div className="group relative">
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-500 cursor-help">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                                         </svg>
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-700 shadow-xl z-50">
-                                            Earn points by completing lessons and challenges!
+                                            Earn stars by completing lessons and challenges!
                                             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800" />
                                         </div>
                                     </div>

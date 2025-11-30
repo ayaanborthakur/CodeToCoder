@@ -156,6 +156,15 @@ export const saveMarketplaceData = async (userId: string, data: MarketplaceData)
         const docRef = doc(db, MARKETPLACE_COLLECTION, userId);
         data.stars.lastUpdated = Date.now();
         await setDoc(docRef, data);
+
+        // Sync totalStars to user document
+        try {
+            const userRef = doc(db, 'users', userId);
+            await setDoc(userRef, { totalStars: data.stars.balance }, { merge: true });
+        } catch (err) {
+            console.error('Error syncing totalStars to user document:', err);
+            // Don't throw here, as the main save succeeded
+        }
     } catch (error) {
         console.error('Error saving marketplace data:', error);
     }
@@ -204,20 +213,24 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
             let rarity: Rarity = 'common';
             const rarityRoll = Math.random();
 
-            // Special case for Designer Pack - only Legendary or Mythic
+            // Special case for Designer Pack - only Legendary, Mythic, or Divine
             if (pack.id === 'designer_pack') {
-                // 50% Legendary, 50% Mythic
-                rarity = rarityRoll < 0.50 ? 'mythic' : 'legendary';
+                // 40% Legendary, 30% Mythic, 30% Divine
+                if (rarityRoll < 0.30) rarity = 'divine';
+                else if (rarityRoll < 0.60) rarity = 'mythic';
+                else rarity = 'legendary';
             } else if (pack.tier === 'elite') {
                 // Elite Pack: Guaranteed Epic or better
-                // 50% Epic, 30% Legendary, 20% Mythic
-                if (rarityRoll < 0.20) rarity = 'mythic';
+                // 50% Epic, 30% Legendary, 15% Mythic, 5% Divine
+                if (rarityRoll < 0.05) rarity = 'divine';
+                else if (rarityRoll < 0.20) rarity = 'mythic';
                 else if (rarityRoll < 0.50) rarity = 'legendary';
                 else rarity = 'epic';
             } else if (pack.tier === 'premium') {
                 // Premium Pack: Higher chance for rare/epic
-                // 40% Common, 30% Uncommon, 15% Rare, 10% Epic, 4% Legendary, 1% Mythic
-                if (rarityRoll < 0.01) rarity = 'mythic';
+                // 40% Common, 30% Uncommon, 15% Rare, 10% Epic, 4% Legendary, 0.5% Mythic, 0.5% Divine
+                if (rarityRoll < 0.005) rarity = 'divine';
+                else if (rarityRoll < 0.01) rarity = 'mythic';
                 else if (rarityRoll < 0.05) rarity = 'legendary';
                 else if (rarityRoll < 0.15) rarity = 'epic';
                 else if (rarityRoll < 0.30) rarity = 'rare';
@@ -225,8 +238,9 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
                 else rarity = 'common';
             } else {
                 // Starter Pack: Standard distribution
-                // 50% Common, 30% Uncommon, 12% Rare, 5% Epic, 2% Legendary, 1% Mythic
-                if (rarityRoll < 0.01) rarity = 'mythic';
+                // 50% Common, 30% Uncommon, 12% Rare, 5% Epic, 2% Legendary, 0.5% Mythic, 0.5% Divine
+                if (rarityRoll < 0.005) rarity = 'divine';
+                else if (rarityRoll < 0.01) rarity = 'mythic';
                 else if (rarityRoll < 0.03) rarity = 'legendary';
                 else if (rarityRoll < 0.08) rarity = 'epic';
                 else if (rarityRoll < 0.20) rarity = 'rare';
@@ -376,46 +390,62 @@ export const getOwnedCollectibles = async (userId: string): Promise<(Collectible
         }));
 };
 
-export const sellCollectible = async (userId: string, collectibleId: string): Promise<number> => {
+export const sellCollectible = async (userId: string, collectibleId: string, amount: number = 1): Promise<number> => {
     const data = await getMarketplaceData(userId);
-    const index = data.ownedCollectibles.indexOf(collectibleId);
 
-    if (index === -1) throw new Error('Collectible not owned');
+    // Check if user has enough of the item
+    const ownedCount = data.ownedCollectibles.filter(id => id === collectibleId).length;
+    if (ownedCount < amount) throw new Error('Not enough items to sell');
 
-    // Remove one instance
-    data.ownedCollectibles.splice(index, 1);
+    // Remove 'amount' instances
+    let removedCount = 0;
+    const newOwned: string[] = [];
 
-    // Calculate sell value based on rarity
-    const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
-    let sellValue = 10; // Default common
-
-    if (collectible) {
-        switch (collectible.rarity) {
-            case 'common': sellValue = 10; break;
-            case 'uncommon': sellValue = 20; break;
-            case 'rare': sellValue = 50; break;
-            case 'epic': sellValue = 100; break;
-            case 'legendary': sellValue = 250; break;
-            case 'mythic': sellValue = 500; break;
+    // Rebuild the array, skipping the first 'amount' matches
+    for (const id of data.ownedCollectibles) {
+        if (id === collectibleId && removedCount < amount) {
+            removedCount++;
+        } else {
+            newOwned.push(id);
         }
     }
 
-    data.stars.balance += sellValue;
-    data.stars.totalEarned += sellValue;
+    data.ownedCollectibles = newOwned;
+
+    // Calculate sell value based on rarity
+    const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
+    let sellValuePerItem = 10; // Default common
+
+    if (collectible) {
+        switch (collectible.rarity) {
+            case 'common': sellValuePerItem = 10; break;
+            case 'uncommon': sellValuePerItem = 20; break;
+            case 'rare': sellValuePerItem = 50; break;
+            case 'epic': sellValuePerItem = 100; break;
+            case 'legendary': sellValuePerItem = 250; break;
+            case 'mythic': sellValuePerItem = 500; break;
+            case 'divine': sellValuePerItem = 1000; break;
+        }
+    }
+
+    const totalSellValue = sellValuePerItem * amount;
+
+    data.stars.balance += totalSellValue;
+    data.stars.totalEarned += totalSellValue;
 
     const transaction: StarTransaction = {
         id: Date.now().toString(),
-        amount: sellValue,
+        amount: totalSellValue,
         type: 'earn',
-        reason: `Sold ${collectible?.name || 'Item'}`,
+        reason: `Sold ${amount}x ${collectible?.name || 'Item'}`,
         timestamp: Date.now()
     };
     data.transactionHistory.unshift(transaction);
 
     await saveMarketplaceData(userId, data);
-    dispatchStarUpdate(data.stars.balance, sellValue, `Sold ${collectible?.name || 'Item'}`);
+    dispatchStarUpdate(data.stars.balance, totalSellValue, `Sold ${amount}x ${collectible?.name || 'Item'}`);
 
-    return sellValue;
+    return totalSellValue;
 };
 
 export const addStars = async (userId: string, amount: number, reason: string): Promise<number> => {

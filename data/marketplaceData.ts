@@ -74,7 +74,7 @@ export const PACKS: Pack[] = [
         name: 'Designer Pack',
         tier: 'elite',
         cost: 200,
-        description: 'Premium single item - guaranteed Legendary or Mythic collectible',
+        description: 'Premium single item - guaranteed Legendary+ collectible',
         rewards: {
             minStars: 0,
             maxStars: 0,
