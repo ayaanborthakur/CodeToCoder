@@ -7,8 +7,43 @@ import {
     DailyChallenge,
     StarTransaction,
     Collectible,
-    Rarity
+    Rarity,
+    Difficulty
 } from '../types';
+
+// Star reward base amounts
+export const STAR_REWARDS = {
+    lesson: 10,
+    quiz: 15,
+    practice: 20,
+    project: 50,
+    badge: 30,
+    dailyChallenge: 25
+};
+
+// Difficulty multipliers
+const DIFFICULTY_MULTIPLIERS: Record<Difficulty, number> = {
+    'Easy': 1,
+    'Medium': 1.5,
+    'Hard': 2
+};
+
+/**
+ * Calculate star reward based on activity type and difficulty
+ */
+export const calculateStarReward = (
+    activityType: keyof typeof STAR_REWARDS,
+    difficulty?: Difficulty
+): number => {
+    let baseReward = STAR_REWARDS[activityType];
+
+    // Apply difficulty multiplier
+    if (difficulty && activityType !== 'badge' && activityType !== 'dailyChallenge') {
+        baseReward *= DIFFICULTY_MULTIPLIERS[difficulty];
+    }
+
+    return Math.floor(baseReward);
+};
 import { PACKS } from '../data/marketplaceData';
 import { DAILY_CHALLENGES } from '../data/dailyChallengesData';
 import { COLLECTIBLES } from '../data/collectiblesData';
