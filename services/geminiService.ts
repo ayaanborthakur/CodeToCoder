@@ -81,8 +81,10 @@ const retryOperation = async <T>(operation: () => Promise<T>, retries = 1, delay
     }
 };
 
-export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | null, isHardMode: boolean = false): Promise<string> => {
+export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | null, code: string = '', isHardMode: boolean = false): Promise<string> => {
     let systemInstruction = '';
+
+    const codeContext = code ? `\n\nCURRENT USER CODE:\n\`\`\`python\n${code}\n\`\`\`` : '\n\nCURRENT USER CODE: (None provided)';
 
     if (lesson) {
         const commonMistakesContext = lesson.commonMistakes ? `\nCommon Mistakes to watch out for:\n${lesson.commonMistakes}` : '';
@@ -102,7 +104,8 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
            ---
            ${lesson.content}
            ---
-           ${commonMistakesContext}`
+           ${commonMistakesContext}
+           ${codeContext}`
             : `You are CodeToCoder AI, a supportive Socratic Tutor for Python beginners. 
            
            YOUR GOAL: Guide the user to the solution, but NEVER provide the full code answer directly.
@@ -124,7 +127,8 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
            ---
            ${lesson.content}
            ---
-           ${commonMistakesContext}`;
+           ${commonMistakesContext}
+           ${codeContext}`;
     } else {
         // Playground Mode
         systemInstruction = `You are CodeToCoder AI, an expert Python assistant in Playground Mode.
@@ -133,7 +137,9 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
       - Help debug code snippets provided by the user.
       - Provide code examples and explanations using Markdown.
       - Always use python code blocks for code snippets.
-      - Be helpful, encouraging, and concise.`;
+      - Be helpful, encouraging, and concise.
+      
+      ${codeContext}`;
     }
 
     try {

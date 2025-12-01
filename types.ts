@@ -105,7 +105,7 @@ export interface StarTransaction {
   timestamp: number;
 }
 
-export type PackTier = 'starter' | 'premium' | 'elite';
+export type PackTier = 'starter' | 'premium' | 'elite' | 'developer' | 'designer';
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic' | 'divine';
 
 export interface Collectible {

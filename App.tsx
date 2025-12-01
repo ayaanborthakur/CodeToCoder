@@ -773,7 +773,7 @@ const App: React.FC = () => {
             }
 
             // Pass the *updated* history (local variable) to the AI service
-            const response = await getChatResponse(historyForAI, isPlayground ? null : lessonContext, isHardMode);
+            const response = await getChatResponse(historyForAI, isPlayground ? null : lessonContext, activeCode, isHardMode);
 
             if (isPlayground && activePlaygroundFileId) {
                 // Append model response to history

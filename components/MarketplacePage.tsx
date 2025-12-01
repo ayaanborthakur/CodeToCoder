@@ -169,6 +169,81 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                 </div>
             )}
 
+            {/* Pack-Specific Drop Rates Modal */}
+            {showPackDropRates && (() => {
+                const pack = PACKS.find(p => p.id === showPackDropRates);
+                if (!pack) return null;
+
+                const getPackDropRates = () => {
+                    if (pack.tier === 'designer') {
+                        return [
+                            { rarity: 'Legendary', rate: '60%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
+                            { rarity: 'Mythic', rate: '35%', color: 'text-red-500', border: 'border-red-900/30' },
+                            { rarity: 'Divine', rate: '5%', color: 'text-cyan-300', border: 'border-cyan-900/30' },
+                        ];
+                    } else if (pack.tier === 'developer') {
+                        return [
+                            { rarity: 'Common', rate: '30%', color: 'text-slate-400', border: 'border-slate-800' },
+                            { rarity: 'Uncommon', rate: '30%', color: 'text-green-400', border: 'border-green-900/30' },
+                            { rarity: 'Rare', rate: '25%', color: 'text-blue-400', border: 'border-blue-900/30' },
+                            { rarity: 'Epic', rate: '10%', color: 'text-purple-400', border: 'border-purple-900/30' },
+                            { rarity: 'Legendary', rate: '5%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
+                        ];
+                    } else if (pack.tier === 'elite') {
+                        return [
+                            { rarity: 'Epic', rate: '50%', color: 'text-purple-400', border: 'border-purple-900/30' },
+                            { rarity: 'Legendary', rate: '30%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
+                            { rarity: 'Mythic', rate: '15%', color: 'text-red-500', border: 'border-red-900/30' },
+                            { rarity: 'Divine', rate: '5%', color: 'text-cyan-300', border: 'border-cyan-900/30' },
+                        ];
+                    } else if (pack.tier === 'premium') {
+                        return [
+                            { rarity: 'Common', rate: '50%', color: 'text-slate-400', border: 'border-slate-800' },
+                            { rarity: 'Uncommon', rate: '5%', color: 'text-green-400', border: 'border-green-900/30' },
+                            { rarity: 'Rare', rate: '25%', color: 'text-blue-400', border: 'border-blue-900/30' },
+                            { rarity: 'Epic', rate: '15%', color: 'text-purple-400', border: 'border-purple-900/30' },
+                            { rarity: 'Legendary', rate: '4%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
+                            { rarity: 'Mythic', rate: '1%', color: 'text-red-500', border: 'border-red-900/30' },
+                        ];
+                    } else {
+                        return [
+                            { rarity: 'Common', rate: '50%', color: 'text-slate-400', border: 'border-slate-800' },
+                            { rarity: 'Uncommon', rate: '30%', color: 'text-green-400', border: 'border-green-900/30' },
+                            { rarity: 'Rare', rate: '15%', color: 'text-blue-400', border: 'border-blue-900/30' },
+                            { rarity: 'Epic', rate: '5%', color: 'text-purple-400', border: 'border-purple-900/30' },
+                        ];
+                    }
+                };
+
+                const rates = getPackDropRates();
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowPackDropRates(null)}>
+                        <div className="bg-surface border border-border-default rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-text-primary">{pack.name} Drop Rates</h3>
+                                <button onClick={() => setShowPackDropRates(null)} className="text-text-secondary hover:text-text-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {rates.map(({ rarity, rate, color, border }) => (
+                                    <div key={rarity} className={`flex items-center justify-between p-3 bg-surface-highlight rounded-lg border ${border}`}>
+                                        <span className={`font-bold ${color} ${(rarity === 'Mythic' || rarity === 'Divine') ? 'animate-pulse' : ''}`}>{rarity}</span>
+                                        <span className="font-mono text-text-primary">{rate}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="mt-4 text-xs text-text-secondary text-center">
+                                {pack.id === 'designer_pack' ? 'Guaranteed premium collectibles!' : `${pack.name} specific drop rates`}
+                            </p>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* New Collectible Modal */}
             {newCollectibles.length > 0 && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -231,7 +306,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                                 <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                 <div className="text-5xl font-black text-text-primary font-mono flex items-center gap-4 justify-center">
                                     <span className="text-4xl animate-pulse text-yellow-500">★</span>
-                                    <span className="bg-gradient-to-r from-text-primary to-text-secondary bg-clip-text text-transparent">{stars.balance.toLocaleString()}</span>
+                                    <span className="text-text-primary">{stars.balance.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
@@ -366,14 +441,18 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                             return (
                                 <div
                                     key={pack.id}
-                                    className={`relative bg-surface rounded-2xl shadow-lg border-2 ${pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
-                                        pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
-                                            'border-border-default hover:border-cyan-400 hover:shadow-cyan-500/20'
+                                    className={`relative bg-surface rounded-2xl shadow-lg border-2 ${pack.tier === 'designer' ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20' :
+                                        pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
+                                            pack.tier === 'developer' ? 'border-green-500/50 hover:border-green-400 hover:shadow-green-500/20' :
+                                                pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
+                                                    'border-border-default hover:border-cyan-400 hover:shadow-cyan-500/20'
                                         } p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group overflow-hidden`}
                                 >
-                                    <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'elite' ? 'from-purple-500/10' :
-                                        pack.tier === 'premium' ? 'from-blue-500/10' :
-                                            'from-cyan-500/10'
+                                    <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'designer' ? 'from-yellow-500/10' :
+                                        pack.tier === 'elite' ? 'from-purple-500/10' :
+                                            pack.tier === 'developer' ? 'from-green-500/10' :
+                                                pack.tier === 'premium' ? 'from-blue-500/10' :
+                                                    'from-cyan-500/10'
                                         } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
                                     <div className="relative z-10">
@@ -394,16 +473,19 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
                                         <div className="space-y-3 mb-8">
                                             {pack.rewards.collectibles && (
-                                                <div className={`flex items-center gap-3 bg-surface-highlight/50 rounded-xl p-4 border border-border-default transition-colors ${pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
-                                                    pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
-                                                        'text-text-secondary group-hover:border-border-default/30'
+                                                <div className={`flex items-center gap-3 bg-surface-highlight/50 rounded-xl p-4 border border-border-default transition-colors ${pack.tier === 'designer' ? 'text-yellow-300 group-hover:border-yellow-500/30' :
+                                                    pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
+                                                        pack.tier === 'developer' ? 'text-green-300 group-hover:border-green-500/30' :
+                                                            pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
+                                                                'text-text-secondary group-hover:border-border-default/30'
                                                     }`}>
                                                     <span className="text-xl">💎</span>
                                                     <span className="font-bold">
-                                                        {pack.id === 'designer_pack' ? 'Guaranteed Legendary+' :
+                                                        {pack.tier === 'designer' ? 'Guaranteed Legendary+' :
                                                             pack.tier === 'elite' ? 'Guaranteed Epic+' :
-                                                                pack.tier === 'premium' ? 'High Rare Chance' :
-                                                                    'Common Collectibles'}
+                                                                pack.tier === 'developer' ? 'Balanced Mix' :
+                                                                    pack.tier === 'premium' ? 'High Rare Chance' :
+                                                                        'Common Collectibles'}
                                                     </span>
                                                 </div>
                                             )}

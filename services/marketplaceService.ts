@@ -117,6 +117,16 @@ export const getMarketplaceData = async (userId: string): Promise<MarketplaceDat
                 await saveMarketplaceData(userId, data);
             }
 
+            // Ensure stars object exists (robustness check)
+            if (!data.stars) {
+                data.stars = {
+                    balance: 0,
+                    totalEarned: 0,
+                    totalSpent: 0,
+                    lastUpdated: Date.now()
+                };
+            }
+
             // Migration: Initialize completedActivities if it doesn't exist
             if (!data.completedActivities) {
                 data.completedActivities = {
@@ -213,36 +223,36 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
             let rarity: Rarity = 'common';
             const rarityRoll = Math.random();
 
-            // Special case for Designer Pack - only Legendary, Mythic, or Divine
-            if (pack.id === 'designer_pack') {
-                // 40% Legendary, 30% Mythic, 30% Divine
-                if (rarityRoll < 0.30) rarity = 'divine';
-                else if (rarityRoll < 0.60) rarity = 'mythic';
+            // Determine rarity based on pack tier with weighted probabilities
+            if (pack.tier === 'designer') {
+                // Designer: 60% Legendary, 35% Mythic, 5% Divine
+                if (rarityRoll < 0.05) rarity = 'divine';
+                else if (rarityRoll < 0.40) rarity = 'mythic';
                 else rarity = 'legendary';
+            } else if (pack.tier === 'developer') {
+                // Developer: 30% Common, 30% Uncommon, 25% Rare, 10% Epic, 5% Legendary
+                if (rarityRoll < 0.05) rarity = 'legendary';
+                else if (rarityRoll < 0.15) rarity = 'epic';
+                else if (rarityRoll < 0.40) rarity = 'rare';
+                else if (rarityRoll < 0.70) rarity = 'uncommon';
+                else rarity = 'common';
             } else if (pack.tier === 'elite') {
-                // Elite Pack: Guaranteed Epic or better
-                // 50% Epic, 30% Legendary, 15% Mythic, 5% Divine
+                // Elite: 50% Epic, 30% Legendary, 15% Mythic, 5% Divine
                 if (rarityRoll < 0.05) rarity = 'divine';
                 else if (rarityRoll < 0.20) rarity = 'mythic';
                 else if (rarityRoll < 0.50) rarity = 'legendary';
                 else rarity = 'epic';
             } else if (pack.tier === 'premium') {
-                // Premium Pack: Higher chance for rare/epic
-                // 40% Common, 30% Uncommon, 15% Rare, 10% Epic, 4% Legendary, 0.5% Mythic, 0.5% Divine
-                if (rarityRoll < 0.005) rarity = 'divine';
-                else if (rarityRoll < 0.01) rarity = 'mythic';
+                // Premium: 50% Common, 5% Uncommon, 25% Rare, 15% Epic, 4% Legendary, 1% Mythic
+                if (rarityRoll < 0.01) rarity = 'mythic';
                 else if (rarityRoll < 0.05) rarity = 'legendary';
-                else if (rarityRoll < 0.15) rarity = 'epic';
-                else if (rarityRoll < 0.30) rarity = 'rare';
-                else if (rarityRoll < 0.60) rarity = 'uncommon';
+                else if (rarityRoll < 0.20) rarity = 'epic';
+                else if (rarityRoll < 0.45) rarity = 'rare';
+                else if (rarityRoll < 0.50) rarity = 'uncommon';
                 else rarity = 'common';
             } else {
-                // Starter Pack: Standard distribution
-                // 50% Common, 30% Uncommon, 12% Rare, 5% Epic, 2% Legendary, 0.5% Mythic, 0.5% Divine
-                if (rarityRoll < 0.005) rarity = 'divine';
-                else if (rarityRoll < 0.01) rarity = 'mythic';
-                else if (rarityRoll < 0.03) rarity = 'legendary';
-                else if (rarityRoll < 0.08) rarity = 'epic';
+                // Starter: 50% Common, 30% Uncommon, 15% Rare, 5% Epic
+                if (rarityRoll < 0.05) rarity = 'epic';
                 else if (rarityRoll < 0.20) rarity = 'rare';
                 else if (rarityRoll < 0.50) rarity = 'uncommon';
                 else rarity = 'common';
