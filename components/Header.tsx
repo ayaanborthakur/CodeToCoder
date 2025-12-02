@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
           </button>
 
           <nav className="hidden md:flex items-center gap-2 ml-4">
-            <NavLink view="home" label="Home" />
+            {user && <NavLink view="home" label="Home" />}
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-20 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 space-y-2 shadow-lg animate-slide-up">
-            <NavLink view="home" label="Home" />
+            {user && <NavLink view="home" label="Home" />}
             <NavLink view="classroom" label="Classroom" />
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />

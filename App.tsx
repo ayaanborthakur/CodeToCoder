@@ -89,7 +89,7 @@ const App: React.FC = () => {
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
     const [theme, setTheme] = useTheme();
 
-    const [currentView, setCurrentView] = useState<ViewState | 'marketplace'>('home');
+    const [currentView, setCurrentView] = useState<ViewState | 'marketplace'>('mission');
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
@@ -256,13 +256,13 @@ const App: React.FC = () => {
 
     // Auth-based Routing Logic
 
-    // 1. Protect Home from Guests (Always enforce)
-    useEffect(() => {
-        if (isAuthLoading) return;
-        if (!user && currentView === 'home') {
-            setCurrentView('mission');
-        }
-    }, [user, isAuthLoading, currentView]);
+    // 1. Protect Home from Guests (Always enforce) - REMOVED to allow guest navigation
+    // useEffect(() => {
+    //     if (isAuthLoading) return;
+    //     if (!user && currentView === 'home') {
+    //         setCurrentView('mission');
+    //     }
+    // }, [user, isAuthLoading, currentView]);
 
     // 2. Redirect to Home on Login (Only trigger on user change)
     useEffect(() => {
@@ -557,8 +557,12 @@ const App: React.FC = () => {
     }, [currentView]);
 
     const handleSelectLesson = useCallback((moduleId: string, lessonId: string) => {
+        if (!user) {
+            handleOpenAuth();
+            return;
+        }
         changeLesson(moduleId, lessonId, false);
-    }, [changeLesson]);
+    }, [changeLesson, user, handleOpenAuth]);
 
     const advanceToNextLesson = useCallback(() => {
         const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
@@ -833,10 +837,14 @@ const App: React.FC = () => {
     }, [currentLesson, markLessonAsIncomplete, currentView, activePlaygroundFileId, updateFile, activePracticeItem, user, getStorageKey]);
 
     const handlePlaygroundNew = useCallback((name: string) => {
+        if (!user) {
+            handleOpenAuth();
+            return;
+        }
         const newFile = createFile(name);
         setActivePlaygroundFileId(newFile.id);
         setPlaygroundView('editor');
-    }, [createFile]);
+    }, [createFile, user, handleOpenAuth]);
 
     const handlePlaygroundOpen = useCallback((fileId: string) => {
         setActivePlaygroundFileId(fileId);
@@ -1152,7 +1160,13 @@ const App: React.FC = () => {
                             />
                         ) : (
                             <PracticeDashboard
-                                onSelectItem={setActivePracticeItem}
+                                onSelectItem={(item) => {
+                                    if (!user) {
+                                        handleOpenAuth();
+                                        return;
+                                    }
+                                    setActivePracticeItem(item);
+                                }}
                                 completedItems={completedPracticeItems}
                                 currentType={practiceCategory}
                                 onSelectType={setPracticeCategory}
