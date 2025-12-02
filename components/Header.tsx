@@ -75,7 +75,6 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="marketplace" label="Market" />
             <NavLink view="collection" label="Collection" />
             <NavLink view="reference" label="Reference" />
-            <NavLink view="mission" label="Mission" />
           </nav>
         </div>
 
@@ -132,7 +131,6 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="marketplace" label="Market" />
             <NavLink view="collection" label="Collection" />
             <NavLink view="reference" label="Reference" />
-            <NavLink view="mission" label="Mission" />
             {!user && (
               <button
                 onClick={() => { onOpenAuth(); setIsMobileMenuOpen(false); }}

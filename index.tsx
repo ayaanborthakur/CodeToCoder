@@ -2,6 +2,7 @@
 import React from 'react';
 import * as ReactDOMClient from 'react-dom/client';
 import App from './App';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
 const container = document.getElementById('root');
@@ -16,7 +17,9 @@ if (container && createRoot) {
     root.render(
       <React.StrictMode>
         <AuthProvider>
+          <BrowserRouter>
             <App />
+          </BrowserRouter>
         </AuthProvider>
       </React.StrictMode>
     );
@@ -27,6 +30,6 @@ if (container && createRoot) {
 } else {
   console.error("Failed to initialize application. Root element missing or createRoot could not be resolved.");
   if (container) {
-     container.innerHTML = '<div style="color:red; padding: 20px;">Failed to initialize application. Root element missing or createRoot could not be resolved.</div>';
+    container.innerHTML = '<div style="color:red; padding: 20px;">Failed to initialize application. Root element missing or createRoot could not be resolved.</div>';
   }
 }

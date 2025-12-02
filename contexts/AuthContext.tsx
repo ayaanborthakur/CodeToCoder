@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { logLogout } = await import('../services/analyticsService');
     logLogout();
     // Force a hard reload to ensure all application state is reset
-    window.location.reload();
+    window.location.href = '/';
   };
 
   const deleteAccount = async () => {
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { logAccountDelete } = await import('../services/analyticsService');
     logAccountDelete();
     // Force a hard reload to ensure all application state is reset
-    window.location.reload();
+    window.location.href = '/';
   };
 
   return (

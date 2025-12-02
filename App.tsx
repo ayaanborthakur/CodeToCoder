@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams, useMatch } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
@@ -88,8 +89,23 @@ const App: React.FC = () => {
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
     const [theme, setTheme] = useTheme();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    const [currentView, setCurrentView] = useState<ViewState | 'marketplace'>('mission');
+    const currentView = useMemo(() => {
+        const path = location.pathname;
+        if (path === '/' || path === '/home') return 'home';
+        if (path.startsWith('/mission')) return 'mission';
+        if (path.startsWith('/classroom')) return 'classroom';
+        if (path.startsWith('/playground')) return 'playground';
+        if (path.startsWith('/practice')) return 'practice';
+        if (path.startsWith('/profile')) return 'profile';
+        if (path.startsWith('/marketplace')) return 'marketplace';
+        if (path.startsWith('/collection')) return 'collection';
+        if (path.startsWith('/reference')) return 'reference';
+        return 'home';
+    }, [location.pathname]);
+
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
@@ -264,11 +280,11 @@ const App: React.FC = () => {
     //     }
     // }, [user, isAuthLoading, currentView]);
 
-    // 2. Redirect to Home on Login (Only trigger on user change)
+    // 2. Redirect to Dashboard on Login (Only trigger on user change)
     useEffect(() => {
         if (isAuthLoading) return;
         if (user && currentView === 'mission') {
-            setCurrentView('home');
+            navigate('/dashboard');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isAuthLoading]);
@@ -491,6 +507,58 @@ const App: React.FC = () => {
         else if (currentView === 'practice' && activePracticeItem) setActiveBottomTab('lesson');
     }, [currentView, activePracticeItem]);
 
+    // URL Matchers
+    const classroomMatch = useMatch('/classroom/:moduleId/:lessonId');
+    const playgroundMatch = useMatch('/playground/:fileId');
+
+    // Sync Playground URL
+    useEffect(() => {
+        if (playgroundMatch) {
+            const { fileId } = playgroundMatch.params;
+            if (fileId && fileId !== activePlaygroundFileId) {
+                setActivePlaygroundFileId(fileId);
+                setPlaygroundView('editor');
+            }
+        } else if (location.pathname === '/playground') {
+            setPlaygroundView('dashboard');
+            setActivePlaygroundFileId(null);
+        }
+    }, [playgroundMatch, location.pathname, activePlaygroundFileId]);
+
+    const loadLesson = useCallback((moduleId: string, lessonId: string) => {
+        const module = LESSON_PLAN.find(m => m.id === moduleId);
+        const lesson = module?.lessons.find(l => l.id === lessonId);
+        if (lesson) {
+            let savedCode: string | null = null;
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    const autosaveKey = user ? `codetocoder_autosave_lesson_${lessonId}_${user.id}` : `codetocoder_autosave_lesson_${lessonId}`;
+                    savedCode = window.localStorage.getItem(autosaveKey);
+                }
+            } catch (e) {
+                console.warn('Failed to load saved lesson', e);
+            }
+            const finalCode = savedCode !== null ? savedCode : lesson.startingCode;
+            setCode(finalCode);
+            loadedCodeRef.current = finalCode;
+            setLintIssues([]);
+            setSaveStatus('saved');
+
+            setCurrentModuleId(moduleId);
+            setCurrentLessonId(lessonId);
+        }
+    }, [user]);
+
+    // Sync URL to State
+    useEffect(() => {
+        if (classroomMatch) {
+            const { moduleId, lessonId } = classroomMatch.params;
+            if (moduleId && lessonId && (moduleId !== currentModuleId || lessonId !== currentLessonId)) {
+                loadLesson(moduleId, lessonId);
+            }
+        }
+    }, [classroomMatch, currentModuleId, currentLessonId, loadLesson]);
+
     const changeLesson = useCallback((moduleId: string, lessonId: string, force: boolean = false) => {
         if (!force && currentLessonId && loadedCodeRef.current !== null && code !== loadedCodeRef.current) {
             if (!window.confirm("You have unsaved changes. Do you want to save them and switch lessons?")) return;
@@ -508,53 +576,38 @@ const App: React.FC = () => {
             }
         }
 
-        const module = LESSON_PLAN.find(m => m.id === moduleId);
-        const lesson = module?.lessons.find(l => l.id === lessonId);
-        if (lesson) {
-            let savedCode: string | null = null;
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    const autosaveKey = getStorageKey('lesson', lessonId);
-                    savedCode = window.localStorage.getItem(autosaveKey);
-                }
-            } catch (e) {
-                console.warn('Failed to load saved lesson', e);
-            }
-            const finalCode = savedCode !== null ? savedCode : lesson.startingCode;
-            setCode(finalCode);
-            loadedCodeRef.current = finalCode;
-            setLintIssues([]);
-            setSaveStatus('saved');
-        }
-        setCurrentModuleId(moduleId);
-        setCurrentLessonId(lessonId);
+        // Navigate to the new URL - the useEffect above will handle loading the data
+        navigate(`/classroom/${moduleId}/${lessonId}`);
 
         // On mobile, close nav after selection
         if (isMobile) {
             setIsNavOpen(false);
         }
-    }, [code, currentLessonId, user, isMobile, getStorageKey]);
+    }, [code, currentLessonId, user, isMobile, getStorageKey, navigate]);
 
     const handleNavigate = useCallback((view: ViewState) => {
         if (view === 'classroom') {
             // Reset to landing page state
             setCurrentLessonId(null);
             setCurrentLesson(null);
+            navigate('/classroom');
+            return;
         }
+
         // Only reset practice category when leaving practice entirely
         if (currentView === 'practice' && view !== 'practice') {
-            // We keep the state activePracticeItem null, but category can stay or clear?
-            // Request said "back button... to selection of quizzes/projects...".
-            // If we leave practice entirely, maybe reset category.
             setPracticeCategory(null);
         }
-        setCurrentView(view);
+
+        if (view === 'home') navigate('/dashboard');
+        else if (view === 'mission') navigate('/');
+        else navigate(`/${view}`);
 
         // Log page view analytics
         import('./services/analyticsService').then(({ logPageView }) => {
             logPageView(view);
         });
-    }, [currentView]);
+    }, [currentView, navigate]);
 
     const handleSelectLesson = useCallback((moduleId: string, lessonId: string) => {
         if (!user) {
@@ -1065,6 +1118,287 @@ const App: React.FC = () => {
 
     const currentVideoUrl = (activeContentItem) ? (lessonVideos[activeContentItem.id] || null) : null;
 
+    const renderIdeView = () => (
+        <main className="flex flex-col md:flex-row h-full w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-hidden relative">
+            {isResetModalOpen && (
+                <ConfirmationModal
+                    isOpen={isResetModalOpen}
+                    onClose={() => setIsResetModalOpen(false)}
+                    onConfirm={handleConfirmReset}
+                    title={currentView === 'playground' ? "Clear Code?" : "Are you sure you want to reset?"}
+                    message={currentView === 'playground' ? "Your current code will be cleared." : "Your code will be lost. This will also remove your star for this lesson."}
+                />
+            )}
+            {completedModuleBannerInfo && (
+                <ModuleCompletionBanner
+                    moduleTitle={completedModuleBannerInfo.title}
+                    onClose={() => setCompletedModuleBannerInfo(null)}
+                />
+            )}
+            {showCompletionModal && <CompletionModal onClose={() => setShowCompletionModal(false)} />}
+
+            {(isClassroom) && (
+                <>
+                    {/* Mobile Navigation Overlay */}
+                    {isMobile && isNavOpen && (
+                        <div
+                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+                            onClick={() => setIsNavOpen(false)}
+                        />
+                    )}
+
+                    <aside
+                        style={{
+                            width: isMobile ? '80%' : (showSidebar ? `${panelSizes.nav}%` : 'auto'),
+                            maxWidth: isMobile ? '300px' : 'none',
+                            // Update height and top to match new header height (5rem/80px)
+                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
+                            top: isMobile ? '5rem' : '0'
+                        }}
+                        className={`
+            bg-gray-50 dark:bg-gray-900 flex flex-col 
+            transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800
+            ${isMobile
+                                ? `fixed left-0 z-40 transform ${isNavOpen ? 'translate-x-0' : '-translate-x-full'}`
+                                : 'relative h-full flex-shrink-0'
+                            }
+            ${!showSidebar && !isMobile ? 'hidden' : ''}
+        `}
+                    >
+                        <div className={`h-12 px-4 flex items-center justify-between flex-shrink-0 border-b border-gray-200 dark:border-gray-800`}>
+                            <div className="flex items-center gap-2">
+                                <HamburgerIcon onClick={() => setIsNavOpen(!isNavOpen)} isOpen={isNavOpen} />
+                                {showSidebar && (
+                                    <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
+                                )}
+                            </div>
+                            {showSidebar && (
+                                <button
+                                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                                    className={`p-1.5 rounded-md transition-colors ${isSettingsOpen ? 'bg-gray-200 dark:bg-gray-700 text-cyan-600 dark:text-cyan-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                    aria-label="Toggle settings"
+                                >
+                                    <SettingsIcon className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+                        {showSidebar && (
+                            <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
+                                <div className="flex-1 overflow-y-auto">
+                                    <NavigationPanel
+                                        modules={LESSON_PLAN}
+                                        currentLessonId={currentLessonId || ''}
+                                        onSelectLesson={handleSelectLesson}
+                                        completedLessons={completedLessons}
+                                    />
+                                </div>
+                                <SettingsModal
+                                    isOpen={isSettingsOpen}
+                                    onClose={() => setIsSettingsOpen(false)}
+                                    theme={theme}
+                                    setTheme={setTheme}
+                                    isHardMode={isHardMode}
+                                    setIsHardMode={setIsHardMode}
+                                />
+                            </div>
+                        )}
+                    </aside>
+                </>
+            )}
+
+            {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
+
+            <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
+                {/* Mobile Curriculum Trigger (When Nav is hidden) */}
+                {isClassroom && isMobile && !isNavOpen && (
+                    <button
+                        onClick={() => setIsNavOpen(true)}
+                        className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
+                        aria-label="Open Curriculum"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                )}
+
+                {(isClassroom && !currentLessonId) ? (
+                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-8 text-center animate-fade-in h-full">
+                        <div className="max-w-md space-y-6">
+                            <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-6">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                                </svg>
+                            </div>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to the Classroom</h2>
+                            <p className="text-lg">
+                                Select a module from the sidebar on the left to start your lesson.
+                            </p>
+                            <div className="flex justify-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-bounce-x">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                                </svg>
+                                <span>Pick a lesson</span>
+                            </div>
+                        </div>
+                        <style>{`
+            @keyframes bounce-x {
+                0%, 100% { transform: translateX(0); }
+                50% { transform: translateX(-25%); }
+            }
+            .animate-bounce-x {
+                animation: bounce-x 1s infinite;
+            }
+        `}</style>
+                    </div>
+                ) : isQuizMode && activeContentItem ? (
+                    <div className="h-full flex flex-col">
+                        {isPracticeQuiz && (
+                            <div className="h-12 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between">
+                                <button
+                                    onClick={() => setActivePracticeItem(null)}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                                    </svg>
+                                    Back
+                                </button>
+                                <h2 className="font-bold text-gray-800 dark:text-gray-200 text-sm mr-4">{activeContentItem.title}</h2>
+                            </div>
+                        )}
+                        <QuizPanel
+                            questions={activeContentItem.quizQuestions || []}
+                            onComplete={handleQuizComplete}
+                            isCollapsed={false}
+                            onToggleCollapse={() => { }}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        <div
+                            style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
+                            className={`flex flex-col transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
+                        >
+                            <IdePanel
+                                code={activeCode}
+                                setCode={activeSetCode}
+                                onRunCode={activeRunCode}
+                                isLoading={isTerminalLoading}
+                                onResetCode={handleResetCode}
+                                onGetHelp={handleGetHelp}
+                                isCollapsed={panelsCollapsed.ide}
+                                onToggleCollapse={() => handleToggleCollapse('ide')}
+                                onExportCode={(isPlayground || isPractice) ? handleExportCode : undefined}
+                                onImportCode={(isPlayground || isPractice) ? handleImportCode : undefined}
+                                resetButtonLabel={isPlayground ? "Clear" : "Reset"}
+                                lintIssues={lintIssues}
+                                saveStatus={saveStatus}
+                                fileName={isPlayground ? activePlaygroundFile?.name : (isPractice ? activePracticeItem?.title : undefined)}
+                                onFileNameChange={isPlayground && activePlaygroundFileId ? (newName) => updateFile(activePlaygroundFileId, { name: newName }) : undefined}
+                                onBackToDashboard={isPlayground ? () => {
+                                    setPlaygroundView('dashboard');
+                                    navigate('/playground');
+                                } : isPractice ? () => {
+                                    setActivePracticeItem(null);
+                                    navigate('/practice');
+                                } : undefined}
+                                backButtonLabel={isPlayground ? "Files" : (isPractice ? "Back" : undefined)}
+                                enableAutocomplete={isPlayground && isPlaygroundAutocompleteEnabled}
+                                onToggleAutocomplete={isPlayground ? () => setIsPlaygroundAutocompleteEnabled(prev => !prev) : undefined}
+                            />
+                        </div>
+
+                        {!panelsCollapsed.ide && !panelsCollapsed.bottom && !isMobile && <Resizer direction="vertical" onMouseDown={(e) => handleMouseDown('ide', e)} />}
+
+                        <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
+                            <BottomPanel
+                                lesson={activeContentItem}
+                                isCompleted={isClassroom && activeLesson ? completedLessons.has(activeLesson.id) : (isPractice && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
+                                terminalOutput={activeTerminalOutput}
+                                isTerminalLoading={isTerminalLoading}
+                                isCollapsed={panelsCollapsed.bottom}
+                                onToggleCollapse={() => handleToggleCollapse('bottom')}
+                                activeTab={activeBottomTab}
+                                onTabChange={setActiveBottomTab}
+                                videoUrl={currentVideoUrl}
+                                isVideoGenerating={isVideoGenerating}
+                                onGenerateVideo={handleGenerateVideo}
+                                showReference={isPlayground}
+                            />
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {showChatPanel && (
+                <>
+                    {!panelsCollapsed.chat && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('chat', e)} />}
+
+                    {/* Mobile Chat Overlay */}
+                    {isMobile && !panelsCollapsed.chat && (
+                        <div
+                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+                            onClick={() => handleToggleCollapse('chat')}
+                        />
+                    )}
+
+                    <aside
+                        style={{
+                            width: isMobile ? '85%' : (panelsCollapsed.chat ? 'auto' : `${panelSizes.chat}%`),
+                            maxWidth: isMobile ? '350px' : 'none',
+                            // Update height and top to match new header height (5rem/80px)
+                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
+                            top: isMobile ? '5rem' : '0'
+                        }}
+                        className={`
+            bg-gray-50 dark:bg-gray-900 flex flex-col 
+            transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800
+            ${!panelsCollapsed.chat ? 'min-w-[250px]' : ''}
+            ${isMobile
+                                ? `fixed right-0 z-40 transform ${!panelsCollapsed.chat ? 'translate-x-0' : 'translate-x-full'}`
+                                : 'relative h-full flex-shrink-0'
+                            }
+        `}
+                    >
+                        {/* Mobile Chat Toggle */}
+                        {isMobile && panelsCollapsed.chat && !isQuizMode && (
+                            <button
+                                onClick={() => handleToggleCollapse('chat')}
+                                className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
+                                aria-label="Open AI Chat"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+                                </svg>
+                            </button>
+                        )}
+
+                        {isClassroomQuiz ? (
+                            <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
+                                <div className="p-6 rounded-full bg-gray-900 mb-4">
+                                    <LockIcon className="w-12 h-12 text-gray-500" />
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
+                                <p className="text-sm text-center px-6 mt-2">
+                                    The AI assistant is disabled during classroom quizzes to test your knowledge.
+                                </p>
+                            </div>
+                        ) : (
+                            <ChatPanel
+                                messages={activeChatHistory}
+                                onSendMessage={handleSendMessage}
+                                isLoading={isChatLoading}
+                                isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
+                                onToggleCollapse={() => handleToggleCollapse('chat')}
+                            />
+                        )}
+                    </aside>
+                </>
+            )}
+        </main>
+    );
+
     return (
         <>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
@@ -1111,43 +1445,49 @@ const App: React.FC = () => {
                 )}
 
                 <div className="flex-1 flex overflow-hidden relative">
-                    {currentView === 'home' ? (
-                        <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                            <HomePage
+                    <Routes>
+                        <Route path="/" element={
+                            <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                <MissionPage onStart={() => {
+                                    if (user) {
+                                        handleNavigate('classroom');
+                                    } else {
+                                        handleOpenAuth();
+                                    }
+                                }} onNavigate={handleNavigate} />
+                            </div>
+                        } />
+
+                        <Route path="/dashboard" element={
+                            <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                <HomePage
+                                    onNavigate={handleNavigate}
+                                    onSelectLesson={handleSelectLesson}
+                                    completedLessons={completedLessons}
+                                    playgroundFiles={playgroundFiles}
+                                    mostRecentPlaygroundFile={mostRecentPlaygroundFile}
+                                    onPlaygroundResume={handlePlaygroundResume}
+                                />
+                            </div>
+                        } />
+
+                        <Route path="/about" element={<AboutTeam onBack={() => handleNavigate('home')} />} />
+
+                        <Route path="/profile" element={
+                            <ProfilePage
+                                stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
+                                achievements={achievements}
                                 onNavigate={handleNavigate}
-                                onSelectLesson={handleSelectLesson}
-                                completedLessons={completedLessons}
-                                playgroundFiles={playgroundFiles}
-                                mostRecentPlaygroundFile={mostRecentPlaygroundFile}
-                                onPlaygroundResume={handlePlaygroundResume}
                             />
-                        </div>
-                    ) : currentView === 'mission' ? (
-                        <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                            <MissionPage onStart={() => {
-                                if (user) {
-                                    handleNavigate('classroom');
-                                } else {
-                                    handleOpenAuth();
-                                }
-                            }} onNavigate={handleNavigate} />
-                        </div>
-                    ) : currentView === 'about' ? (
-                        <AboutTeam onBack={() => handleNavigate('home')} />
-                    ) : currentView === 'profile' ? (
-                        <ProfilePage
-                            stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
-                            achievements={achievements}
-                            onNavigate={handleNavigate}
-                        />
-                    ) : currentView === 'marketplace' ? (
-                        <MarketplacePage onNavigate={handleNavigate} />
-                    ) : currentView === 'collection' ? (
-                        <CollectionPage onNavigate={handleNavigate} />
-                    ) : isReference ? (
-                        <ReferencePanel />
-                    ) : shouldShowDashboard ? (
-                        isPlayground ? (
+                        } />
+
+                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} />} />
+
+                        <Route path="/collection" element={<CollectionPage onNavigate={handleNavigate} />} />
+
+                        <Route path="/reference" element={<ReferencePanel />} />
+
+                        <Route path="/playground" element={
                             <PlaygroundDashboard
                                 files={playgroundFiles}
                                 onNewFile={handlePlaygroundNew}
@@ -1158,7 +1498,9 @@ const App: React.FC = () => {
                                 lastActiveFile={mostRecentPlaygroundFile}
                                 onResume={handlePlaygroundResume}
                             />
-                        ) : (
+                        } />
+
+                        <Route path="/practice" element={
                             <PracticeDashboard
                                 onSelectItem={(item) => {
                                     if (!user) {
@@ -1166,6 +1508,7 @@ const App: React.FC = () => {
                                         return;
                                     }
                                     setActivePracticeItem(item);
+                                    navigate(`/practice/${item.type}`);
                                 }}
                                 completedItems={completedPracticeItems}
                                 currentType={practiceCategory}
@@ -1173,282 +1516,16 @@ const App: React.FC = () => {
                                 customItems={customQuizzes}
                                 onAddCustomItem={addCustomQuiz}
                             />
-                        )
-                    ) : (
-                        <main className="flex flex-col md:flex-row h-full w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-hidden relative">
-                            {isResetModalOpen && (
-                                <ConfirmationModal
-                                    isOpen={isResetModalOpen}
-                                    onClose={() => setIsResetModalOpen(false)}
-                                    onConfirm={handleConfirmReset}
-                                    title={currentView === 'playground' ? "Clear Code?" : "Are you sure you want to reset?"}
-                                    message={currentView === 'playground' ? "Your current code will be cleared." : "Your code will be lost. This will also remove your star for this lesson."}
-                                />
-                            )}
-                            {completedModuleBannerInfo && (
-                                <ModuleCompletionBanner
-                                    moduleTitle={completedModuleBannerInfo.title}
-                                    onClose={() => setCompletedModuleBannerInfo(null)}
-                                />
-                            )}
-                            {showCompletionModal && <CompletionModal onClose={() => setShowCompletionModal(false)} />}
+                        } />
 
-                            {isClassroom && (
-                                <>
-                                    {/* Mobile Navigation Overlay */}
-                                    {isMobile && isNavOpen && (
-                                        <div
-                                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
-                                            onClick={() => setIsNavOpen(false)}
-                                        />
-                                    )}
+                        {/* IDE Views */}
+                        <Route path="/classroom/*" element={renderIdeView()} />
+                        <Route path="/playground/:fileId" element={renderIdeView()} />
+                        <Route path="/practice/:category" element={renderIdeView()} />
 
-                                    <aside
-                                        style={{
-                                            width: isMobile ? '80%' : (showSidebar ? `${panelSizes.nav}%` : 'auto'),
-                                            maxWidth: isMobile ? '300px' : 'none',
-                                            // Update height and top to match new header height (5rem/80px)
-                                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
-                                            top: isMobile ? '5rem' : '0'
-                                        }}
-                                        className={`
-                            bg-gray-50 dark:bg-gray-900 flex flex-col 
-                            transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800
-                            ${isMobile
-                                                ? `fixed left-0 z-40 transform ${isNavOpen ? 'translate-x-0' : '-translate-x-full'}`
-                                                : 'relative h-full flex-shrink-0'
-                                            }
-                        `}
-                                    >
-                                        <div className={`h-12 px-4 flex items-center justify-between flex-shrink-0 border-b border-gray-200 dark:border-gray-800`}>
-                                            <div className="flex items-center gap-2">
-                                                <HamburgerIcon onClick={() => setIsNavOpen(!isNavOpen)} isOpen={isNavOpen} />
-                                                {showSidebar && (
-                                                    <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
-                                                )}
-                                            </div>
-                                            {showSidebar && (
-                                                <button
-                                                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                                                    className={`p-1.5 rounded-md transition-colors ${isSettingsOpen ? 'bg-gray-200 dark:bg-gray-700 text-cyan-600 dark:text-cyan-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                                    aria-label="Toggle settings"
-                                                >
-                                                    <SettingsIcon className="w-5 h-5" />
-                                                </button>
-                                            )}
-                                        </div>
-                                        {showSidebar && (
-                                            <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
-                                                <div className="flex-1 overflow-y-auto">
-                                                    <NavigationPanel
-                                                        modules={LESSON_PLAN}
-                                                        currentLessonId={currentLessonId || ''}
-                                                        onSelectLesson={handleSelectLesson}
-                                                        completedLessons={completedLessons}
-                                                    />
-                                                </div>
-                                                <SettingsModal
-                                                    isOpen={isSettingsOpen}
-                                                    onClose={() => setIsSettingsOpen(false)}
-                                                    theme={theme}
-                                                    setTheme={setTheme}
-                                                    isHardMode={isHardMode}
-                                                    setIsHardMode={setIsHardMode}
-                                                />
-                                            </div>
-                                        )}
-                                    </aside>
-                                </>
-                            )}
-
-                            {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
-
-                            <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
-                                {/* Mobile Curriculum Trigger (When Nav is hidden) */}
-                                {isClassroom && isMobile && !isNavOpen && (
-                                    <button
-                                        onClick={() => setIsNavOpen(true)}
-                                        className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
-                                        aria-label="Open Curriculum"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                                        </svg>
-                                    </button>
-                                )}
-
-                                {(isClassroom && !currentLessonId) ? (
-                                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-8 text-center animate-fade-in h-full">
-                                        <div className="max-w-md space-y-6">
-                                            <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-6">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                                </svg>
-                                            </div>
-                                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to the Classroom</h2>
-                                            <p className="text-lg">
-                                                Select a module from the sidebar on the left to start your lesson.
-                                            </p>
-                                            <div className="flex justify-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-bounce-x">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                                                </svg>
-                                                <span>Pick a lesson</span>
-                                            </div>
-                                        </div>
-                                        <style>{`
-                            @keyframes bounce-x {
-                                0%, 100% { transform: translateX(0); }
-                                50% { transform: translateX(-25%); }
-                            }
-                            .animate-bounce-x {
-                                animation: bounce-x 1s infinite;
-                            }
-                        `}</style>
-                                    </div>
-                                ) : isQuizMode && activeContentItem ? (
-                                    <div className="h-full flex flex-col">
-                                        {isPracticeQuiz && (
-                                            <div className="h-12 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between">
-                                                <button
-                                                    onClick={() => setActivePracticeItem(null)}
-                                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                                                    </svg>
-                                                    Back
-                                                </button>
-                                                <h2 className="font-bold text-gray-800 dark:text-gray-200 text-sm mr-4">{activeContentItem.title}</h2>
-                                            </div>
-                                        )}
-                                        <QuizPanel
-                                            questions={activeContentItem.quizQuestions || []}
-                                            onComplete={handleQuizComplete}
-                                            isCollapsed={false}
-                                            onToggleCollapse={() => { }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div
-                                            style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
-                                            className={`flex flex-col transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
-                                        >
-                                            <IdePanel
-                                                code={activeCode}
-                                                setCode={activeSetCode}
-                                                onRunCode={activeRunCode}
-                                                isLoading={isTerminalLoading}
-                                                onResetCode={handleResetCode}
-                                                onGetHelp={handleGetHelp}
-                                                isCollapsed={panelsCollapsed.ide}
-                                                onToggleCollapse={() => handleToggleCollapse('ide')}
-                                                onExportCode={(isPlayground || isPractice) ? handleExportCode : undefined}
-                                                onImportCode={(isPlayground || isPractice) ? handleImportCode : undefined}
-                                                resetButtonLabel={isPlayground ? "Clear" : "Reset"}
-                                                lintIssues={lintIssues}
-                                                saveStatus={saveStatus}
-                                                fileName={isPlayground ? activePlaygroundFile?.name : (isPractice ? activePracticeItem?.title : undefined)}
-                                                onFileNameChange={isPlayground && activePlaygroundFileId ? (newName) => updateFile(activePlaygroundFileId, { name: newName }) : undefined}
-                                                onBackToDashboard={isPlayground ? () => setPlaygroundView('dashboard') : isPractice ? () => setActivePracticeItem(null) : undefined}
-                                                backButtonLabel={isPlayground ? "Files" : (isPractice ? "Back" : undefined)}
-                                                enableAutocomplete={isPlayground && isPlaygroundAutocompleteEnabled}
-                                                onToggleAutocomplete={isPlayground ? () => setIsPlaygroundAutocompleteEnabled(prev => !prev) : undefined}
-                                            />
-                                        </div>
-
-                                        {!panelsCollapsed.ide && !panelsCollapsed.bottom && !isMobile && <Resizer direction="vertical" onMouseDown={(e) => handleMouseDown('ide', e)} />}
-
-                                        <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
-                                            <BottomPanel
-                                                lesson={activeContentItem}
-                                                isCompleted={isClassroom && activeLesson ? completedLessons.has(activeLesson.id) : (isPractice && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
-                                                terminalOutput={activeTerminalOutput}
-                                                isTerminalLoading={isTerminalLoading}
-                                                isCollapsed={panelsCollapsed.bottom}
-                                                onToggleCollapse={() => handleToggleCollapse('bottom')}
-                                                activeTab={activeBottomTab}
-                                                onTabChange={setActiveBottomTab}
-                                                videoUrl={currentVideoUrl}
-                                                isVideoGenerating={isVideoGenerating}
-                                                onGenerateVideo={handleGenerateVideo}
-                                                showReference={isPlayground}
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {showChatPanel && (
-                                <>
-                                    {!panelsCollapsed.chat && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('chat', e)} />}
-
-                                    {/* Mobile Chat Overlay */}
-                                    {isMobile && !panelsCollapsed.chat && (
-                                        <div
-                                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
-                                            onClick={() => handleToggleCollapse('chat')}
-                                        />
-                                    )}
-
-                                    <aside
-                                        style={{
-                                            width: isMobile ? '85%' : (panelsCollapsed.chat ? 'auto' : `${panelSizes.chat}%`),
-                                            maxWidth: isMobile ? '350px' : 'none',
-                                            // Update height and top to match new header height (5rem/80px)
-                                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
-                                            top: isMobile ? '5rem' : '0'
-                                        }}
-                                        className={`
-                            bg-gray-50 dark:bg-gray-900 flex flex-col 
-                            transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800
-                            ${!panelsCollapsed.chat ? 'min-w-[250px]' : ''}
-                            ${isMobile
-                                                ? `fixed right-0 z-40 transform ${!panelsCollapsed.chat ? 'translate-x-0' : 'translate-x-full'}`
-                                                : 'relative h-full flex-shrink-0'
-                                            }
-                        `}
-                                    >
-                                        {/* Mobile Chat Toggle */}
-                                        {isMobile && panelsCollapsed.chat && !isQuizMode && (
-                                            <button
-                                                onClick={() => handleToggleCollapse('chat')}
-                                                className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
-                                                aria-label="Open AI Chat"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-                                                </svg>
-                                            </button>
-                                        )}
-
-                                        {isClassroomQuiz ? (
-                                            <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
-                                                <div className="p-6 rounded-full bg-gray-900 mb-4">
-                                                    <LockIcon className="w-12 h-12 text-gray-500" />
-                                                </div>
-                                                <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
-                                                <p className="text-sm text-center px-6 mt-2">
-                                                    The AI assistant is disabled during classroom quizzes to test your knowledge.
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <ChatPanel
-                                                messages={activeChatHistory}
-                                                onSendMessage={handleSendMessage}
-                                                isLoading={isChatLoading}
-                                                isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
-                                                onToggleCollapse={() => handleToggleCollapse('chat')}
-                                            />
-                                        )}
-                                    </aside>
-                                </>
-                            )}
-                        </main>
-                    )
-                    }
-                </div >
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </div>
             </div>
         </>
     );

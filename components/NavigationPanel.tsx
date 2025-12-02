@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Module } from '../types';
 
 interface NavigationPanelProps {
@@ -97,9 +98,13 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
 
                     return (
                       <li key={lesson.id}>
-                        <button
+                        <Link
+                          to={`/classroom/${module.id}/${lesson.id}`}
                           id={`nav-lesson-${lesson.id}`}
-                          onClick={() => onSelectLesson(module.id, lesson.id)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSelectLesson(module.id, lesson.id);
+                          }}
                           className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-all text-sm group ${isCurrent
                             ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
@@ -124,7 +129,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                           <span className={`truncate font-medium ${isCurrent ? 'text-cyan-700 dark:text-cyan-300' : ''} ${isFinalLesson && !isCompleted ? 'text-purple-600 dark:text-purple-400' : ''}`}>
                             {lesson.title}
                           </span>
-                        </button>
+                        </Link>
                       </li>
                     );
                   })}

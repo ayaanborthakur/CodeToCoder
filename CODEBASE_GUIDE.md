@@ -10,7 +10,7 @@
 **CodeToCoder** is a sophisticated, client-side educational platform designed to teach Python programming through interactive lessons, AI tutoring, and gamification.
 
 ### Core Philosophy
-The application is built as a **Single Page Application (SPA)** that relies heavily on browser capabilities to deliver a desktop-class experience.
+The application is built as a **Single Page Application (SPA)** that uses **Client-Side Routing** (via React Router) to manage views and navigation, while relying heavily on browser capabilities to deliver a desktop-class experience.
 *   **Client-Side Execution**: Python code is executed locally in the browser using WebAssembly (Pyodide), ensuring privacy and zero-latency feedback.
 *   **AI-First**: Google's Gemini AI is deeply integrated not just as a chatbot, but as a linter, code reviewer, and content generator.
 *   **Gamified Learning**: A robust economy system (Stars, Collectibles, Daily Challenges) keeps users engaged.
@@ -34,6 +34,7 @@ The manifest file for the project.
     *   `@google/genai`: The official SDK for connecting to Gemini.
     *   `firebase`: The full Firebase SDK suite.
     *   `react` / `react-dom`: The UI library.
+    *   `react-router-dom`: Handles client-side routing and navigation.
 *   **Scripts**:
     *   `dev`: Starts the Vite development server (`vite`).
     *   `build`: Compiles the app for production (`vite build`).
@@ -84,8 +85,9 @@ The JavaScript entry point.
 *   **Context Providers**: It wraps the app in the `AuthProvider` to ensure authentication state is available globally from the start.
 
 ### 3.3. `App.tsx` (The Brain)
-This is the largest and most critical component. It acts as the **Router** and **Global State Manager**.
-*   **Routing Strategy**: Instead of a URL-based router, it uses a state variable `currentView` (`'home' | 'mission' | 'classroom' | ...`). This allows for instant transitions without browser navigation events.
+This is the largest and most critical component. It acts as the **Root Component** and **Global State Manager**.
+*   **Routing Strategy**: Uses `react-router-dom` to manage navigation. The `Routes` component defines the mapping between URLs (e.g., `/classroom/:moduleId/:lessonId`) and views.
+    *   **Legacy State**: While routing is URL-based, some internal state (like `currentLessonId`) is synchronized with the URL parameters via `useEffect` hooks to maintain compatibility with existing logic.
 *   **Layout Management**:
     *   It conditionally renders the `Header` and the main content area.
     *   For the "Classroom" view, it renders the 3-pane layout (`NavigationPanel`, `IdePanel`, `ChatPanel`).
