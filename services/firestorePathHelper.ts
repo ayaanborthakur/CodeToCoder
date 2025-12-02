@@ -112,7 +112,7 @@ export const userPaths = {
     practiceData: {
         playgroundFiles: (userId: string) => getCollectionFromPath(`users/${userId}/PlaygroundFiles`),
         customQuizzes: (userId: string) => getCollectionFromPath(`users/${userId}/CustomQuizzes`),
-        referenceMaterial: (userId: string) => getCollectionFromPath(`users/${userId}/ReferenceMaterial`),
+        referenceMaterial: (userId: string) => getCollectionFromPath(`users/${userId}/CustomReferences`),
     },
 
     /**

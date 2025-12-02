@@ -2,39 +2,41 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { REFERENCE_DATA, ReferenceTopic } from '../constants/referenceData';
 import { generateReference } from '../services/geminiService';
+import { useAuth } from '../contexts/AuthContext';
+import { saveReferenceMaterial, loadReferenceMaterials } from '../services/userDataService';
 
 declare global {
-  interface Window {
-    marked: any;
-    Prism: any;
-  }
+    interface Window {
+        marked: any;
+        Prism: any;
+    }
 }
 
-const SearchIcon: React.FC<{className?: string}> = ({className}) => (
+const SearchIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-4 h-4"}>
         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
     </svg>
 );
 
-const BookIcon: React.FC<{className?: string}> = ({className}) => (
+const BookIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
     </svg>
 );
 
-const ChevronDownIcon: React.FC<{className?: string}> = ({className}) => (
+const ChevronDownIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-4 h-4"}>
         <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
     </svg>
 );
 
-const SparklesIcon: React.FC<{className?: string}> = ({className}) => (
+const SparklesIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-5 h-5"}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
     </svg>
 );
 
-const PlusIcon: React.FC<{className?: string}> = ({className}) => (
+const PlusIcon: React.FC<{ className?: string }> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-4 h-4"}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
     </svg>
@@ -49,7 +51,8 @@ export const ReferencePanel: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTopic, setSelectedTopic] = useState<ReferenceTopic | null>(null);
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
-    
+    const { user } = useAuth();
+
     // Custom Generator State
     const [customTopics, setCustomTopics] = useState<ReferenceTopic[]>([]);
     const [generatorInput, setGeneratorInput] = useState('');
@@ -91,13 +94,31 @@ export const ReferencePanel: React.FC = () => {
     useEffect(() => {
         const initialOpen: Record<string, boolean> = {};
         Object.keys(categories).forEach(cat => initialOpen[cat] = true);
-        setOpenCategories(prev => ({...initialOpen, ...prev})); // Merge to keep user state if possible
-        
+        setOpenCategories(prev => ({ ...initialOpen, ...prev })); // Merge to keep user state if possible
+
         // Select first topic by default if none selected
         if (REFERENCE_DATA.length > 0 && !selectedTopic) {
             setSelectedTopic(REFERENCE_DATA[0]);
         }
     }, [categories.length]); // Only re-run if category count changes significantly (mostly on mount)
+
+    // Load custom references on mount
+    useEffect(() => {
+        if (user) {
+            loadReferenceMaterials(user.id).then(materials => {
+                // Convert ReferenceMaterial to ReferenceTopic if needed, 
+                // but they seem to share structure based on usage in userDataService
+                // Let's check types.ts to be sure, but for now assuming compatibility or casting
+                const topics: ReferenceTopic[] = materials.map(m => ({
+                    id: m.id,
+                    title: m.title,
+                    category: m.category || 'Custom',
+                    content: m.content
+                }));
+                setCustomTopics(topics);
+            });
+        }
+    }, [user]);
 
     const toggleCategory = (category: string) => {
         setOpenCategories(prev => ({ ...prev, [category]: !prev[category] }));
@@ -105,11 +126,11 @@ export const ReferencePanel: React.FC = () => {
 
     const filteredData = useMemo<Record<string, ReferenceTopic[]>>(() => {
         if (!searchQuery) return categories;
-        
+
         const filtered: Record<string, ReferenceTopic[]> = {};
         Object.entries(categories).forEach(([cat, topics]) => {
-            const matchingTopics = (topics as ReferenceTopic[]).filter(t => 
-                t.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            const matchingTopics = (topics as ReferenceTopic[]).filter(t =>
+                t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 t.content.toLowerCase().includes(searchQuery.toLowerCase())
             );
             if (matchingTopics.length > 0) {
@@ -133,13 +154,23 @@ export const ReferencePanel: React.FC = () => {
         setIsGenerating(true);
         try {
             const result = await generateReference(generatorInput, difficulty, size);
-            
+
             const newTopic: ReferenceTopic = {
                 id: `custom-${Date.now()}`,
                 title: result.title,
                 category: 'Custom',
                 content: result.content
             };
+
+            if (user) {
+                saveReferenceMaterial(user.id, {
+                    id: newTopic.id,
+                    title: newTopic.title,
+                    content: newTopic.content,
+                    category: 'Custom',
+                    createdAt: Date.now()
+                });
+            }
 
             setCustomTopics(prev => [newTopic, ...prev]);
             setSelectedTopic(newTopic);
@@ -165,38 +196,37 @@ export const ReferencePanel: React.FC = () => {
                 <div className="p-4 border-b border-gray-200 dark:border-gray-800">
                     <div className="relative">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <input 
-                            type="text" 
-                            placeholder="Search docs..." 
+                        <input
+                            type="text"
+                            placeholder="Search docs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
                         />
                     </div>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                     {Object.entries(filteredData).map(([category, topics]) => (
                         <div key={category}>
-                            <button 
+                            <button
                                 onClick={() => toggleCategory(category)}
                                 className="w-full flex justify-between items-center mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
                                 {category}
                                 <ChevronDownIcon className={`transition-transform duration-200 w-4 h-4 ${openCategories[category] ? '' : '-rotate-90'}`} />
                             </button>
-                            
+
                             {openCategories[category] && (
                                 <ul className="space-y-1 pl-1 border-l-2 border-gray-200 dark:border-gray-800 ml-1">
                                     {(topics as ReferenceTopic[]).map(topic => (
                                         <li key={topic.id}>
                                             <button
                                                 onClick={() => setSelectedTopic(topic)}
-                                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                                                    selectedTopic?.id === topic.id
-                                                        ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-medium'
-                                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
-                                                }`}
+                                                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${selectedTopic?.id === topic.id
+                                                    ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-medium'
+                                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
+                                                    }`}
                                             >
                                                 {topic.id === GENERATOR_TOPIC_ID && <SparklesIcon className="w-4 h-4 text-cyan-500" />}
                                                 <span className="truncate">{topic.title}</span>
@@ -236,8 +266,8 @@ export const ReferencePanel: React.FC = () => {
                                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                                     What do you want to learn?
                                 </label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={generatorInput}
                                     onChange={(e) => setGeneratorInput(e.target.value)}
                                     placeholder="e.g., How to use regular expressions, Python decorators explained..."
@@ -251,8 +281,8 @@ export const ReferencePanel: React.FC = () => {
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                                         Difficulty
                                     </label>
-                                    <select 
-                                        value={difficulty} 
+                                    <select
+                                        value={difficulty}
                                         onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
                                         className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-cyan-500 outline-none transition-all text-gray-900 dark:text-white appearance-none cursor-pointer"
                                         disabled={isGenerating}
@@ -266,8 +296,8 @@ export const ReferencePanel: React.FC = () => {
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                                         Size
                                     </label>
-                                    <select 
-                                        value={size} 
+                                    <select
+                                        value={size}
                                         onChange={(e) => setSize(e.target.value as SizeLevel)}
                                         className="w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-cyan-500 outline-none transition-all text-gray-900 dark:text-white appearance-none cursor-pointer"
                                         disabled={isGenerating}
@@ -297,7 +327,7 @@ export const ReferencePanel: React.FC = () => {
                                 )}
                             </button>
                         </form>
-                        
+
                         <div className="mt-8 text-center text-sm text-gray-400">
                             <p>Generates a persistent guide in your "Custom" sidebar category.</p>
                         </div>
@@ -310,7 +340,7 @@ export const ReferencePanel: React.FC = () => {
                             </span>
                             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white">{selectedTopic.title}</h1>
                         </div>
-                        <div 
+                        <div
                             className="prose prose-lg max-w-none dark:prose-invert 
                                        prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
                                        prose-p:text-gray-600 dark:prose-p:text-gray-300

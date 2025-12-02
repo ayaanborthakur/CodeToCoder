@@ -204,8 +204,9 @@ export interface ReferenceMaterial {
   id: string;
   title: string;
   content: string;
-  topic: string;
+  category?: string;
+  topic?: string;
   createdAt: number;
-  lastModified: number;
+  lastModified?: number;
 }
 
