@@ -25,7 +25,7 @@ export const usePlaygroundFiles = () => {
                 window.localStorage.setItem(getFilesKey(), JSON.stringify(currentFiles));
             }
 
-            // Sync to Firestore for logged-in users
+            // Sync to Firestore for logged-in users (new structure)
             if (user) {
                 const { syncPlaygroundFiles } = await import('../services/userDataService');
                 await syncPlaygroundFiles(user.id, currentFiles);
@@ -42,14 +42,24 @@ export const usePlaygroundFiles = () => {
         const loadFiles = async () => {
             try {
                 if (user) {
-                    // Load from Firestore for logged-in users
+                    // Trigger migration first
+                    const { migrateUserData } = await import('../services/migrationService');
+                    try {
+                        await migrateUserData(user.id);
+                    } catch (migrationError) {
+                        console.error('Migration failed, continuing with data load:', migrationError);
+                    }
+
+                    // Load from new Firestore structure
                     const { loadPlaygroundFiles } = await import('../services/userDataService');
                     const firestoreFiles = await loadPlaygroundFiles(user.id);
 
                     if (firestoreFiles.length > 0) {
                         setFiles(firestoreFiles);
                         // Also save to localStorage as backup
-                        saveFilesToStorage(firestoreFiles);
+                        if (typeof window !== 'undefined' && window.localStorage) {
+                            window.localStorage.setItem(getFilesKey(), JSON.stringify(firestoreFiles));
+                        }
                     } else {
                         // No Firestore data, check localStorage (migration case)
                         const key = getFilesKey();

@@ -164,3 +164,48 @@ export interface MarketplaceData {
   version?: number;
 }
 
+// New Restructured Data Types
+export interface ProgressCategoryData {
+  completed: string[]; // IDs of completed items
+  lastUpdated: number;
+}
+
+export interface ClassroomProgressData {
+  completedLessons: string[];
+  lastUpdated: number;
+}
+
+export interface StarsData {
+  balance: number;
+  totalEarned: number;
+  totalSpent: number;
+  lastUpdated: number;
+  transactionHistory: StarTransaction[];
+  dailyPrizeClaimed: number;
+}
+
+export interface DailyChallengesData {
+  challenges: DailyChallenge[];
+  lastRefreshed: number;
+}
+
+export interface CollectionData {
+  badges: {
+    earnedBadgeIds: string[];
+    totalPoints: number;
+    lastUpdated: number;
+  };
+  collectibles: {
+    ownedCollectibleIds: string[];
+  };
+}
+
+export interface ReferenceMaterial {
+  id: string;
+  title: string;
+  content: string;
+  topic: string;
+  createdAt: number;
+  lastModified: number;
+}
+

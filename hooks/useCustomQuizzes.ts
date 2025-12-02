@@ -19,7 +19,7 @@ export const useCustomQuizzes = () => {
                 window.localStorage.setItem(getKey(), JSON.stringify(items));
             }
 
-            // Sync to Firestore for logged-in users
+            // Sync to Firestore for logged-in users (new structure)
             if (user) {
                 const { syncCustomQuizzes } = await import('../services/userDataService');
                 await syncCustomQuizzes(user.id, items);
@@ -35,14 +35,24 @@ export const useCustomQuizzes = () => {
         const loadQuizzes = async () => {
             try {
                 if (user) {
-                    // Load from Firestore for logged-in users
+                    // Trigger migration first
+                    const { migrateUserData } = await import('../services/migrationService');
+                    try {
+                        await migrateUserData(user.id);
+                    } catch (migrationError) {
+                        console.error('Migration failed, continuing with data load:', migrationError);
+                    }
+
+                    // Load from new Firestore structure
                     const { loadCustomQuizzes } = await import('../services/userDataService');
                     const firestoreQuizzes = await loadCustomQuizzes(user.id);
 
                     if (firestoreQuizzes.length > 0) {
                         setCustomQuizzes(firestoreQuizzes);
                         // Also save to localStorage as backup
-                        saveToStorage(firestoreQuizzes);
+                        if (typeof window !== 'undefined' && window.localStorage) {
+                            window.localStorage.setItem(getKey(), JSON.stringify(firestoreQuizzes));
+                        }
                     } else {
                         // No Firestore data, check localStorage (migration case)
                         const saved = window.localStorage?.getItem(getKey());
@@ -72,7 +82,7 @@ export const useCustomQuizzes = () => {
         };
 
         loadQuizzes();
-    }, [user, isAuthLoading, getKey, saveToStorage]);
+    }, [user, isAuthLoading, getKey]);
 
     const addCustomQuiz = useCallback((quiz: PracticeItem) => {
         setCustomQuizzes(prev => {
