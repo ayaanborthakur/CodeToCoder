@@ -636,7 +636,7 @@ const App: React.FC = () => {
         }
 
         // Navigate to the new URL - the useEffect above will handle loading the data
-        navigate(`/ classroom / ${moduleId}/${lessonId}`);
+        navigate(`/classroom/${moduleId}/${lessonId}`);
 
         // On mobile, close nav after selection
         if (isMobile) {
