@@ -94,8 +94,8 @@ const App: React.FC = () => {
 
     const currentView = useMemo(() => {
         const path = location.pathname;
-        if (path === '/' || path === '/home') return 'home';
-        if (path.startsWith('/mission')) return 'mission';
+        if (path === '/') return 'mission';
+        if (path === '/dashboard') return 'home';
         if (path.startsWith('/classroom')) return 'classroom';
         if (path.startsWith('/playground')) return 'playground';
         if (path.startsWith('/practice')) return 'practice';
@@ -103,7 +103,8 @@ const App: React.FC = () => {
         if (path.startsWith('/marketplace')) return 'marketplace';
         if (path.startsWith('/collection')) return 'collection';
         if (path.startsWith('/reference')) return 'reference';
-        return 'home';
+        if (path.startsWith('/about')) return 'about';
+        return 'mission';
     }, [location.pathname]);
 
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
@@ -272,13 +273,13 @@ const App: React.FC = () => {
 
     // Auth-based Routing Logic
 
-    // 1. Protect Home from Guests (Always enforce) - REMOVED to allow guest navigation
-    // useEffect(() => {
-    //     if (isAuthLoading) return;
-    //     if (!user && currentView === 'home') {
-    //         setCurrentView('mission');
-    //     }
-    // }, [user, isAuthLoading, currentView]);
+    // 1. Protect Dashboard from Guests
+    useEffect(() => {
+        if (isAuthLoading) return;
+        if (!user && currentView === 'home') {
+            navigate('/');
+        }
+    }, [user, isAuthLoading, currentView, navigate]);
 
     // 2. Redirect to Dashboard on Login (Only trigger on user change)
     useEffect(() => {
