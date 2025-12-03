@@ -1,3 +1,10 @@
+@import "tailwindcss";
+@config "./tailwind.config.js";
+
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+
 /* Base Reset */
 html,
 body {
@@ -10,21 +17,33 @@ body {
 }
 
 :root {
-  --background: #f8fafc; /* slate-50 */
-  --surface: #ffffff; /* white */
-  --surface-highlight: #f1f5f9; /* slate-100 */
-  --text-primary: #0f172a; /* slate-900 */
-  --text-secondary: #64748b; /* slate-500 */
-  --border-default: #e2e8f0; /* slate-200 */
+  --background: #f8fafc;
+  /* slate-50 */
+  --surface: #ffffff;
+  /* white */
+  --surface-highlight: #f1f5f9;
+  /* slate-100 */
+  --text-primary: #0f172a;
+  /* slate-900 */
+  --text-secondary: #64748b;
+  /* slate-500 */
+  --border-default: #e2e8f0;
+  /* slate-200 */
 }
 
 .dark {
-  --background: #020617; /* slate-950 */
-  --surface: #0f172a; /* slate-900 */
-  --surface-highlight: #1e293b; /* slate-800 */
-  --text-primary: #f1f5f9; /* slate-100 */
-  --text-secondary: #94a3b8; /* slate-400 */
-  --border-default: #1e293b; /* slate-800 */
+  --background: #020617;
+  /* slate-950 */
+  --surface: #0f172a;
+  /* slate-900 */
+  --surface-highlight: #1e293b;
+  /* slate-800 */
+  --text-primary: #f1f5f9;
+  /* slate-100 */
+  --text-secondary: #94a3b8;
+  /* slate-400 */
+  --border-default: #1e293b;
+  /* slate-800 */
 }
 
 #root {
