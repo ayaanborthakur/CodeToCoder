@@ -28,7 +28,7 @@ export const BadgeNotification: React.FC<BadgeNotificationProps> = ({ badge, onC
         <div className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'
             }`}>
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-auto" onClick={() => {
+            <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-all duration-300 ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'}`} onClick={() => {
                 setIsVisible(false);
                 setTimeout(onClose, 300);
             }} />

@@ -539,7 +539,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                                     onClick={() => handlePurchasePack(pack.id)}
                                                     disabled={!canAfford || isPurchasing}
                                                     className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${canAfford
-                                                        ? 'bg-text-primary text-background hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
+                                                        ? 'bg-cyan-600 dark:bg-text-primary text-white dark:text-background hover:bg-cyan-700 dark:hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
                                                         : 'bg-surface-highlight text-text-secondary cursor-not-allowed border border-border-default'
                                                         }`}
                                                 >

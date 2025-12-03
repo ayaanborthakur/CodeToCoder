@@ -86,7 +86,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
     if (!user) return null;
 
     return (
-        <div className="h-full w-full overflow-y-auto bg-slate-950 text-slate-100">
+        <div className="h-full w-full overflow-y-auto bg-background text-text-primary">
             <div className="max-w-4xl mx-auto p-6 md:p-8">
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">
@@ -108,15 +108,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 </div>
 
                 {/* Profile Card */}
-                <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 p-8 mb-8 flex flex-col md:flex-row items-center gap-8">
+                <div className="bg-surface rounded-2xl shadow-xl border border-border-default p-8 mb-8 flex flex-col md:flex-row items-center gap-8">
                     <div className="w-24 h-24 bg-gradient-to-br from-cyan-500 to-purple-500 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-lg">
                         {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-3xl font-bold text-white mb-2">{user.name}</h1>
-                        <p className="text-slate-400">{user.email}</p>
+                        <h1 className="text-3xl font-bold text-text-primary mb-2">{user.name}</h1>
+                        <p className="text-text-secondary">{user.email}</p>
                         <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
-                            <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                            <div className="bg-background px-4 py-2 rounded-lg border border-border-default">
                                 <span className="text-slate-400 text-sm block">Joined</span>
                                 <span className="font-mono">{new Date(user.joinedAt).toLocaleDateString()}</span>
                             </div>
@@ -140,7 +140,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-4 mb-8 border-b border-slate-800 pb-1 overflow-x-auto">
+                <div className="flex gap-4 mb-8 border-b border-border-default pb-1 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('stats')}
                         className={`pb-3 px-4 font-bold transition-colors relative whitespace-nowrap ${activeTab === 'stats' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
@@ -188,7 +188,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     <div className="space-y-8">
                         {/* Stats Overview */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                            <div className="bg-surface rounded-2xl p-6 border border-border-default">
                                 <h3 className="text-slate-400 text-sm font-medium mb-2">Lessons Completed</h3>
                                 <div className="text-3xl font-bold text-white">{achievements?.earnedBadgeIds.filter(id => id.startsWith('lesson')).length || 0}</div>
                             </div>

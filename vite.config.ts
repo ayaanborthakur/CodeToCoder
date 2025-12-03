@@ -1,13 +1,11 @@
-// vite.config.ts
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
     // NOTE: loadEnv is no longer strictly necessary if you only needed it for the 'define' block,
     // but we'll keep it here just in case you use 'env' elsewhere.
-    const env = loadEnv(mode, '.', '');
 
     return {
         // Sets the base path to relative, which is often needed for static site deployments
