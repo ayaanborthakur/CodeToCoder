@@ -14,6 +14,7 @@ import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import type { UserStars, DailyChallenge, Collectible } from '../types';
 
 import { ViewState } from './Header';
+import { PackOpeningModal } from './PackOpeningModal';
 
 interface MarketplacePageProps {
     onNavigate: (view: ViewState) => void;
@@ -35,6 +36,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
 
     // New Collectible Modal State
     const [newCollectibles, setNewCollectibles] = useState<Collectible[]>([]);
+    const [openingPackId, setOpeningPackId] = useState<string | null>(null);
+    const [pendingCollectibles, setPendingCollectibles] = useState<Collectible[]>([]);
 
 
     const loadData = async () => {
@@ -60,7 +63,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
             await loadData(); // Refresh data
 
             if (result.collectibles && result.collectibles.length > 0) {
-                setNewCollectibles(result.collectibles);
+                setPendingCollectibles(result.collectibles);
+                setOpeningPackId(packId);
             }
         } catch (error) {
             console.error('Failed to purchase pack:', error);
@@ -125,6 +129,24 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
 
     return (
         <div className="h-full w-full overflow-y-auto bg-background text-text-primary relative">
+            {/* Pack Opening Animation */}
+            {openingPackId && (
+                <PackOpeningModal
+                    packId={openingPackId}
+                    onComplete={() => {
+                        setOpeningPackId(null);
+                        setNewCollectibles(pendingCollectibles);
+                        setPendingCollectibles([]);
+                    }}
+                    onClose={() => {
+                        // If closed prematurely, still give rewards but skip animation
+                        setOpeningPackId(null);
+                        setNewCollectibles(pendingCollectibles);
+                        setPendingCollectibles([]);
+                    }}
+                />
+            )}
+
             {/* Rarity Info Modal */}
             {showRarityInfo && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowRarityInfo(false)}>
