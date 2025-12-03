@@ -5,6 +5,8 @@ import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplac
 import { BADGES, getBadgeColor } from '../services/achievementService';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import { resetTutorial } from '../services/tutorialService';
+import { getUserSettings, updateUserSettings } from '../services/userSettingsService';
+import { ToggleSwitch } from './ToggleSwitch';
 import type { UserAchievements, Collectible } from '../types';
 
 import { ViewState } from './Header';
@@ -13,18 +15,21 @@ interface ProfilePageProps {
     onNavigate: (view: ViewState) => void;
     stats?: { lessons: number; practice: number };
     achievements?: UserAchievements;
+    theme: 'light' | 'dark';
+    setTheme: (theme: 'light' | 'dark') => void;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme }) => {
     const { user, logout, deleteAccount } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
     const [starBalance, setStarBalance] = useState(0);
-    const [activeTab, setActiveTab] = useState<'stats' | 'badges' | 'collection'>('stats');
+    const [activeTab, setActiveTab] = useState<'stats' | 'badges' | 'collection' | 'settings'>('stats');
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
     const [isResetTutorialModalOpen, setIsResetTutorialModalOpen] = useState(false);
+    const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
 
     const handleDeleteAccount = async () => {
         if (deleteConfirmText !== 'DELETE') return;
@@ -55,10 +60,28 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                 // Profile page just shows unique items, so we can use the array as is or filter duplicates if needed
                 // Since getOwnedCollectibles returns unique items with counts, we can just use it directly
                 setCollectibles(owned);
+
+                // Load user settings
+                const settings = await getUserSettings(user.id);
+                setAiAssistanceLevel(settings.aiAssistanceLevel);
             }
         };
         loadData();
     }, [user]);
+
+    const handleThemeChange = async (newTheme: 'light' | 'dark') => {
+        setTheme(newTheme);
+        if (user) {
+            await updateUserSettings(user.id, { theme: newTheme });
+        }
+    };
+
+    const handleAiAssistanceChange = async (level: number) => {
+        setAiAssistanceLevel(level);
+        if (user) {
+            await updateUserSettings(user.id, { aiAssistanceLevel: level });
+        }
+    };
 
     if (!user) return null;
 
@@ -148,6 +171,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-purple-400 rounded-t-full" />
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('settings')}
+                        className={`pb-3 px-4 font-bold transition-colors relative whitespace-nowrap ${activeTab === 'settings' ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                    >
+                        Settings
+                        {activeTab === 'settings' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 rounded-t-full" />
+                        )}
+                    </button>
                 </div>
 
                 {/* Content */}
@@ -218,6 +251,60 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                                 </div>
                             );
                         })}
+                    </div>
+                ) : activeTab === 'settings' ? (
+                    <div className="space-y-6">
+                        {/* Theme Setting */}
+                        <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                            <h3 className="text-lg font-bold text-white mb-4">Appearance</h3>
+                            <ToggleSwitch
+                                label="Dark Mode"
+                                isChecked={theme === 'dark'}
+                                onChange={(isChecked) => handleThemeChange(isChecked ? 'dark' : 'light')}
+                            />
+                        </div>
+
+                        {/* AI Assistance Setting */}
+                        <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
+                            <h3 className="text-lg font-bold text-white mb-2">AI Assistance Level</h3>
+                            <p className="text-slate-400 text-sm mb-4">
+                                Control how much help the AI provides. Higher values mean more assistance.
+                            </p>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-slate-400 text-sm">Level: {aiAssistanceLevel}</span>
+                                    <span className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300">
+                                        {aiAssistanceLevel <= 5 ? 'Manual Help Only' : 'Automatic Assistance'}
+                                    </span>
+                                </div>
+
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="10"
+                                    value={aiAssistanceLevel}
+                                    onChange={(e) => handleAiAssistanceChange(parseInt(e.target.value))}
+                                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+                                />
+
+                                <div className="flex justify-between text-xs text-slate-500">
+                                    <span>0 - No Help</span>
+                                    <span>5 - Moderate</span>
+                                    <span>10 - Max Help</span>
+                                </div>
+
+                                <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                                    <p className="text-sm text-slate-300">
+                                        {aiAssistanceLevel <= 5 ? (
+                                            <><strong className="text-cyan-400">Manual Mode:</strong> AI will only help when you ask. No automatic feedback when running code.</>
+                                        ) : (
+                                            <><strong className="text-cyan-400">Auto Mode:</strong> AI will automatically provide feedback and suggestions when you run code.</>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -400,6 +487,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
         }
         .animate-scale-in {
             animation: scale-in 0.2s ease-out forwards;
+        }
+        
+        /* Custom slider styling */
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
         }
       `}</style>
         </div>

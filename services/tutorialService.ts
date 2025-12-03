@@ -165,25 +165,14 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
 
 
-
-    // References Introduction
+    // Collection View
     {
-        id: 'references-intro',
-        title: 'References 📚',
-        description: 'Your personal Python reference library! Access it from the navigation bar or the Practice section. Browse built-in references or generate custom ones using AI.',
-        route: '/reference',
-        position: 'center',
-        action: 'navigate'
-    },
-
-    // Reference Panel
-    {
-        id: 'reference-panel',
-        title: 'Reference Library',
-        description: 'Search for Python topics, generate custom references with AI, and save them for later!',
-        route: '/reference',
-        targetElement: '.reference-panel',
-        position: 'center',
+        id: 'collection-view',
+        title: 'Your Collection 🎴',
+        description: 'Click the "Collection" button to view all the collectibles you\'ve earned! You can see your collection organized by rarity and track your progress.',
+        route: '/marketplace',
+        targetElement: '.marketplace-content',
+        position: 'top',
         action: 'highlight'
     },
 
@@ -210,11 +199,38 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
 
 /**
  * Check if user has completed the tutorial
+ * For logged-in users, checks Firebase first and syncs to localStorage
  */
-export const hasTutorialCompleted = (userId?: string): boolean => {
+export const hasTutorialCompleted = async (userId?: string): Promise<boolean> => {
     if (userId) {
-        // For logged-in users, check localStorage with user ID
-        return localStorage.getItem(`${TUTORIAL_STORAGE_KEY}_${userId}`) === 'true';
+        // Check localStorage first (fast path)
+        const localStatus = localStorage.getItem(`${TUTORIAL_STORAGE_KEY}_${userId}`);
+        if (localStatus === 'true') {
+            return true;
+        }
+
+        // If not in localStorage, check Firebase
+        try {
+            const userRef = doc(db, 'users', userId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const data = userSnap.data();
+                const isCompleted = data.tutorialCompleted === true;
+
+                // Sync to localStorage for future quick access
+                if (isCompleted) {
+                    localStorage.setItem(`${TUTORIAL_STORAGE_KEY}_${userId}`, 'true');
+                }
+
+                return isCompleted;
+            }
+            return false;
+        } catch (error) {
+            console.error('Failed to load tutorial status from Firestore:', error);
+            // Fall back to localStorage check
+            return localStatus === 'true';
+        }
     } else {
         // For guest users, check generic key
         return localStorage.getItem(TUTORIAL_STORAGE_KEY) === 'true';
@@ -283,21 +299,4 @@ export const clearTutorialProgress = () => {
     localStorage.removeItem(TUTORIAL_PROGRESS_KEY);
 };
 
-/**
- * Load tutorial completion status from Firestore
- */
-export const loadTutorialStatus = async (userId: string): Promise<boolean> => {
-    try {
-        const userRef = doc(db, 'users', userId);
-        const userSnap = await getDoc(userRef);
 
-        if (userSnap.exists()) {
-            const data = userSnap.data();
-            return data.tutorialCompleted === true;
-        }
-        return false;
-    } catch (error) {
-        console.error('Failed to load tutorial status from Firestore:', error);
-        return false;
-    }
-};

@@ -9,8 +9,6 @@ import { Resizer } from './components/Resizer';
 import { HamburgerIcon } from './components/HamburgerIcon';
 import { CompletionModal } from './components/CompletionModal';
 import { ModuleCompletionBanner } from './components/ModuleCompletionBanner';
-import { SettingsModal } from './components/SettingsModal';
-import { SettingsIcon } from './components/SettingsIcon';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { HomePage } from './components/HomePage';
 import { MissionPage } from './components/MissionPage';
@@ -37,6 +35,7 @@ import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
 import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
+import { subscribeToUserSettings } from './services/userSettingsService';
 
 const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
 
@@ -142,10 +141,9 @@ const App: React.FC = () => {
     const [activePlaygroundFileId, setActivePlaygroundFileId] = useState<string | null>(null);
     const [playgroundEditorCode, setPlaygroundEditorCode] = useState<string>('');
 
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-    const [isHardMode, setIsHardMode] = useState(false);
+    const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [isTerminalLoading, setIsTerminalLoading] = useState<boolean>(false);
@@ -172,7 +170,6 @@ const App: React.FC = () => {
     }, [isPlaygroundAutocompleteEnabled]);
 
     // Mobile Detection
-    const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         // Initial check
@@ -181,6 +178,7 @@ const App: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const [isMobile, setIsMobile] = useState(false);
     // On Mobile, default sidebars to closed
     useEffect(() => {
         if (isMobile) {
@@ -239,20 +237,29 @@ const App: React.FC = () => {
     }, [user]);
 
 
-
-    // Load star balance
+    // Load user settings from Firebase
     useEffect(() => {
+        if (user) {
+            const unsubscribe = subscribeToUserSettings(user.id, (settings) => {
+                setTheme(settings.theme);
+                setAiAssistanceLevel(settings.aiAssistanceLevel);
+            });
+            return () => unsubscribe();
+        }
+    }, [user, setTheme, setAiAssistanceLevel]);
+
+    const loadStarBalance = useCallback(async () => {
         if (!user) {
             setStarBalance(0);
             return;
         }
+        const { getMarketplaceData } = await import('./services/marketplaceService');
+        const data = await getMarketplaceData(user.id);
+        setStarBalance(data.stars.balance);
+    }, [user]);
 
-        const loadStarBalance = async () => {
-            const { getMarketplaceData } = await import('./services/marketplaceService');
-            const data = await getMarketplaceData(user.id);
-            setStarBalance(data.stars.balance);
-        };
-
+    // Load star balance
+    useEffect(() => {
         loadStarBalance();
 
         // Listen for star updates
@@ -292,14 +299,17 @@ const App: React.FC = () => {
 
         // Only show tutorial for logged-in users who haven't completed it
         if (user) {
-            const tutorialCompleted = hasTutorialCompleted(user.id);
-            if (!tutorialCompleted) {
-                // Small delay to ensure the page has loaded
-                const timer = setTimeout(() => {
-                    setShowTutorial(true);
-                }, 1000);
-                return () => clearTimeout(timer);
-            }
+            const checkTutorial = async () => {
+                const tutorialCompleted = await hasTutorialCompleted(user.id);
+                if (!tutorialCompleted) {
+                    // Small delay to ensure the page has loaded
+                    setTimeout(() => {
+                        setShowTutorial(true);
+                    }, 1000);
+                }
+            };
+
+            checkTutorial();
         }
     }, [user, isAuthLoading, isProgressLoaded]);
 
@@ -746,11 +756,11 @@ const App: React.FC = () => {
 
             setTerminalOutput(result.output);
 
-            // 2. Get AI Feedback (Async, if not Hard Mode)
-            if (!isHardMode) {
+            // 2. Get AI Feedback (Async, if assistance level > 5)
+            if (aiAssistanceLevel > 5) {
                 const objective = (contextItem as any).objective || contextItem?.objective;
                 import('./services/geminiService').then(async ({ getFeedback }) => {
-                    const feedback = await getFeedback(code, result.output, objective, isHardMode);
+                    const feedback = await getFeedback(code, result.output, objective, aiAssistanceLevel <= 5);
                     if (feedback) {
                         setChatHistory(prev => [...prev, { role: 'model', content: feedback }]);
                         if (!isMobile) {
@@ -803,7 +813,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, isHardMode, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
+    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -827,9 +837,9 @@ const App: React.FC = () => {
             updateFile(activePlaygroundFileId, { terminalOutput: result.output });
 
             // 3. Get Feedback (Async)
-            if (!isHardMode) {
+            if (aiAssistanceLevel > 5) {
                 import('./services/geminiService').then(async ({ getFeedback }) => {
-                    const feedback = await getFeedback(playgroundEditorCode, result.output, undefined, isHardMode);
+                    const feedback = await getFeedback(playgroundEditorCode, result.output, undefined, aiAssistanceLevel <= 5);
                     if (feedback) {
                         const newChatHistory = activePlaygroundFile?.chatHistory ? [...activePlaygroundFile.chatHistory] : [];
                         newChatHistory.push({ role: 'model', content: feedback });
@@ -842,7 +852,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [playgroundEditorCode, isTerminalLoading, isHardMode, activePlaygroundFileId, updateFile, activePlaygroundFile?.chatHistory]);
+    }, [playgroundEditorCode, isTerminalLoading, aiAssistanceLevel, activePlaygroundFileId, updateFile, activePlaygroundFile?.chatHistory]);
 
 
     const handleSendMessage = useCallback(async (message: string) => {
@@ -879,7 +889,7 @@ const App: React.FC = () => {
             }
 
             // Pass the *updated* history (local variable) to the AI service
-            const response = await getChatResponse(historyForAI, isPlayground ? null : lessonContext, activeCode, isHardMode);
+            const response = await getChatResponse(historyForAI, isPlayground ? null : lessonContext, activeCode, aiAssistanceLevel <= 5);
 
             if (isPlayground && activePlaygroundFileId) {
                 // Append model response to history
@@ -898,7 +908,7 @@ const App: React.FC = () => {
         } finally {
             setIsChatLoading(false);
         }
-    }, [chatHistory, activePlaygroundFile, currentLesson, isChatLoading, isHardMode, currentView, updateFile, activePracticeItem, activePlaygroundFileId]);
+    }, [chatHistory, activePlaygroundFile, currentLesson, isChatLoading, aiAssistanceLevel, currentView, updateFile, activePracticeItem, activePlaygroundFileId]);
 
     const handleResetCode = useCallback(() => {
         setIsResetModalOpen(true);
@@ -1223,15 +1233,6 @@ const App: React.FC = () => {
                                     <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
                                 )}
                             </div>
-                            {showSidebar && (
-                                <button
-                                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                                    className={`p-1.5 rounded-md transition-colors ${isSettingsOpen ? 'bg-gray-200 dark:bg-gray-700 text-cyan-600 dark:text-cyan-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                    aria-label="Toggle settings"
-                                >
-                                    <SettingsIcon className="w-5 h-5" />
-                                </button>
-                            )}
                         </div>
                         {showSidebar && (
                             <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
@@ -1243,14 +1244,6 @@ const App: React.FC = () => {
                                         completedLessons={completedLessons}
                                     />
                                 </div>
-                                <SettingsModal
-                                    isOpen={isSettingsOpen}
-                                    onClose={() => setIsSettingsOpen(false)}
-                                    theme={theme}
-                                    setTheme={setTheme}
-                                    isHardMode={isHardMode}
-                                    setIsHardMode={setIsHardMode}
-                                />
                             </div>
                         )}
                     </aside>
@@ -1541,6 +1534,8 @@ const App: React.FC = () => {
                                 stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
                                 achievements={achievements}
                                 onNavigate={handleNavigate}
+                                theme={theme}
+                                setTheme={setTheme}
                             />
                         } />
 
