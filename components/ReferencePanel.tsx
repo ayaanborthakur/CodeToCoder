@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { REFERENCE_DATA, ReferenceTopic } from '../constants/referenceData';
 import { generateReference } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,6 +49,8 @@ type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
 type SizeLevel = 'Small' | 'Medium' | 'Large';
 
 export const ReferencePanel: React.FC = () => {
+    const { itemId } = useParams();
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTopic, setSelectedTopic] = useState<ReferenceTopic | null>(null);
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
@@ -101,6 +104,19 @@ export const ReferencePanel: React.FC = () => {
             setSelectedTopic(REFERENCE_DATA[0]);
         }
     }, [categories.length]); // Only re-run if category count changes significantly (mostly on mount)
+
+    // Sync selection with URL
+    useEffect(() => {
+        if (itemId) {
+            const topic = allReferenceData.find(t => t.id === itemId);
+            if (topic) {
+                setSelectedTopic(topic);
+            }
+        } else if (REFERENCE_DATA.length > 0 && !selectedTopic) {
+            // Default to first if no ID and no selection
+            setSelectedTopic(REFERENCE_DATA[0]);
+        }
+    }, [itemId, allReferenceData]);
 
     // Load custom references on mount
     useEffect(() => {
@@ -173,7 +189,7 @@ export const ReferencePanel: React.FC = () => {
             }
 
             setCustomTopics(prev => [newTopic, ...prev]);
-            setSelectedTopic(newTopic);
+            navigate(`/reference/${newTopic.id}`);
             setGeneratorInput('');
         } catch (error) {
             console.error("Generation failed", error);
@@ -222,7 +238,7 @@ export const ReferencePanel: React.FC = () => {
                                     {(topics as ReferenceTopic[]).map(topic => (
                                         <li key={topic.id}>
                                             <button
-                                                onClick={() => setSelectedTopic(topic)}
+                                                onClick={() => navigate(`/reference/${topic.id}`)}
                                                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${selectedTopic?.id === topic.id
                                                     ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-medium'
                                                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'

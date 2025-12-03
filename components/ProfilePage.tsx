@@ -5,10 +5,14 @@ import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplac
 import { BADGES, getBadgeColor } from '../services/achievementService';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import { resetTutorial } from '../services/tutorialService';
-import type { User, UserAchievements, Collectible } from '../types';
+import type { UserAchievements, Collectible } from '../types';
+
+import { ViewState } from './Header';
 
 interface ProfilePageProps {
-    onNavigate: (view: string) => void;
+    onNavigate: (view: ViewState) => void;
+    stats?: { lessons: number; practice: number };
+    achievements?: UserAchievements;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {

@@ -504,7 +504,7 @@ export const claimDailyPrize = async (userId: string): Promise<number> => {
     return prizeAmount;
 };
 
-export const isDailyPrizeAvailable = (userId: string, starsData?: StarsData): boolean => {
+export const isDailyPrizeAvailable = (userId: string, starsData?: StarsData | MarketplaceData): boolean => {
     if (!starsData) return false;
 
     const lastClaimed = new Date(starsData.dailyPrizeClaimed);
@@ -515,7 +515,7 @@ export const isDailyPrizeAvailable = (userId: string, starsData?: StarsData): bo
         lastClaimed.getFullYear() !== now.getFullYear();
 };
 
-export const getTimeUntilDailyPrize = (userId: string, starsData?: StarsData): number => {
+export const getTimeUntilDailyPrize = (userId: string, starsData?: StarsData | MarketplaceData): number => {
     if (!starsData) return 24;
 
     const now = new Date();

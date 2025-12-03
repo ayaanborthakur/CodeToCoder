@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'about' | 'mission' | 'profile' | 'marketplace' | 'collection';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -73,8 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
-            <NavLink view="collection" label="Collection" />
-            <NavLink view="reference" label="Reference" />
+
           </nav>
         </div>
 
@@ -129,8 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
-            <NavLink view="collection" label="Collection" />
-            <NavLink view="reference" label="Reference" />
+
             {!user && (
               <button
                 onClick={() => { onOpenAuth(); setIsMobileMenuOpen(false); }}

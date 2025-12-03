@@ -4,13 +4,17 @@ import { getOwnedCollectibles, sellCollectible } from '../services/marketplaceSe
 import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW } from '../data/collectiblesData';
 import type { Collectible, Rarity } from '../types';
 
+import { ViewState } from './Header';
+
 interface CollectionPageProps {
-    onNavigate: (view: string) => void;
+    onNavigate: (view: ViewState) => void;
+    onOpenAuth: () => void;
+    isEmbedded?: boolean;
 }
 
 type OwnedCollectible = Collectible & { count: number };
 
-export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) => {
+export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOpenAuth, isEmbedded = false }) => {
     const { user } = useAuth();
     const [ownedCollectibles, setOwnedCollectibles] = useState<OwnedCollectible[]>([]);
     const [selectedRarity, setSelectedRarity] = useState<Rarity | 'all'>('all');
@@ -101,6 +105,26 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
 
     const stats = getCollectionStats();
 
+    if (!user) {
+        return (
+            <div className="h-full w-full flex flex-col items-center justify-center bg-background text-text-primary p-6">
+                <div className="max-w-md text-center">
+                    <div className="text-6xl mb-6">🔒</div>
+                    <h2 className="text-3xl font-bold text-text-primary mb-4">Sign In Required</h2>
+                    <p className="text-text-secondary mb-8">
+                        You need to create an account to view your collection of earned items and rewards.
+                    </p>
+                    <button
+                        onClick={onOpenAuth}
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg"
+                    >
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (loading) {
         return <div className="h-full w-full flex items-center justify-center bg-background text-text-secondary">Loading Collection...</div>;
     }
@@ -176,15 +200,17 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate }) =>
             <div className="max-w-7xl mx-auto p-6 md:p-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => onNavigate('home')}
-                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-6 group"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:-translate-x-1 transition-transform">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                        </svg>
-                        <span className="font-medium">Back</span>
-                    </button>
+                    {!isEmbedded && (
+                        <button
+                            onClick={() => onNavigate('home')}
+                            className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors mb-6 group"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:-translate-x-1 transition-transform">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                            <span className="font-medium">Back</span>
+                        </button>
+                    )}
 
                     <div className="text-center mb-8">
                         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">

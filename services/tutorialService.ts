@@ -29,7 +29,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     {
         id: 'nav-bar',
         title: 'Navigation Bar',
-        description: 'Here is your main navigation bar. Use it to quickly access different sections: Home, Classroom, Practice, Playground, Marketplace, Collection, References, and your Profile.',
+        description: 'Here is your main navigation bar. Use it to quickly access different sections: Home, Classroom, Practice, Playground, Market, and your Profile.',
         route: '/dashboard',
         targetElement: 'header nav',
         position: 'bottom',
@@ -125,7 +125,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     {
         id: 'practice-categories',
         title: 'Practice Categories',
-        description: 'Choose from Quizzes, Problems, or Projects. Each category offers different challenges to reinforce your learning.',
+        description: 'Choose from Quizzes, Problems, Projects, or Reference Material. Each category offers different ways to reinforce your learning!',
         route: '/practice',
         targetElement: '.practice-dashboard',
         position: 'center',
@@ -156,40 +156,21 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // Marketplace Packs
     {
         id: 'marketplace-packs',
-        title: 'Collectible Packs 📦',
-        description: 'Browse and purchase different packs! Higher-tier packs have better chances of rare collectibles.',
+        title: 'Market & Collection 📦',
+        description: 'Browse and purchase different packs! Use the toggle buttons to switch between the Market and your Collection. Higher-tier packs have better chances of rare collectibles.',
         route: '/marketplace',
         targetElement: '.marketplace-content',
         position: 'center',
         action: 'highlight'
     },
 
-    // Collection Introduction
-    {
-        id: 'collection-intro',
-        title: 'Your Collection 🎨',
-        description: 'View all your earned badges and collectibles here! Track your achievements and rare finds.',
-        route: '/collection',
-        position: 'center',
-        action: 'navigate'
-    },
 
-    // Collection Content
-    {
-        id: 'collection-content',
-        title: 'Badges & Collectibles',
-        description: 'Earn badges by completing lessons and collect rare items from marketplace packs!',
-        route: '/collection',
-        targetElement: '.collection-page',
-        position: 'center',
-        action: 'highlight'
-    },
 
     // References Introduction
     {
         id: 'references-intro',
         title: 'References 📚',
-        description: 'Your personal Python reference library! Browse built-in references or generate custom ones using AI.',
+        description: 'Your personal Python reference library! Access it from the navigation bar or the Practice section. Browse built-in references or generate custom ones using AI.',
         route: '/reference',
         position: 'center',
         action: 'navigate'

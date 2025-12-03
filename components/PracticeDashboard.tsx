@@ -5,6 +5,8 @@ import { PRACTICE_ITEMS } from '../constants';
 import { GenerateQuizModal } from './GenerateQuizModal';
 import { generatePracticeQuiz } from '../services/geminiService';
 
+
+
 interface PracticeDashboardProps {
     onSelectItem: (item: PracticeItem) => void;
     completedItems: Set<string>;
@@ -12,11 +14,15 @@ interface PracticeDashboardProps {
     onSelectType: (type: PracticeType | null) => void;
     customItems?: PracticeItem[];
     onAddCustomItem?: (item: PracticeItem) => void;
+    onNavigate?: (path: string) => void;
+
 }
 
 import QuizIcon from '../assets/icons/QuizIcon.svg?react';
 import ProblemIcon from '../assets/icons/ProblemIcon.svg?react';
 import ProjectIcon from '../assets/icons/ProjectIcon.svg?react';
+import BookIcon from '../assets/icons/BookIcon.svg?react';
+
 import SparklesIcon from '../assets/icons/SparklesIcon.svg?react';
 import StarFilled from '../assets/icons/StarIcon.svg?react';
 
@@ -40,7 +46,9 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
     currentType,
     onSelectType,
     customItems = [],
-    onAddCustomItem
+    onAddCustomItem,
+    onNavigate
+
 }) => {
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
@@ -187,7 +195,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
             <div className="w-full max-w-5xl mx-auto flex flex-col items-center animate-fade-in">
                 <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-12 text-center">Choose Your Practice</h1>
 
-                <div className="grid md:grid-cols-3 gap-8 w-full">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
                     <button
                         onClick={() => onSelectType('quiz')}
                         style={{ animationDelay: '0ms' }}
@@ -223,6 +231,20 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Practice Projects</h2>
                         <p className="text-gray-500 dark:text-gray-400">Build complete, open-ended applications.</p>
                     </button>
+
+                    <button
+                        onClick={() => onNavigate?.('/practice/reference')}
+                        style={{ animationDelay: '300ms' }}
+                        className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-green-500 transition-all group animate-slide-up opacity-0"
+                    >
+                        <div className="bg-green-100 dark:bg-green-900/30 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+                            <BookIcon className="w-12 h-12 text-green-500" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Reference Material</h2>
+                        <p className="text-gray-500 dark:text-gray-400">Browse Python documentation and guides.</p>
+                    </button>
+
+
                 </div>
             </div>
         </div>

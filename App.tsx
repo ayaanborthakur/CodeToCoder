@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation, useParams, useMatch } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, useMatch } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
@@ -18,6 +17,7 @@ import { MissionPage } from './components/MissionPage';
 import { PlaygroundDashboard } from './components/PlaygroundDashboard';
 import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
+
 import { Header, ViewState } from './components/Header';
 import { FlyingStar } from './components/FlyingStar';
 import { ProfilePage } from './components/ProfilePage';
@@ -25,12 +25,12 @@ import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
-import { CollectionPage } from './components/CollectionPage';
+
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { LESSON_PLAN } from './constants';
-import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
-import { getChatResponse, runCodeWithAI, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
+import { LESSON_PLAN, PRACTICE_ITEMS } from './constants';
+import type { Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+import { getChatResponse, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
 import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
@@ -103,8 +103,6 @@ const App: React.FC = () => {
         if (path.startsWith('/practice')) return 'practice';
         if (path.startsWith('/profile')) return 'profile';
         if (path.startsWith('/marketplace')) return 'marketplace';
-        if (path.startsWith('/collection')) return 'collection';
-        if (path.startsWith('/reference')) return 'reference';
         if (path.startsWith('/about')) return 'about';
         return 'mission';
     }, [location.pathname]);
@@ -114,12 +112,12 @@ const App: React.FC = () => {
 
     const [starBalance, setStarBalance] = useState<number>(0);
     const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
-    const [isPyodideReady, setIsPyodideReady] = useState(false);
+
 
     // Initialize Pyodide
     useEffect(() => {
         import('./services/pyodideService').then(({ initializePyodide }) => {
-            initializePyodide().then(() => setIsPyodideReady(true)).catch(console.error);
+            initializePyodide().catch(console.error);
         });
     }, []);
 
@@ -146,7 +144,7 @@ const App: React.FC = () => {
 
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
+
     const [isHardMode, setIsHardMode] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
@@ -227,25 +225,20 @@ const App: React.FC = () => {
     });
 
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
-        return user ? `codetocoder_autosave_${type}_${id}_${user.id}` : `codetocoder_autosave_${type}_${id}`;
+        return user ? `codetocoder_autosave_${type}_${id}_${user.id} ` : `codetocoder_autosave_${type}_${id} `;
     }, [user]);
 
     // Reset/Reload state when user context changes (Login/Logout)
     useEffect(() => {
         setCurrentLessonId(null);
         setCurrentModuleId(null);
-        setIsProfileOpen(false);
+
         setChatHistory([{ role: 'model', content: "Hello! I'm your AI assistant. I'm here to help you learn Python. What's your first question?" }]);
         setActivePlaygroundFileId(null);
         setPlaygroundView('dashboard');
     }, [user]);
 
-    // Listen for profile open event from Header
-    useEffect(() => {
-        const handleOpenProfile = () => setIsProfileOpen(true);
-        window.addEventListener('openProfile', handleOpenProfile);
-        return () => window.removeEventListener('openProfile', handleOpenProfile);
-    }, []);
+
 
     // Load star balance
     useEffect(() => {
@@ -411,7 +404,7 @@ const App: React.FC = () => {
     const activeCode = currentView === 'playground' ? playgroundEditorCode : code;
 
     useEffect(() => {
-        if (currentView === 'home' || (currentView === 'playground' && playgroundView === 'dashboard') || (currentView === 'practice' && !activePracticeItem) || (currentView === 'practice' && activePracticeItem?.type === 'quiz') || currentView === 'reference') return;
+        if (currentView === 'home' || (currentView === 'playground' && playgroundView === 'dashboard') || (currentView === 'practice' && !activePracticeItem) || (currentView === 'practice' && activePracticeItem?.type === 'quiz')) return;
 
         // Increased debounce to 15000ms to enforce strict rate limit (6 requests/min = 10s/request + safety margin)
         const handler = setTimeout(async () => {
@@ -481,7 +474,7 @@ const App: React.FC = () => {
         if (totalStars > prevTotal) {
             let sourceId = '';
             if (currentView === 'classroom' && currentLessonId) {
-                sourceId = `nav-lesson-${currentLessonId}`;
+                sourceId = `nav - lesson - ${currentLessonId} `;
             }
 
             const sourceElement = sourceId ? document.getElementById(sourceId) : null;
@@ -516,7 +509,7 @@ const App: React.FC = () => {
         if (lesson) {
             setCurrentLesson(lesson);
             if (lesson.id !== currentLesson?.id) {
-                setTerminalOutput(`> Terminal ready for Lesson: ${lesson.title}`);
+                setTerminalOutput(`> Terminal ready for Lesson: ${lesson.title} `);
                 setLintIssues([]);
             }
         }
@@ -531,6 +524,7 @@ const App: React.FC = () => {
     // URL Matchers
     const classroomMatch = useMatch('/classroom/:moduleId/:lessonId');
     const playgroundMatch = useMatch('/playground/:fileId');
+    const practiceMatch = useMatch('/practice/:category/:itemId');
 
     // Sync Playground URL
     useEffect(() => {
@@ -546,6 +540,27 @@ const App: React.FC = () => {
         }
     }, [playgroundMatch, location.pathname, activePlaygroundFileId]);
 
+    // Sync Practice URL
+    useEffect(() => {
+        if (practiceMatch) {
+            const { category, itemId } = practiceMatch.params;
+            if (category && itemId) {
+                // Check if it's already active
+                if (activePracticeItem?.id === itemId) return;
+
+                // Find item in constants or custom items
+                const item = PRACTICE_ITEMS.find(i => i.id === itemId) || customQuizzes.find(i => i.id === itemId);
+                if (item) {
+                    setActivePracticeItem(item);
+                    setPracticeCategory(category as PracticeType);
+                }
+            }
+        } else if (location.pathname === '/practice') {
+            setActivePracticeItem(null);
+            // Don't reset category here to allow browsing same category
+        }
+    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes]);
+
     const loadLesson = useCallback((moduleId: string, lessonId: string) => {
         const module = LESSON_PLAN.find(m => m.id === moduleId);
         const lesson = module?.lessons.find(l => l.id === lessonId);
@@ -553,7 +568,7 @@ const App: React.FC = () => {
             let savedCode: string | null = null;
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    const autosaveKey = user ? `codetocoder_autosave_lesson_${lessonId}_${user.id}` : `codetocoder_autosave_lesson_${lessonId}`;
+                    const autosaveKey = user ? `codetocoder_autosave_lesson_${lessonId}_${user.id} ` : `codetocoder_autosave_lesson_${lessonId} `;
                     savedCode = window.localStorage.getItem(autosaveKey);
                 }
             } catch (e) {
@@ -580,6 +595,19 @@ const App: React.FC = () => {
         }
     }, [classroomMatch, currentModuleId, currentLessonId, loadLesson]);
 
+    // Update Document Title
+    useEffect(() => {
+        if (currentView === 'playground' && activePlaygroundFile) {
+            document.title = `${activePlaygroundFile.name} - CodeToCoder`;
+        } else if (currentView === 'classroom' && currentLesson) {
+            document.title = `${currentLesson.title} - CodeToCoder`;
+        } else if (currentView === 'practice' && activePracticeItem) {
+            document.title = `${activePracticeItem.title} - CodeToCoder`;
+        } else {
+            document.title = 'CodeToCoder - Learn Python with AI';
+        }
+    }, [currentView, activePlaygroundFile, currentLesson, activePracticeItem]);
+
     const changeLesson = useCallback((moduleId: string, lessonId: string, force: boolean = false) => {
         if (!force && currentLessonId && loadedCodeRef.current !== null && code !== loadedCodeRef.current) {
             if (!window.confirm("You have unsaved changes. Do you want to save them and switch lessons?")) return;
@@ -598,7 +626,7 @@ const App: React.FC = () => {
         }
 
         // Navigate to the new URL - the useEffect above will handle loading the data
-        navigate(`/classroom/${moduleId}/${lessonId}`);
+        navigate(`/ classroom / ${moduleId}/${lessonId}`);
 
         // On mobile, close nav after selection
         if (isMobile) {
@@ -923,7 +951,8 @@ const App: React.FC = () => {
     const handlePlaygroundOpen = useCallback((fileId: string) => {
         setActivePlaygroundFileId(fileId);
         setPlaygroundView('editor');
-    }, []);
+        navigate(`/playground/${fileId}`);
+    }, [navigate]);
 
     const handlePlaygroundRename = useCallback((fileId: string, newName: string) => {
         updateFile(fileId, { name: newName });
@@ -940,7 +969,8 @@ const App: React.FC = () => {
     const handlePlaygroundResume = useCallback((fileId: string) => {
         setActivePlaygroundFileId(fileId);
         setPlaygroundView('editor');
-    }, []);
+        navigate(`/playground/${fileId}`);
+    }, [navigate]);
 
     const handleExportCode = useCallback(() => {
         const codeToSave = (currentView === 'classroom' || currentView === 'practice') ? code : playgroundEditorCode;
@@ -1103,7 +1133,7 @@ const App: React.FC = () => {
     const isClassroom = currentView === 'classroom';
     const isPlayground = currentView === 'playground';
     const isPractice = currentView === 'practice';
-    const isReference = currentView === 'reference';
+
 
     const activeSetCode = (isClassroom || isPractice) ? setCode : setPlaygroundEditorCode;
     const activeRunCode = (isClassroom || isPractice) ? handleRunCode : handleRunPlaygroundCode;
@@ -1134,8 +1164,8 @@ const App: React.FC = () => {
 
     const isPracticeQuiz = isPractice && activePracticeItem?.type === 'quiz';
 
-    const shouldShowDashboard = (isPlayground && playgroundView === 'dashboard') || (isPractice && !activePracticeItem);
-    const showChatPanel = !isReference && !isPracticeQuiz && !(isClassroom && !currentLessonId) && currentView !== 'home';
+
+    const showChatPanel = !isPracticeQuiz && !(isClassroom && !currentLessonId) && currentView !== 'home';
 
     const currentVideoUrl = (activeContentItem) ? (lessonVideos[activeContentItem.id] || null) : null;
 
@@ -1277,7 +1307,10 @@ const App: React.FC = () => {
                         {isPracticeQuiz && (
                             <div className="h-12 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between">
                                 <button
-                                    onClick={() => setActivePracticeItem(null)}
+                                    onClick={() => {
+                                        setActivePracticeItem(null);
+                                        navigate('/practice');
+                                    }}
                                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -1440,7 +1473,7 @@ const App: React.FC = () => {
                     onNavigate={handleNavigate}
                     theme={theme}
                     setTheme={setTheme}
-                    stars={displayedStars}
+
                     starTargetRef={starTargetRef}
                     onOpenAuth={handleOpenAuth}
                     starBalance={starBalance}
@@ -1511,11 +1544,10 @@ const App: React.FC = () => {
                             />
                         } />
 
-                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} />} />
+                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />} />
 
-                        <Route path="/collection" element={<CollectionPage onNavigate={handleNavigate} />} />
 
-                        <Route path="/reference" element={<ReferencePanel />} />
+
 
                         <Route path="/playground" element={
                             <PlaygroundDashboard
@@ -1538,20 +1570,22 @@ const App: React.FC = () => {
                                         return;
                                     }
                                     setActivePracticeItem(item);
-                                    navigate(`/practice/${item.type}`);
+                                    navigate(`/practice/${item.type}/${item.id}`);
                                 }}
                                 completedItems={completedPracticeItems}
                                 currentType={practiceCategory}
                                 onSelectType={setPracticeCategory}
                                 customItems={customQuizzes}
                                 onAddCustomItem={addCustomQuiz}
+                                onNavigate={(path) => navigate(path)}
                             />
                         } />
 
                         {/* IDE Views */}
                         <Route path="/classroom/*" element={renderIdeView()} />
                         <Route path="/playground/:fileId" element={renderIdeView()} />
-                        <Route path="/practice/:category" element={renderIdeView()} />
+                        <Route path="/practice/:category/:itemId" element={renderIdeView()} />
+                        <Route path="/practice/reference" element={<ReferencePanel />} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

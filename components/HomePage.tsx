@@ -4,7 +4,7 @@ import { LESSON_PLAN } from '../constants';
 import type { Module } from '../types';
 
 interface HomePageProps {
-  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'reference' | 'mission' | 'about') => void;
+  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about') => void;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
   playgroundFiles: any[];

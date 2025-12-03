@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { CollectionPage } from './CollectionPage';
 import {
     getMarketplaceData,
     purchasePack,
@@ -9,15 +10,19 @@ import {
     claimChallengeReward
 } from '../services/marketplaceService';
 import { PACKS } from '../data/marketplaceData';
-import { RARITY_COLORS, RARITY_BG_COLORS, COLLECTIBLES } from '../data/collectiblesData';
+import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import type { UserStars, DailyChallenge, Collectible } from '../types';
 
+import { ViewState } from './Header';
+
 interface MarketplacePageProps {
-    onNavigate: (view: string) => void;
+    onNavigate: (view: ViewState) => void;
+    onOpenAuth: () => void;
 }
 
-export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) => {
+export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, onOpenAuth }) => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<'market' | 'collection'>('market');
     const [stars, setStars] = useState<UserStars | null>(null);
     const [dailyChallenges, setDailyChallenges] = useState<DailyChallenge[]>([]);
     const [dailyPrizeAvailable, setDailyPrizeAvailable] = useState(false);
@@ -30,14 +35,14 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
 
     // New Collectible Modal State
     const [newCollectibles, setNewCollectibles] = useState<Collectible[]>([]);
-    const [ownedCollectibles, setOwnedCollectibles] = useState<string[]>([]);
+
 
     const loadData = async () => {
         if (!user) return;
         const data = await getMarketplaceData(user.id);
         setStars(data.stars);
         setDailyChallenges(data.dailyChallenges);
-        setOwnedCollectibles(data.ownedCollectibles);
+
         setDailyPrizeAvailable(isDailyPrizeAvailable(user.id, data));
         setHoursUntilPrize(getTimeUntilDailyPrize(user.id, data));
     };
@@ -298,228 +303,247 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate }) 
                         <p className="text-text-secondary text-lg max-w-2xl mx-auto">Unlock rewards, collect rare items, and dominate challenges.</p>
                     </div>
 
-                    {/* Star Balance */}
-                    <div className="flex flex-col items-center gap-4 mb-12">
-                        <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default px-10 py-6 relative group overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="relative z-10">
-                                <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
-                                <div className="text-5xl font-black text-text-primary font-mono flex items-center gap-4 justify-center">
-                                    <span className="text-4xl animate-pulse text-yellow-500">★</span>
-                                    <span className="text-text-primary">{stars.balance.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* View Collection Button */}
+                    {/* Tab Toggle */}
+                    <div className="flex justify-center gap-4 mb-8">
                         <button
-                            onClick={() => onNavigate('collection')}
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-purple-500/30 transform hover:scale-105 flex items-center gap-2"
+                            onClick={() => setActiveTab('market')}
+                            className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'market'
+                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                                : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
+                                }`}
                         >
-                            <span className="text-xl">💎</span>
-                            <span>View My Collection</span>
-                            <span className="text-sm opacity-75">({ownedCollectibles.length}/{COLLECTIBLES.length})</span>
+                            🛒 Market
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('collection')}
+                            className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'collection'
+                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+                                : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
+                                }`}
+                        >
+                            💎 Collection
                         </button>
                     </div>
                 </div>
 
-                {/* Daily Prize */}
-                <div className="mb-10">
-                    <div className="bg-surface/80 rounded-2xl shadow-lg border border-border-default p-8 transition-all duration-300 hover:border-yellow-500/50 hover:shadow-yellow-500/20 group relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <div className="relative z-10">
-                            <h2 className="text-2xl font-bold text-text-primary mb-6 flex items-center gap-3 justify-center">
-                                <span className="text-3xl">🎁</span> Daily Prize
-                            </h2>
-                            {dailyPrizeAvailable ? (
-                                <button
-                                    onClick={handleClaimDailyPrize}
-                                    disabled={claimingPrize}
-                                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-black text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-orange-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
-                                >
-                                    {claimingPrize ? 'Claiming...' : '✨ Claim Your Daily Prize! ✨'}
-                                </button>
-                            ) : (
-                                <div className="text-center py-8 bg-surface-highlight/30 rounded-xl border border-border-default/50">
-                                    <div className="text-text-secondary mb-3 text-sm uppercase tracking-wider font-medium">Next prize available in</div>
-                                    <div className="text-5xl font-black text-yellow-500 font-mono tracking-tight text-center">
-                                        {hoursUntilPrize} <span className="text-2xl text-yellow-500/50">hours</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Daily Challenges */}
-                <div className="mb-12">
-                    <h2 className="text-3xl font-bold text-text-primary mb-8 flex items-center gap-3">
-                        <span className="text-cyan-400">⚔️</span> Daily Challenges
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {dailyChallenges.map(challenge => (
-                            <div
-                                key={challenge.id}
-                                className={`relative bg-surface rounded-2xl shadow-lg border-2 ${challenge.completed
-                                    ? 'border-green-500/50 hover:border-green-400'
-                                    : 'border-border-default hover:border-cyan-500/50'
-                                    } p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group overflow-hidden`}
-                            >
-                                <div className={`absolute inset-0 bg-gradient-to-br ${challenge.completed ? 'from-green-500/10' : 'from-cyan-500/10'
-                                    } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
+                {/* Conditional Rendering */}
+                {activeTab === 'collection' ? (
+                    <CollectionPage onNavigate={onNavigate} onOpenAuth={onOpenAuth} isEmbedded={true} />
+                ) : (
+                    <>
+                        {/* Star Balance */}
+                        <div className="flex flex-col items-center gap-4 mb-12">
+                            <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default px-10 py-6 relative group overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="relative z-10">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-lg font-bold text-text-primary group-hover:text-cyan-300 transition-colors">{challenge.title}</h3>
-                                        {challenge.completed && (
-                                            <div className="bg-green-500/20 text-green-400 p-1 rounded-full">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <p className="text-text-secondary text-sm mb-6 min-h-[40px]">{challenge.description}</p>
-
-                                    {/* Progress Bar */}
-                                    <div className="mb-4">
-                                        <div className="flex justify-between text-xs text-text-secondary mb-1 font-mono">
-                                            <span>Progress</span>
-                                            <span>{challenge.progress}/{challenge.requirement.count}</span>
-                                        </div>
-                                        <div className="h-2 bg-surface-highlight rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full ${challenge.completed
-                                                    ? 'bg-green-500'
-                                                    : 'bg-cyan-500'
-                                                    } transition-all duration-500 relative`}
-                                                style={{ width: `${Math.min(100, (challenge.progress / challenge.requirement.count) * 100)}%` }}
-                                            >
-                                                <div className="absolute inset-0 bg-white/20 animate-pulse" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-yellow-400 font-bold bg-surface-highlight/50 py-2 px-3 rounded-lg border border-border-default w-fit">
-                                            <span>★</span>
-                                            <span>{challenge.reward} stars</span>
-                                        </div>
-
-                                        {challenge.completed && !challenge.claimed && (
-                                            <button
-                                                onClick={() => handleClaimChallenge(challenge.id)}
-                                                disabled={claimingChallengeId === challenge.id}
-                                                className="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-green-900/20"
-                                            >
-                                                {claimingChallengeId === challenge.id ? '...' : 'CLAIM'}
-                                            </button>
-                                        )}
-                                        {challenge.claimed && (
-                                            <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Claimed</span>
-                                        )}
+                                    <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
+                                    <div className="text-5xl font-black text-text-primary font-mono flex items-center gap-4 justify-center">
+                                        <span className="text-4xl animate-pulse text-yellow-500">★</span>
+                                        <span className="text-text-primary">{stars.balance.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
+                        </div>
 
-                {/* Packs */}
-                <div>
-                    <div className="flex items-center gap-4 mb-8">
-                        <h2 className="text-3xl font-bold text-text-primary flex items-center gap-3">
-                            <span className="text-purple-400">📦</span> Star Packs
-                        </h2>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {PACKS.map(pack => {
-                            const canAfford = stars.balance >= pack.cost;
-                            const isPurchasing = purchasingPack === pack.id;
-
-                            return (
-                                <div
-                                    key={pack.id}
-                                    className={`relative bg-surface rounded-2xl shadow-lg border-2 ${pack.tier === 'designer' ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20' :
-                                        pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
-                                            pack.tier === 'developer' ? 'border-green-500/50 hover:border-green-400 hover:shadow-green-500/20' :
-                                                pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
-                                                    'border-border-default hover:border-cyan-400 hover:shadow-cyan-500/20'
-                                        } p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group overflow-hidden`}
-                                >
-                                    <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'designer' ? 'from-yellow-500/10' :
-                                        pack.tier === 'elite' ? 'from-purple-500/10' :
-                                            pack.tier === 'developer' ? 'from-green-500/10' :
-                                                pack.tier === 'premium' ? 'from-blue-500/10' :
-                                                    'from-cyan-500/10'
-                                        } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-
-                                    <div className="relative z-10">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <h3 className="text-2xl font-black text-text-primary tracking-tight flex-1">{pack.name}</h3>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setShowPackDropRates(pack.id);
-                                                }}
-                                                className="w-6 h-6 rounded-full bg-surface-highlight/70 text-text-secondary flex items-center justify-center hover:bg-border-default hover:text-text-primary transition-colors border border-border-default flex-shrink-0 ml-2"
-                                                title="View Drop Rates"
-                                            >
-                                                <span className="font-serif font-bold italic text-xs">i</span>
-                                            </button>
-                                        </div>
-                                        <p className="text-text-secondary text-sm mb-8 text-center min-h-[40px] leading-relaxed">{pack.description}</p>
-
-                                        <div className="space-y-3 mb-8">
-                                            {pack.rewards.collectibles && (
-                                                <div className={`flex items-center gap-3 bg-surface-highlight/50 rounded-xl p-4 border border-border-default transition-colors ${pack.tier === 'designer' ? 'text-yellow-300 group-hover:border-yellow-500/30' :
-                                                    pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
-                                                        pack.tier === 'developer' ? 'text-green-300 group-hover:border-green-500/30' :
-                                                            pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
-                                                                'text-text-secondary group-hover:border-border-default/30'
-                                                    }`}>
-                                                    <span className="text-xl">💎</span>
-                                                    <span className="font-bold">
-                                                        {pack.tier === 'designer' ? 'Guaranteed Legendary+' :
-                                                            pack.tier === 'elite' ? 'Guaranteed Epic+' :
-                                                                pack.tier === 'developer' ? 'Balanced Mix' :
-                                                                    pack.tier === 'premium' ? 'High Rare Chance' :
-                                                                        'Common Collectibles'}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
+                        {/* Daily Prize */}
+                        <div className="mb-10">
+                            <div className="bg-surface/80 rounded-2xl shadow-lg border border-border-default p-8 transition-all duration-300 hover:border-yellow-500/50 hover:shadow-yellow-500/20 group relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="relative z-10">
+                                    <h2 className="text-2xl font-bold text-text-primary mb-6 flex items-center gap-3 justify-center">
+                                        <span className="text-3xl">🎁</span> Daily Prize
+                                    </h2>
+                                    {dailyPrizeAvailable ? (
                                         <button
-                                            onClick={() => handlePurchasePack(pack.id)}
-                                            disabled={!canAfford || isPurchasing}
-                                            className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${canAfford
-                                                ? 'bg-text-primary text-background hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
-                                                : 'bg-surface-highlight text-text-secondary cursor-not-allowed border border-border-default'
-                                                }`}
+                                            onClick={handleClaimDailyPrize}
+                                            disabled={claimingPrize}
+                                            className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-black text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-orange-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
                                         >
-                                            {isPurchasing ? (
-                                                <>
-                                                    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    <span>Processing...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span>{pack.cost}</span>
-                                                    <span className="text-xl text-yellow-500">★</span>
-                                                </>
-                                            )}
+                                            {claimingPrize ? 'Claiming...' : '✨ Claim Your Daily Prize! ✨'}
                                         </button>
-                                    </div>
+                                    ) : (
+                                        <div className="text-center py-8 bg-surface-highlight/30 rounded-xl border border-border-default/50">
+                                            <div className="text-text-secondary mb-3 text-sm uppercase tracking-wider font-medium">Next prize available in</div>
+                                            <div className="text-5xl font-black text-yellow-500 font-mono tracking-tight text-center">
+                                                {hoursUntilPrize} <span className="text-2xl text-yellow-500/50">hours</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                            </div>
+                        </div>
+
+                        {/* Daily Challenges */}
+                        <div className="mb-12">
+                            <h2 className="text-3xl font-bold text-text-primary mb-8 flex items-center gap-3">
+                                <span className="text-cyan-400">⚔️</span> Daily Challenges
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {dailyChallenges.map(challenge => (
+                                    <div
+                                        key={challenge.id}
+                                        className={`relative bg-surface rounded-2xl shadow-lg border-2 ${challenge.completed
+                                            ? 'border-green-500/50 hover:border-green-400'
+                                            : 'border-border-default hover:border-cyan-500/50'
+                                            } p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group overflow-hidden`}
+                                    >
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${challenge.completed ? 'from-green-500/10' : 'from-cyan-500/10'
+                                            } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                                        <div className="relative z-10">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <h3 className="text-lg font-bold text-text-primary group-hover:text-cyan-300 transition-colors">{challenge.title}</h3>
+                                                {challenge.completed && (
+                                                    <div className="bg-green-500/20 text-green-400 p-1 rounded-full">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-text-secondary text-sm mb-6 min-h-[40px]">{challenge.description}</p>
+
+                                            {/* Progress Bar */}
+                                            <div className="mb-4">
+                                                <div className="flex justify-between text-xs text-text-secondary mb-1 font-mono">
+                                                    <span>Progress</span>
+                                                    <span>{challenge.progress}/{challenge.requirement.count}</span>
+                                                </div>
+                                                <div className="h-2 bg-surface-highlight rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${challenge.completed
+                                                            ? 'bg-green-500'
+                                                            : 'bg-cyan-500'
+                                                            } transition-all duration-500 relative`}
+                                                        style={{ width: `${Math.min(100, (challenge.progress / challenge.requirement.count) * 100)}%` }}
+                                                    >
+                                                        <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-yellow-400 font-bold bg-surface-highlight/50 py-2 px-3 rounded-lg border border-border-default w-fit">
+                                                    <span>★</span>
+                                                    <span>{challenge.reward} stars</span>
+                                                </div>
+
+                                                {challenge.completed && !challenge.claimed && (
+                                                    <button
+                                                        onClick={() => handleClaimChallenge(challenge.id)}
+                                                        disabled={claimingChallengeId === challenge.id}
+                                                        className="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-green-900/20"
+                                                    >
+                                                        {claimingChallengeId === challenge.id ? '...' : 'CLAIM'}
+                                                    </button>
+                                                )}
+                                                {challenge.claimed && (
+                                                    <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Claimed</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Packs */}
+                        <div>
+                            <div className="flex items-center gap-4 mb-8">
+                                <h2 className="text-3xl font-bold text-text-primary flex items-center gap-3">
+                                    <span className="text-purple-400">📦</span> Star Packs
+                                </h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {PACKS.map(pack => {
+                                    const canAfford = stars.balance >= pack.cost;
+                                    const isPurchasing = purchasingPack === pack.id;
+
+                                    return (
+                                        <div
+                                            key={pack.id}
+                                            className={`relative bg-surface rounded-2xl shadow-lg border-2 ${pack.tier === 'designer' ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20' :
+                                                pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
+                                                    pack.tier === 'developer' ? 'border-green-500/50 hover:border-green-400 hover:shadow-green-500/20' :
+                                                        pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
+                                                            'border-border-default hover:border-cyan-400 hover:shadow-cyan-500/20'
+                                                } p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group overflow-hidden`}
+                                        >
+                                            <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'designer' ? 'from-yellow-500/10' :
+                                                pack.tier === 'elite' ? 'from-purple-500/10' :
+                                                    pack.tier === 'developer' ? 'from-green-500/10' :
+                                                        pack.tier === 'premium' ? 'from-blue-500/10' :
+                                                            'from-cyan-500/10'
+                                                } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+
+                                            <div className="relative z-10">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <h3 className="text-2xl font-black text-text-primary tracking-tight flex-1">{pack.name}</h3>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShowPackDropRates(pack.id);
+                                                        }}
+                                                        className="w-6 h-6 rounded-full bg-surface-highlight/70 text-text-secondary flex items-center justify-center hover:bg-border-default hover:text-text-primary transition-colors border border-border-default flex-shrink-0 ml-2"
+                                                        title="View Drop Rates"
+                                                    >
+                                                        <span className="font-serif font-bold italic text-xs">i</span>
+                                                    </button>
+                                                </div>
+                                                <p className="text-text-secondary text-sm mb-8 text-center min-h-[40px] leading-relaxed">{pack.description}</p>
+
+                                                <div className="space-y-3 mb-8">
+                                                    {pack.rewards.collectibles && (
+                                                        <div className={`flex items-center gap-3 bg-surface-highlight/50 rounded-xl p-4 border border-border-default transition-colors ${pack.tier === 'designer' ? 'text-yellow-300 group-hover:border-yellow-500/30' :
+                                                            pack.tier === 'elite' ? 'text-purple-300 group-hover:border-purple-500/30' :
+                                                                pack.tier === 'developer' ? 'text-green-300 group-hover:border-green-500/30' :
+                                                                    pack.tier === 'premium' ? 'text-blue-300 group-hover:border-blue-500/30' :
+                                                                        'text-text-secondary group-hover:border-border-default/30'
+                                                            }`}>
+                                                            <span className="text-xl">💎</span>
+                                                            <span className="font-bold">
+                                                                {pack.tier === 'designer' ? 'Guaranteed Legendary+' :
+                                                                    pack.tier === 'elite' ? 'Guaranteed Epic+' :
+                                                                        pack.tier === 'developer' ? 'Balanced Mix' :
+                                                                            pack.tier === 'premium' ? 'High Rare Chance' :
+                                                                                'Common Collectibles'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    onClick={() => handlePurchasePack(pack.id)}
+                                                    disabled={!canAfford || isPurchasing}
+                                                    className={`w-full font-bold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${canAfford
+                                                        ? 'bg-text-primary text-background hover:bg-cyan-50 hover:scale-[1.02] shadow-lg'
+                                                        : 'bg-surface-highlight text-text-secondary cursor-not-allowed border border-border-default'
+                                                        }`}
+                                                >
+                                                    {isPurchasing ? (
+                                                        <>
+                                                            <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            <span>Processing...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span>{pack.cost}</span>
+                                                            <span className="text-xl text-yellow-500">★</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

@@ -19,7 +19,12 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    /* Strict Type Checking */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": [
     "./**/*.ts",
