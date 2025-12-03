@@ -172,10 +172,6 @@ const migrateMarketplaceData = async (userId: string): Promise<void> => {
         };
         await setDoc(collectionRef, collectionData, { merge: true });
 
-        // Update totalStars in root user document
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, { totalStars: starsData.balance }, { merge: true });
-
         console.log('Marketplace data migrated successfully');
     } catch (error) {
         console.error('Error migrating marketplace data:', error);

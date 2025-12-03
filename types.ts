@@ -66,7 +66,6 @@ export interface User {
   avatar?: string;
   joinedAt: number;
   achievements?: UserAchievements;
-  totalStars?: number;
 }
 
 

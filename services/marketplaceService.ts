@@ -145,10 +145,6 @@ export const saveStarsData = async (userId: string, data: StarsData): Promise<vo
         const starsRef = userPaths.stars(userId);
         data.lastUpdated = Date.now();
         await setDoc(starsRef, data);
-
-        // Sync totalStars to root user document
-        const userRef = doc(db, 'users', userId);
-        await setDoc(userRef, { totalStars: data.balance }, { merge: true });
     } catch (error) {
         console.error('Error saving stars data:', error);
     }
