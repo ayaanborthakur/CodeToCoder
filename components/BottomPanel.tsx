@@ -47,9 +47,10 @@ const TabButton: React.FC<{
 }> = ({ name, label, activeTab, onClick, isTerminal, icon }) => (
     <button
         onClick={() => onClick(name)}
+        data-tab={name}
         className={`relative px-4 h-full flex items-center gap-2 text-sm font-medium transition-colors border-b-2 ${activeTab === name
-                ? 'text-cyan-600 dark:text-cyan-400 border-cyan-500'
-                : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200'
+            ? 'text-cyan-600 dark:text-cyan-400 border-cyan-500'
+            : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-200'
             }`}
         aria-selected={activeTab === name}
         role="tab"
@@ -144,8 +145,8 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                     <button
                         onClick={onToggleCollapse}
                         className={`p-1 rounded-md transition-colors ${isTerminal
-                                ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white'
+                            ? 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white'
                             }`}
                         aria-label={isCollapsed ? "Expand bottom panel" : "Collapse bottom panel"}
                     >

@@ -27,6 +27,7 @@ import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
 import { CollectionPage } from './components/CollectionPage';
 import { StarNotification } from './components/StarNotification';
+import { TutorialOverlay } from './components/TutorialOverlay';
 import { LESSON_PLAN } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PlaygroundFile, PracticeItem, PracticeType } from './types';
 import { getChatResponse, runCodeWithAI, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
@@ -35,6 +36,7 @@ import { useTheme } from './hooks/useTheme';
 import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
 import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
+import { hasTutorialCompleted } from './services/tutorialService';
 
 const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
 
@@ -150,6 +152,7 @@ const App: React.FC = () => {
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [isTerminalLoading, setIsTerminalLoading] = useState<boolean>(false);
     const [isNavOpen, setIsNavOpen] = useState<boolean>(true);
+    const [showTutorial, setShowTutorial] = useState<boolean>(false);
 
     const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
@@ -289,6 +292,23 @@ const App: React.FC = () => {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isAuthLoading]);
+
+    // 3. Check if tutorial should be shown for first-time users
+    useEffect(() => {
+        if (isAuthLoading || !isProgressLoaded) return;
+
+        // Only show tutorial for logged-in users who haven't completed it
+        if (user) {
+            const tutorialCompleted = hasTutorialCompleted(user.id);
+            if (!tutorialCompleted) {
+                // Small delay to ensure the page has loaded
+                const timer = setTimeout(() => {
+                    setShowTutorial(true);
+                }, 1000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [user, isAuthLoading, isProgressLoaded]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");
@@ -1442,6 +1462,15 @@ const App: React.FC = () => {
                         amount={starNotification.amount}
                         reason={starNotification.reason}
                         onClose={() => setStarNotification(null)}
+                    />
+                )}
+
+                {/* Tutorial Overlay for first-time users */}
+                {showTutorial && (
+                    <TutorialOverlay
+                        userId={user?.id}
+                        onComplete={() => setShowTutorial(false)}
+                        onSkip={() => setShowTutorial(false)}
                     />
                 )}
 

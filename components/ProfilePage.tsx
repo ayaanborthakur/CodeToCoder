@@ -4,6 +4,7 @@ import { useProgress } from '../hooks/useProgress';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
 import { BADGES, getBadgeColor } from '../services/achievementService';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
+import { resetTutorial } from '../services/tutorialService';
 import type { User, UserAchievements, Collectible } from '../types';
 
 interface ProfilePageProps {
@@ -19,6 +20,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isResetTutorialModalOpen, setIsResetTutorialModalOpen] = useState(false);
 
     const handleDeleteAccount = async () => {
         if (deleteConfirmText !== 'DELETE') return;
@@ -31,6 +33,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
             alert("Failed to delete account. Please try again.");
             setIsDeleting(false);
         }
+    };
+
+    const handleResetTutorial = async () => {
+        await resetTutorial(user?.id);
+        setIsResetTutorialModalOpen(false);
+        // Reload the page to trigger tutorial
+        window.location.reload();
     };
 
     useEffect(() => {
@@ -241,8 +250,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                         )}
                     </div>
                 )}
-                {/* Danger Zone */}
+
+                {/* Settings Section */}
                 <div className="mt-12 border-t border-slate-800 pt-8">
+                    <h3 className="text-xl font-bold text-white mb-4">Settings</h3>
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-white font-bold mb-1">Reset Tutorial</h4>
+                            <p className="text-slate-400 text-sm">Replay the interactive tutorial to learn about all features again.</p>
+                        </div>
+                        <button
+                            onClick={() => setIsResetTutorialModalOpen(true)}
+                            className="px-4 py-2 text-sm font-bold text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors border border-cyan-200 dark:border-cyan-800"
+                        >
+                            Reset Tutorial
+                        </button>
+                    </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="mt-8 border-t border-slate-800 pt-8">
                     <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                         <div>
                             <h4 className="text-white font-bold mb-1">Delete Account</h4>
@@ -317,6 +344,46 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate }) => {
                                 className="flex-1 px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isDeleting ? 'Deleting...' : 'Delete Account'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reset Tutorial Confirmation Modal */}
+            {isResetTutorialModalOpen && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60]" onClick={() => setIsResetTutorialModalOpen(false)}>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full border border-cyan-500 dark:border-cyan-700 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-cyan-600 dark:text-cyan-400">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Reset Tutorial?</h3>
+                        </div>
+
+                        <div className="mb-6">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                                This will reset the tutorial and reload the page. You'll see the interactive tutorial again from the beginning.
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                This won't affect your progress, badges, or any other data.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsResetTutorialModalOpen(false)}
+                                className="flex-1 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors border border-gray-200 dark:border-gray-600"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleResetTutorial}
+                                className="flex-1 px-4 py-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-colors"
+                            >
+                                Reset & Reload
                             </button>
                         </div>
                     </div>
