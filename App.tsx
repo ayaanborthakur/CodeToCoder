@@ -789,22 +789,74 @@ const App: React.FC = () => {
                         }
                     }
                 } else {
+                    // Validate lesson completion with dual check (output + methodology)
                     if (!completedLessons.has(contextItem.id)) {
-                        markLessonAsCompleted(contextItem.id);
-                        if (user) {
-                            import('./services/starService').then(({ awardStarsForActivity }) => {
-                                awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
-                                    if (result.awarded) {
-                                        setStarNotification({
-                                            amount: result.amount,
-                                            reason: `Completed ${contextItem.title}`
+                        // Type guard: Only validate if it's a Lesson (not PracticeItem)
+                        // PracticeItems don't have 'goal' property required by validation
+                        if ('goal' in contextItem) {
+                            // Import validation service
+                            const { validateLessonCompletion } = await import('./services/lessonValidationService');
+
+                            console.log('[App] Validating lesson:', contextItem.id);
+                            console.log('[App] Code length:', code.length);
+                            console.log('[App] Output:', result.output.trim());
+
+                            // Perform validation
+                            const validation = await validateLessonCompletion(
+                                code,
+                                result.output,
+                                contextItem
+                            );
+
+                            if (validation.passed) {
+                                // Both output and methodology are correct
+                                console.log('[App] Validation passed! Marking complete...');
+                                triggerConfetti(); // Visual feedback
+                                await markLessonAsCompleted(contextItem.id);
+
+                                if (user) {
+                                    import('./services/starService').then(({ awardStarsForActivity }) => {
+                                        awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
+                                            if (result.awarded) {
+                                                setStarNotification({
+                                                    amount: result.amount,
+                                                    reason: `Completed ${contextItem.title}`
+                                                });
+                                            }
                                         });
-                                    }
+                                    });
+                                }
+
+                                // Small delay to allow state to update before moving?
+                                // await new Promise(r => setTimeout(r, 100));
+                                advanceToNextLesson();
+                            } else {
+                                // Validation failed - log reason but don't show to user
+                                console.log('[Lesson Validation Failed]', validation.reason);
+                                // Code ran successfully but didn't meet requirements
+                                // User sees the output but lesson doesn't complete
+                            }
+                        } else {
+                            // This shouldn't happen in classroom view, but handle gracefully
+                            markLessonAsCompleted(contextItem.id);
+                            if (user) {
+                                import('./services/starService').then(({ awardStarsForActivity }) => {
+                                    awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
+                                        if (result.awarded) {
+                                            setStarNotification({
+                                                amount: result.amount,
+                                                reason: `Completed ${contextItem.title}`
+                                            });
+                                        }
+                                    });
                                 });
-                            });
+                            }
+                            advanceToNextLesson();
                         }
+                    } else {
+                        // Already completed, just advance
+                        advanceToNextLesson();
                     }
-                    advanceToNextLesson();
                 }
             }
         } catch (error) {

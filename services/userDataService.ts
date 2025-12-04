@@ -66,7 +66,8 @@ const ensureUserDocument = async (userId: string): Promise<void> => {
 export const syncClassroomProgress = async (
     userId: string,
     completedLessons: string[],
-    achievements?: UserAchievements
+    achievements?: UserAchievements,
+    rewardedLessons?: string[]
 ): Promise<void> => {
     try {
         devLog.info('[syncClassroomProgress] Syncing for user:', userId);
@@ -81,6 +82,10 @@ export const syncClassroomProgress = async (
             completedLessons,
             lastUpdated: Date.now()
         };
+
+        if (rewardedLessons) {
+            data.rewardedLessons = rewardedLessons;
+        }
 
         await setDoc(progressRef, data, { merge: true });
         devLog.info('[syncClassroomProgress] Saved successfully');
@@ -138,7 +143,8 @@ export const loadClassroomProgress = async (userId: string): Promise<ClassroomPr
 export const syncPracticeProgress = async (
     userId: string,
     category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects',
-    completed: string[]
+    completed: string[],
+    rewardedItems?: string[]
 ): Promise<void> => {
     try {
         // Ensure root user document exists
@@ -156,6 +162,10 @@ export const syncPracticeProgress = async (
             completed,
             lastUpdated: Date.now()
         };
+
+        if (rewardedItems) {
+            data.rewardedItems = rewardedItems;
+        }
 
         await setDoc(progressRef, data, { merge: true });
     } catch (error) {

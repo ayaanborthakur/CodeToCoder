@@ -1,7 +1,9 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { QuizQuestion } from '../types';
 import { CollapseIcon } from './CollapseIcon';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface QuizPanelProps {
     questions: QuizQuestion[];
@@ -12,7 +14,6 @@ interface QuizPanelProps {
 
 import CheckCircleIcon from '../assets/icons/CheckCircleIcon.svg?react';
 import XCircleIcon from '../assets/icons/XCircleIcon.svg?react';
-import TrophyIcon from '../assets/icons/QuizTrophyIcon.svg?react';
 
 export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isCollapsed, onToggleCollapse }) => {
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -179,9 +180,11 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                                 {index + 1}
                                             </div>
                                             <div className="flex-1 pt-1">
-                                                <h4 className="text-xl font-bold text-gray-900 dark:text-white leading-relaxed">
-                                                    {q.text}
-                                                </h4>
+                                                <div className="text-xl font-bold text-gray-900 dark:text-white leading-relaxed prose dark:prose-invert max-w-none prose-p:my-0 prose-code:text-cyan-700 dark:prose-code:text-cyan-300 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {q.text}
+                                                    </ReactMarkdown>
+                                                </div>
                                             </div>
                                             {submitted && (
                                                 <div className="flex-shrink-0 ml-2">

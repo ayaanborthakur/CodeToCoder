@@ -97,7 +97,7 @@ export const authService = {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || fallbackName || 'User',
-      joinedAt: Date.now(), // Firebase metadata has creationTime but it's a string
+      joinedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime).getTime() : Date.now(),
     };
   },
 

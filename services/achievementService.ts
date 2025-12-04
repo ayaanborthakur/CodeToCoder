@@ -159,9 +159,16 @@ export const checkAndAwardBadges = (
     const newlyEarnedBadges: Badge[] = [];
 
     // Update platinum lesson requirement if total lessons is known
+    // Update platinum lesson requirement if total lessons is known and reasonable
     const lessonPlatinumBadge = BADGES.find(b => b.id === 'lesson_platinum');
     if (lessonPlatinumBadge && stats.totalLessons) {
-        lessonPlatinumBadge.requirement = stats.totalLessons;
+        // Safety check: Don't lower the requirement below a reasonable threshold (e.g. 10)
+        // unless we are sure. This prevents premature awarding if data is incomplete.
+        if (stats.totalLessons > 10) {
+            lessonPlatinumBadge.requirement = stats.totalLessons;
+        } else {
+            console.warn('[BadgeService] Total lessons count seems low:', stats.totalLessons, 'Keeping default requirement');
+        }
     }
 
     // Check each badge

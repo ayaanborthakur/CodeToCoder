@@ -13,6 +13,7 @@ export interface Lesson {
   startingCode: string;
   objective: string;
   goal: string;
+  expectedOutput?: string; // Exact output required for lesson completion (optional for quizzes/random lessons)
   type?: 'coding' | 'quiz';
   quizQuestions?: QuizQuestion[];
   commonMistakes?: string;
@@ -166,11 +167,13 @@ export interface MarketplaceData {
 // New Restructured Data Types
 export interface ProgressCategoryData {
   completed: string[]; // IDs of completed items
+  rewardedItems?: string[]; // IDs of items that have already awarded stars
   lastUpdated: number;
 }
 
 export interface ClassroomProgressData {
   completedLessons: string[];
+  rewardedLessons?: string[]; // IDs of lessons that have already awarded stars
   lastUpdated: number;
 }
 

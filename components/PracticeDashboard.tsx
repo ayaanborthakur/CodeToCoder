@@ -233,7 +233,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     </button>
 
                     <button
-                        onClick={() => onNavigate?.('/practice/reference')}
+                        onClick={() => onNavigate?.('/reference')}
                         style={{ animationDelay: '300ms' }}
                         className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-green-500 transition-all group animate-slide-up opacity-0"
                     >

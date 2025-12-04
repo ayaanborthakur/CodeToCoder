@@ -5,10 +5,11 @@ import { REFERENCE_DATA, ReferenceTopic } from '../constants/referenceData';
 import { generateReference } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { saveReferenceMaterial, loadReferenceMaterials } from '../services/userDataService';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 declare global {
     interface Window {
-        marked: any;
         Prism: any;
     }
 }
@@ -198,12 +199,7 @@ export const ReferencePanel: React.FC = () => {
         }
     };
 
-    const parseMarkdown = (content: string) => {
-        if (typeof window !== 'undefined' && window.marked && window.marked.parse) {
-            return window.marked.parse(content);
-        }
-        return content;
-    };
+
 
     return (
         <div className="flex h-full w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-hidden">
@@ -361,8 +357,11 @@ export const ReferencePanel: React.FC = () => {
                                        prose-headings:font-bold prose-headings:text-gray-900 dark:prose-headings:text-white
                                        prose-p:text-gray-600 dark:prose-p:text-gray-300
                                        prose-code:text-cyan-700 dark:prose-code:text-cyan-300 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded"
-                            dangerouslySetInnerHTML={{ __html: parseMarkdown(selectedTopic.content) }}
-                        />
+                        >
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {selectedTopic.content}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">

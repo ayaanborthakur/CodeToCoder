@@ -19,7 +19,7 @@ interface ProfilePageProps {
     setTheme: (theme: 'light' | 'dark') => void;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats }) => {
     const { user, logout, deleteAccount } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
@@ -120,12 +120,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 <span className="text-slate-400 text-sm block">Joined</span>
                                 <span className="font-mono">{new Date(user.joinedAt).toLocaleDateString()}</span>
                             </div>
-                            <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
-                                <span className="text-slate-400 text-sm block">Total Stars</span>
+                            <div className="bg-white dark:bg-slate-950 px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-800">
+                                <span className="text-slate-500 dark:text-slate-400 text-sm block">Total Stars</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-mono text-yellow-400 font-bold">{starBalance} ★</span>
+                                    <span className="font-mono text-yellow-500 dark:text-yellow-400 font-bold">{starBalance} ★</span>
                                     <div className="group relative">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-500 cursor-help">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-400 cursor-help">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                                         </svg>
                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-xs text-slate-200 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-slate-700 shadow-xl z-50">
@@ -188,17 +188,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     <div className="space-y-8">
                         {/* Stats Overview */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-surface rounded-2xl p-6 border border-border-default">
-                                <h3 className="text-slate-400 text-sm font-medium mb-2">Lessons Completed</h3>
-                                <div className="text-3xl font-bold text-white">{achievements?.earnedBadgeIds.filter(id => id.startsWith('lesson')).length || 0}</div>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-2">Lessons Completed</h3>
+                                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.lessons || 0}</div>
                             </div>
-                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-                                <h3 className="text-slate-400 text-sm font-medium mb-2">Badges Earned</h3>
-                                <div className="text-3xl font-bold text-white">{achievements?.earnedBadgeIds.length || 0}</div>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-2">Badges Earned</h3>
+                                <div className="text-3xl font-bold text-gray-900 dark:text-white">{achievements?.earnedBadgeIds.length || 0}</div>
                             </div>
-                            <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-                                <h3 className="text-slate-400 text-sm font-medium mb-2">Current Rank</h3>
-                                <div className="text-3xl font-bold text-yellow-400">Novice</div>
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-2">Current Rank</h3>
+                                <div className="text-3xl font-bold text-yellow-500 dark:text-yellow-400">Novice</div>
                             </div>
                         </div>
                     </div>
@@ -212,14 +212,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 <div
                                     key={badge.id}
                                     className={`relative rounded-xl p-6 border-2 transition-all ${isUnlocked
-                                        ? 'bg-slate-900 border-slate-700 hover:border-slate-600'
-                                        : 'bg-slate-900/50 border-slate-800 opacity-60 grayscale'
+                                        ? 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                                        : 'bg-gray-50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-800 opacity-60 grayscale'
                                         }`}
                                     style={isUnlocked ? { borderColor: `${badgeColor}40` } : {}}
                                 >
                                     <div className="flex items-start gap-4">
                                         <div
-                                            className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg shrink-0 ${isUnlocked ? 'bg-slate-800' : 'bg-slate-800/50'
+                                            className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-lg shrink-0 ${isUnlocked ? 'bg-gray-100 dark:bg-slate-800' : 'bg-gray-100/50 dark:bg-slate-800/50'
                                                 }`}
                                             style={isUnlocked ? { color: badgeColor, boxShadow: `0 0 15px ${badgeColor}20` } : {}}
                                         >
@@ -228,11 +228,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                     badge.type === 'quiz' ? '📝' : '🏆'}
                                         </div>
                                         <div>
-                                            <h3 className={`font-bold mb-1 ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>
+                                            <h3 className={`font-bold mb-1 ${isUnlocked ? 'text-gray-900 dark:text-white' : 'text-slate-400'}`}>
                                                 {badge.name}
                                             </h3>
                                             <p className="text-xs text-slate-500 mb-2">{badge.description}</p>
-                                            <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-950 border border-slate-800"
+                                            <div className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-slate-950 border border-gray-200 dark:border-slate-800"
                                                 style={isUnlocked ? { color: badgeColor, borderColor: `${badgeColor}30` } : { color: '#64748b' }}>
                                                 {badge.tier}
                                             </div>
@@ -255,8 +255,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 ) : activeTab === 'settings' ? (
                     <div className="space-y-6">
                         {/* Theme Setting */}
-                        <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-                            <h3 className="text-lg font-bold text-white mb-4">Appearance</h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Appearance</h3>
                             <ToggleSwitch
                                 label="Dark Mode"
                                 isChecked={theme === 'dark'}
@@ -265,16 +265,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                         </div>
 
                         {/* AI Assistance Setting */}
-                        <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-                            <h3 className="text-lg font-bold text-white mb-2">AI Assistance Level</h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">AI Assistance Level</h3>
                             <p className="text-slate-400 text-sm mb-4">
                                 Control how much help the AI provides. Higher values mean more assistance.
                             </p>
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-slate-400 text-sm">Level: {aiAssistanceLevel}</span>
-                                    <span className="text-xs px-2 py-1 rounded bg-slate-800 text-slate-300">
+                                    <span className="text-slate-500 dark:text-slate-400 text-sm">Level: {aiAssistanceLevel}</span>
+                                    <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
                                         {aiAssistanceLevel <= 5 ? 'Manual Help Only' : 'Automatic Assistance'}
                                     </span>
                                 </div>
@@ -285,7 +285,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     max="10"
                                     value={aiAssistanceLevel}
                                     onChange={(e) => handleAiAssistanceChange(parseInt(e.target.value))}
-                                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+                                    className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
                                 />
 
                                 <div className="flex justify-between text-xs text-slate-500">
@@ -294,12 +294,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     <span>10 - Max Help</span>
                                 </div>
 
-                                <div className="mt-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                                    <p className="text-sm text-slate-300">
+                                <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                                    <p className="text-sm text-gray-600 dark:text-slate-300">
                                         {aiAssistanceLevel <= 5 ? (
-                                            <><strong className="text-cyan-400">Manual Mode:</strong> AI will only help when you ask. No automatic feedback when running code.</>
+                                            <><strong className="text-cyan-600 dark:text-cyan-400">Manual Mode:</strong> AI will only help when you ask. No automatic feedback when running code.</>
                                         ) : (
-                                            <><strong className="text-cyan-400">Auto Mode:</strong> AI will automatically provide feedback and suggestions when you run code.</>
+                                            <><strong className="text-cyan-600 dark:text-cyan-400">Auto Mode:</strong> AI will automatically provide feedback and suggestions when you run code.</>
                                         )}
                                     </p>
                                 </div>
@@ -312,7 +312,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                             collectibles.map(item => (
                                 <div
                                     key={item.id}
-                                    className={`bg-slate-900 rounded-xl p-4 border-2 transition-all hover:scale-105 group relative overflow-hidden ${RARITY_COLORS[item.rarity].split(' ')[1]}`} // Extract border color
+                                    className={`bg-white dark:bg-slate-900 rounded-xl p-4 border-2 transition-all hover:scale-105 group relative overflow-hidden ${RARITY_COLORS[item.rarity].split(' ')[1]}`} // Extract border color
                                 >
                                     <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity ${RARITY_BG_COLORS[item.rarity]}`} />
 
@@ -321,15 +321,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                         <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${RARITY_COLORS[item.rarity]}`}>
                                             {item.rarity}
                                         </div>
-                                        <h3 className="font-bold text-white text-sm mb-1">{item.name}</h3>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{item.name}</h3>
                                         <p className="text-xs text-slate-500 line-clamp-2">{item.description}</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div className="col-span-full text-center py-12 bg-slate-900 rounded-2xl border border-slate-800 border-dashed">
+                            <div className="col-span-full text-center py-12 bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 border-dashed">
                                 <div className="text-4xl mb-4">📦</div>
-                                <h3 className="text-xl font-bold text-white mb-2">No Collectibles Yet</h3>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Collectibles Yet</h3>
                                 <p className="text-slate-400 mb-6">Visit the Star Market to buy packs and start your collection!</p>
                                 <button
                                     onClick={() => onNavigate('marketplace')}
@@ -343,11 +343,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 )}
 
                 {/* Settings Section */}
-                <div className="mt-12 border-t border-slate-800 pt-8">
-                    <h3 className="text-xl font-bold text-white mb-4">Settings</h3>
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="mt-12 border-t border-gray-200 dark:border-slate-800 pt-8">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Settings</h3>
+                    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                         <div>
-                            <h4 className="text-white font-bold mb-1">Reset Tutorial</h4>
+                            <h4 className="text-gray-900 dark:text-white font-bold mb-1">Reset Tutorial</h4>
                             <p className="text-slate-400 text-sm">Replay the interactive tutorial to learn about all features again.</p>
                         </div>
                         <button
@@ -360,10 +360,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 </div>
 
                 {/* Danger Zone */}
-                <div className="mt-8 border-t border-slate-800 pt-8">
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="mt-8 border-t border-gray-200 dark:border-slate-800 pt-8">
+                    <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                         <div>
-                            <h4 className="text-white font-bold mb-1">Delete Account</h4>
+                            <h4 className="text-gray-900 dark:text-white font-bold mb-1">Delete Account</h4>
                             <p className="text-slate-400 text-sm">Permanently delete your account and all progress. This action cannot be undone.</p>
                         </div>
                         <button
