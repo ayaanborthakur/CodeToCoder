@@ -33,9 +33,9 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         onNavigate(view);
         setIsMobileMenuOpen(false);
       }}
-      className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors ${currentView === view
-        ? 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400'
-        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+      className={`nav-tab px-3 py-2 rounded-md text-sm font-semibold ${currentView === view
+        ? 'bg-cyan-500/20 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400'
+        : 'text-gray-600 dark:text-gray-300'
         }`}
     >
       {label}
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
     <>
       <header className="h-20 flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 relative z-50 transition-all duration-300">
         <div className="flex items-center gap-4">
-          <button onClick={() => onNavigate('home')} className="flex items-center gap-3">
+          <button onClick={() => onNavigate('home')} className="no-hover flex items-center gap-3">
             <Logo className="h-10 w-auto" />
             <span className="font-bold text-2xl text-gray-800 dark:text-white hidden sm:inline tracking-tight">CodeToCoder</span>
           </button>

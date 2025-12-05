@@ -41,10 +41,10 @@ export const AboutTeam: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <div className="mb-12 flex items-center">
                     <button
                         onClick={onBack}
-                        className="flex items-center gap-2 text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors mr-6"
+                        className="back-btn mr-6"
                     >
                         <BackIcon />
-                        <span className="font-bold">Back</span>
+                        <span>Back</span>
                     </button>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Meet the Team</h1>

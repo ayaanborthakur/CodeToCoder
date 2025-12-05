@@ -16,6 +16,326 @@ body {
   /* App handles scrolling internally */
 }
 
+button {
+  cursor: pointer;
+}
+
+/* Global Hover Effect for all buttons (except .no-hover) - Gel Ripple Effect */
+button:not(.no-hover):not([disabled]) {
+  --btn-glow-color: currentColor;
+  /* Bouncy elastic transition */
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  transform-origin: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Gel ripple effect on hover */
+button:not(.no-hover):not([disabled])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.05) 35%,
+      transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* Click ripple effect */
+button:not(.no-hover):not([disabled])::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.2) 40%,
+      transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+button:not(.no-hover):not([disabled]):hover::before {
+  opacity: 1;
+}
+
+button:not(.no-hover):not([disabled]):hover {
+  transform: translateY(-3px) scale(1.02);
+  /* Box-shadow glow on container, not filter on text - reduced intensity */
+  box-shadow: 0 0 3px var(--btn-glow-color),
+    0 0 6px var(--btn-glow-color),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:not(.no-hover):not([disabled]):active {
+  transform: translateY(0px) scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* Trigger click ripple animation */
+button:not(.no-hover):not([disabled]):active::after {
+  animation: click-ripple 0.6s ease-out forwards;
+}
+
+/* Click ripple keyframes */
+@keyframes click-ripple {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.6;
+  }
+
+  100% {
+    width: 300%;
+    height: 300%;
+    opacity: 0;
+  }
+}
+
+/* Clickable links and interactive elements - Bouncy */
+a:not(.no-hover) {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.2s ease,
+    text-shadow 0.2s ease;
+}
+
+a:not(.no-hover):hover {
+  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-2px) scale(1.02);
+  /* Reduced glow by ~35% */
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+/* Gel ripple animation */
+@keyframes gel-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Liquid bounce animation keyframes */
+@keyframes liquid-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  30% {
+    transform: translateY(-8px) scale(1.05, 0.95);
+  }
+
+  50% {
+    transform: translateY(-4px) scale(0.98, 1.02);
+  }
+
+  70% {
+    transform: translateY(-6px) scale(1.02, 0.98);
+  }
+
+  100% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+@keyframes liquid-press {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(0.95, 1.05);
+  }
+
+  100% {
+    transform: scale(0.98);
+  }
+}
+
+/* Navigation Tab Styles - Gel Bubble Effect */
+.nav-tab {
+  --btn-glow-color: currentColor;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Gel ripple for nav tabs */
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
+      transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* Click ripple for nav tabs */
+.nav-tab::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.2) 40%,
+      transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.nav-tab:hover::before {
+  opacity: 1;
+}
+
+.nav-tab:hover {
+  background-color: rgba(6, 182, 212, 0.15) !important;
+  color: #0891b2 !important;
+  transform: translateY(-3px) scale(1.05);
+  /* Box-shadow glow - reduced intensity */
+  box-shadow: 0 0 3px var(--btn-glow-color),
+    0 0 6px var(--btn-glow-color),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.nav-tab:active {
+  transform: translateY(0) scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+.nav-tab:active::after {
+  animation: click-ripple 0.5s ease-out forwards;
+}
+
+.dark .nav-tab:hover {
+  background-color: rgba(34, 211, 238, 0.15) !important;
+  color: #22d3ee !important;
+}
+
+/* Back Button Styles - Gel Bubble Effect */
+.back-btn {
+  --btn-glow-color: currentColor;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #0891b2;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Gel ripple for back button */
+.back-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0.08) 40%,
+      transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* Click ripple for back button */
+.back-btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle,
+      rgba(255, 255, 255, 0.5) 0%,
+      rgba(255, 255, 255, 0.2) 40%,
+      transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.back-btn:hover::before {
+  opacity: 1;
+}
+
+.back-btn:hover {
+  background-color: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.5);
+  transform: translateY(-3px) scale(1.05);
+  /* Box-shadow glow - reduced intensity */
+  box-shadow: 0 0 3px var(--btn-glow-color),
+    0 0 6px var(--btn-glow-color),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #06b6d4;
+}
+
+.back-btn:active {
+  transform: translateY(0) scale(0.95);
+  transition: transform 0.1s ease;
+}
+
+.back-btn:active::after {
+  animation: click-ripple 0.5s ease-out forwards;
+}
+
+.dark .back-btn {
+  background-color: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.3);
+  color: #22d3ee;
+}
+
+.dark .back-btn:hover {
+  background-color: rgba(34, 211, 238, 0.2);
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5), 0 0 24px rgba(34, 211, 238, 0.25);
+  color: #67e8f9;
+}
+
 :root {
   --background: #f8fafc;
   /* slate-50 */
@@ -308,201 +628,6 @@ pre[class*="language-"] {
 
 .token.regex,
 .token.important,
-.opacity-0 {
-  opacity: 0;
-}
-
-/* Custom Syntax Highlighting Styles */
-code[class*="language-"],
-pre[class*="language-"] {
-  color: #374151;
-  /* gray-700 */
-  text-shadow: none;
-  font-family: "JetBrains Mono", monospace;
-  direction: ltr;
-  text-align: left;
-  white-space: pre;
-  word-spacing: normal;
-  word-break: normal;
-  line-height: inherit;
-  tab-size: 4;
-  hyphens: none;
-}
-
-/* Dark Mode Base Color */
-.dark code[class*="language-"],
-.dark pre[class*="language-"] {
-  color: #e5e7eb;
-  /* gray-200 */
-}
-
-/* Boxed Code Snippets for Lessons/Chat (Prose Context) */
-.prose pre {
-  border: 1px solid #e5e7eb;
-  /* gray-200 */
-  border-left: 4px solid #0891b2;
-  /* cyan-600 */
-  border-radius: 0.5rem;
-  /* rounded-lg */
-  background-color: #f3f4f6 !important;
-  /* gray-100 */
-  padding: 2.5rem 1rem 1rem 1rem;
-  /* Extra top padding for label */
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow-x: auto;
-}
-
-.prose pre::before {
-  content: "PYTHON";
-  position: absolute;
-  top: 0;
-  left: 0;
-  background-color: #e5e7eb;
-  /* gray-200 */
-  color: #4b5563;
-  /* gray-600 */
-  padding: 0.25rem 0.75rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  border-bottom-right-radius: 0.5rem;
-  border-top-left-radius: 0.3rem;
-  /* Matches parent slightly less */
-  letter-spacing: 0.05em;
-  font-family: sans-serif;
-}
-
-.dark .prose pre {
-  border-color: #374151;
-  /* gray-700 */
-  border-left-color: #22d3ee;
-  /* cyan-400 */
-  background-color: #111827 !important;
-  /* gray-900 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-}
-
-.dark .prose pre::before {
-  background-color: #374151;
-  /* gray-700 */
-  color: #e5e7eb;
-  /* gray-200 */
-}
-
-/* Tokens */
-.token.comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-  color: #9ca3af;
-  /* gray-400 */
-}
-
-.dark .token.comment {
-  color: #6b7280;
-  /* gray-500 */
-}
-
-.token.punctuation {
-  color: #6b7280;
-}
-
-.dark .token.punctuation {
-  color: #d1d5db;
-}
-
-.token.namespace {
-  opacity: .7;
-}
-
-.token.property,
-.token.tag,
-.token.boolean,
-.token.number,
-.token.constant,
-.token.symbol,
-.token.deleted {
-  color: #d97706;
-  /* amber-600 */
-}
-
-.dark .token.property,
-.dark .token.tag,
-.dark .token.boolean,
-.dark .token.number,
-.dark .token.constant,
-.dark .token.symbol,
-.dark .token.deleted {
-  color: #fbbf24;
-  /* amber-400 */
-}
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-  color: #059669;
-  /* emerald-600 */
-}
-
-.dark .token.selector,
-.dark .token.attr-name,
-.dark .token.string,
-.dark .token.char,
-.dark .token.builtin,
-.dark .token.inserted {
-  color: #34d399;
-  /* emerald-400 */
-}
-
-.token.operator,
-.token.entity,
-.token.url,
-.language-css .token.string,
-.style .token.string {
-  color: #0891b2;
-  /* cyan-600 */
-}
-
-.dark .token.operator,
-.dark .token.entity,
-.dark .token.url {
-  color: #22d3ee;
-  /* cyan-400 */
-}
-
-.token.atrule,
-.token.attr-value,
-.token.keyword {
-  color: #7c3aed;
-  /* violet-600 */
-}
-
-.dark .token.atrule,
-.dark .token.attr-value,
-.dark .token.keyword {
-  color: #a78bfa;
-  /* violet-400 */
-}
-
-.token.function,
-.token.class-name {
-  color: #db2777;
-  /* pink-600 */
-}
-
-.dark .token.function,
-.dark .token.class-name {
-  color: #f472b6;
-  /* pink-400 */
-}
-
-.token.regex,
-.token.important,
 .token.variable {
   color: #e11d48;
   /* rose-600 */
@@ -545,4 +670,57 @@ pre[class*="language-"] {
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
+}
+
+/* Neon Glow Hover Effects */
+.neon-glow-cyan:hover {
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.7), 0 0 40px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2) !important;
+  border-color: #22d3ee !important;
+}
+
+.neon-glow-purple:hover {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.7), 0 0 40px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2) !important;
+  border-color: #c084fc !important;
+}
+
+.neon-glow-green:hover {
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.7), 0 0 40px rgba(34, 197, 94, 0.4), 0 0 60px rgba(34, 197, 94, 0.2) !important;
+  border-color: #4ade80 !important;
+}
+
+.neon-glow-blue:hover {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.7), 0 0 40px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2) !important;
+  border-color: #60a5fa !important;
+}
+
+.neon-glow-orange:hover {
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.7), 0 0 40px rgba(249, 115, 22, 0.4), 0 0 60px rgba(249, 115, 22, 0.2) !important;
+  border-color: #fb923c !important;
+}
+
+/* Levitate Hover Effect */
+.hover-levitate {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-levitate:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Combined Neon + Levitate for cards */
+.neon-glow-cyan,
+.neon-glow-purple,
+.neon-glow-green,
+.neon-glow-blue,
+.neon-glow-orange {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.neon-glow-cyan:hover,
+.neon-glow-purple:hover,
+.neon-glow-green:hover,
+.neon-glow-blue:hover,
+.neon-glow-orange:hover {
+  transform: translateY(-6px);
 }

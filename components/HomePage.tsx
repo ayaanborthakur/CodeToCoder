@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LESSON_PLAN } from '../constants';
-import type { Module } from '../types';
+
 
 interface HomePageProps {
   onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about') => void;
@@ -152,7 +152,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Classroom Card */}
             <button
               onClick={() => onNavigate('classroom')}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 transform hover:-translate-y-1 transition-all text-left group"
+              className="neon-glow-cyan bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 transform hover:-translate-y-1 transition-all text-left group"
             >
               <div className="w-12 h-12 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <BookIcon className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
@@ -180,7 +180,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Playground Card */}
             <button
               onClick={() => onNavigate('playground')}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 transform hover:-translate-y-1 transition-all text-left group"
+              className="neon-glow-purple bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 transform hover:-translate-y-1 transition-all text-left group"
             >
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <CodeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -208,7 +208,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Practice Card */}
             <button
               onClick={() => onNavigate('practice')}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 transform hover:-translate-y-1 transition-all text-left group"
+              className="neon-glow-green bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-gray-200 dark:border-gray-700 transform hover:-translate-y-1 transition-all text-left group"
             >
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <QuizIcon className="w-6 h-6 text-green-600 dark:text-green-400" />

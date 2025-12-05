@@ -92,12 +92,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 <div className="mb-8 flex items-center justify-between">
                     <button
                         onClick={() => onNavigate('home')}
-                        className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+                        className="back-btn"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                         </svg>
-                        <span className="font-medium">Back</span>
+                        <span>Back</span>
                     </button>
                     <button
                         onClick={logout}

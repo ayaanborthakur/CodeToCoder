@@ -101,7 +101,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                 <div className="relative mb-8 flex items-center justify-center">
                     <button
                         onClick={handleBack}
-                        className="absolute left-0 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-cyan-600 font-semibold transition-colors"
+                        className="back-btn absolute left-0"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -199,7 +199,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <button
                         onClick={() => onSelectType('quiz')}
                         style={{ animationDelay: '0ms' }}
-                        className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-purple-500 transition-all group animate-slide-up opacity-0"
+                        className="neon-glow-purple flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-transparent transform hover:-translate-y-1 transition-all group animate-slide-up opacity-0"
                     >
                         <div className="bg-purple-100 dark:bg-purple-900/30 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
                             <QuizIcon className="w-12 h-12 text-purple-500" />
@@ -211,7 +211,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <button
                         onClick={() => onSelectType('problem')}
                         style={{ animationDelay: '100ms' }}
-                        className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-blue-500 transition-all group animate-slide-up opacity-0"
+                        className="neon-glow-blue flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-transparent transform hover:-translate-y-1 transition-all group animate-slide-up opacity-0"
                     >
                         <div className="bg-blue-100 dark:bg-blue-900/30 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
                             <ProblemIcon className="w-12 h-12 text-blue-500" />
@@ -223,7 +223,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <button
                         onClick={() => onSelectType('project')}
                         style={{ animationDelay: '200ms' }}
-                        className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-orange-500 transition-all group animate-slide-up opacity-0"
+                        className="neon-glow-orange flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-transparent transform hover:-translate-y-1 transition-all group animate-slide-up opacity-0"
                     >
                         <div className="bg-orange-100 dark:bg-orange-900/30 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
                             <ProjectIcon className="w-12 h-12 text-orange-500" />
@@ -235,7 +235,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <button
                         onClick={() => onNavigate?.('/reference')}
                         style={{ animationDelay: '300ms' }}
-                        className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl border-2 border-transparent hover:border-green-500 transition-all group animate-slide-up opacity-0"
+                        className="neon-glow-green flex flex-col items-center text-center p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-transparent transform hover:-translate-y-1 transition-all group animate-slide-up opacity-0"
                     >
                         <div className="bg-green-100 dark:bg-green-900/30 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
                             <BookIcon className="w-12 h-12 text-green-500" />
