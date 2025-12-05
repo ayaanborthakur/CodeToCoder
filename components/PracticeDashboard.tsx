@@ -98,20 +98,23 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     onGenerate={handleGenerateQuiz}
                 />
 
-                <div className="relative mb-8 flex items-center justify-center">
+                <div className="mb-8 grid grid-cols-[auto_1fr_auto] sm:grid-cols-[1fr_auto_1fr] items-center gap-4">
                     <button
                         onClick={handleBack}
-                        className="back-btn absolute left-0"
+                        className="back-btn flex items-center gap-2 text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                         </svg>
-                        Back to Categories
+                        <span className="hidden sm:inline">Back to Categories</span>
+                        <span className="sm:hidden">Back</span>
                     </button>
 
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white capitalize animate-fade-in text-center">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white capitalize animate-fade-in text-center">
                         Practice {typeLabel}
                     </h2>
+
+                    <div className="hidden sm:block"></div> {/* Spacer for alignment */}
                 </div>
 
                 <div className="grid gap-4">

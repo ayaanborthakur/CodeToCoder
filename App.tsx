@@ -90,6 +90,17 @@ const App: React.FC = () => {
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
     const [theme, setTheme] = useTheme();
+
+    const handleThemeChange = useCallback((newTheme: 'light' | 'dark') => {
+        setTheme(newTheme);
+        if (user) {
+            import('./services/userSettingsService').then(({ updateUserSettings }) => {
+                updateUserSettings(user.id, { theme: newTheme });
+            });
+        }
+    }, [user, setTheme]);
+
+
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -1350,7 +1361,7 @@ const App: React.FC = () => {
                 ) : isQuizMode && activeContentItem ? (
                     <div className="h-full flex flex-col">
                         {isPracticeQuiz && (
-                            <div className="h-12 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between">
+                            <div className="h-14 flex-shrink-0 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between relative z-10">
                                 <button
                                     onClick={() => {
                                         setActivePracticeItem(null);
@@ -1498,6 +1509,8 @@ const App: React.FC = () => {
         </main>
     );
 
+
+
     return (
         <>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
@@ -1517,7 +1530,7 @@ const App: React.FC = () => {
                     currentView={currentView}
                     onNavigate={handleNavigate}
                     theme={theme}
-                    setTheme={setTheme}
+                    setTheme={handleThemeChange}
 
                     starTargetRef={starTargetRef}
                     onOpenAuth={handleOpenAuth}
@@ -1587,7 +1600,7 @@ const App: React.FC = () => {
                                 achievements={achievements}
                                 onNavigate={handleNavigate}
                                 theme={theme}
-                                setTheme={setTheme}
+                                setTheme={handleThemeChange}
                             />
                         } />
 
@@ -1632,7 +1645,7 @@ const App: React.FC = () => {
                         <Route path="/classroom/*" element={renderIdeView()} />
                         <Route path="/playground/:fileId" element={renderIdeView()} />
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
-                        <Route path="/practice/reference" element={<ReferencePanel />} />
+                        <Route path="/reference" element={<ReferencePanel />} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
