@@ -159,7 +159,7 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
             {!isCollapsed && (
                 <div className={`flex-1 ${activeTab === 'reference' ? 'overflow-hidden' : 'overflow-y-auto'}`} role="tabpanel">
                     {activeTab === 'reference' && (
-                        <ReferencePanel />
+                        <ReferencePanel embedded={true} />
                     )}
 
                     {activeTab === 'lesson' && lesson && (

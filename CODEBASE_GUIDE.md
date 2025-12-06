@@ -1,7 +1,7 @@
 # CodeToCoder: The Comprehensive Codebase Guide
 
 **Version:** 2.0
-**Last Updated:** December 2025
+**Last Updated:** December 6, 2025
 
 ---
 
@@ -188,6 +188,42 @@ This service manages all interactions with the Google Gemini API.
     *   Uses `Math.random()` against tier-based thresholds (e.g., 1% chance for Mythic) to determine rewards.
 *   **Daily Challenges**: Checks the date; if it's a new day, it generates new random challenges.
 
+### 6.6. `services/tutorialService.ts`
+*   **Purpose**: Manages the interactive onboarding tour.
+*   **`TUTORIAL_STEPS`**: Defines the sequence of steps, target elements, and instructions.
+*   **State**: Tracks whether a user has completed the tutorial to prevent re-showing it.
+
+### 6.7. `services/analyticsService.ts`
+*   **Wrapper**: Abstraction over Firebase Analytics.
+*   **Events**: Logs key actions like `page_view`, `lesson_complete`, `practice_complete`, and `error_occurred` to help understand user behavior.
+
+### 6.8. `services/starService.ts`
+*   **One-Time Rewards**: Ensures users are only rewarded stars once per lesson or practice item to prevent farming.
+*   **Logic**: Checks `completedLessons` or `completedPracticeItems` before calling `marketplaceService` to award stars.
+
+### 6.9. `services/userDataService.ts`
+*   **Centralized Data**: Manages the retrieval and updating of the user's core profile and progress data in Firestore.
+*   **Path Validation**: Uses `firestorePathHelper` to ensure all database writes go to valid paths.
+
+### 6.10. `services/firestorePathHelper.ts`
+*   **Safety**: Validates that all Firestore paths have an even number of segments (Collection/Doc/Collection/Doc) to prevent "Invalid collection reference" errors.
+
+### 6.11. `services/achievementService.ts`
+*   **Badges**: Manages the logic for unlocking achievements based on user stats (e.g., "First Code Run", "10 Stars Earned").
+*   **Notifications**: Triggers `BadgeNotification` when a new badge is earned.
+
+### 6.12. `services/lessonValidationService.ts`
+*   **Quality Control**: Validates that lesson content (Markdown, code snippets) follows the required format and structure.
+*   **Usage**: Primarily used during development or content ingestion to prevent broken lessons.
+
+### 6.13. `services/migrationService.ts`
+*   **Data Integrity**: Handles the migration of user data from older schema versions to the current structure.
+*   **One-Time Scripts**: Contains logic for tasks like moving stars to a sub-collection.
+
+### 6.14. `services/userSettingsService.ts`
+*   **Preferences**: Manages user-specific settings like `theme` (light/dark) and `aiAssistanceLevel`.
+*   **Real-time Sync**: Subscribes to Firestore updates so settings apply immediately across devices.
+
 ---
 
 ## 7. Data Models (`types.ts`)
@@ -205,7 +241,10 @@ Understanding the types is key to understanding the data flow.
     }
     ```
 *   **`User`**: The user profile.
-*   **`MarketplaceData`**: A massive interface defining the entire gamification state (stars, inventory, challenges).
+*   **`StarsData`**: Manages the user's currency balance and transaction history.
+*   **`CollectionData`**: Stores earned badges and owned collectibles.
+*   **`DailyChallengesData`**: Tracks the user's daily quests and their progress.
+*   **`ReferenceMaterial`**: Defines the structure for documentation pages in the Reference section.
 *   **`LintIssue`**: Defines the shape of errors returned by the AI linter.
 
 ---
@@ -242,12 +281,31 @@ Understanding the types is key to understanding the data flow.
 ### 9.3. Page Components
 *   **`HomePage.tsx`**: The dashboard. Shows "Continue Learning", "Daily Challenges", and "Stats".
 *   **`MissionPage.tsx`**: The "Map" view of the curriculum.
+*   **`PracticeDashboard.tsx`**: The hub for coding exercises. Categories include "Variables", "Loops", etc., plus AI-generated custom quizzes.
+*   **`PlaygroundDashboard.tsx`**: A file manager for the user's personal Python projects. Allows creating, editing, and deleting files.
+*   **`ReferencePanel.tsx`**: A documentation viewer for Python syntax and concepts, accessible via `/reference`.
 *   **`MarketplacePage.tsx`**: The store interface. Handles pack opening animations and inventory display.
 *   **`ProfilePage.tsx`**: Shows user stats, badges, and settings.
+*   **`AboutTeam.tsx`**: Displays information about the development team and project credits.
 
 ### 9.4. Modals
 *   **`AuthModal.tsx`**: Login/Register form.
 *   **`CompletionModal.tsx`**: Confetti and celebration when a module is finished.
+*   **`TutorialOverlay.tsx`**: A guided tour component that highlights elements on the screen and provides step-by-step instructions for new users.
+*   **`GenerateQuizModal.tsx`**: A form for users to request AI-generated quizzes on specific topics.
+*   **`PackOpeningModal.tsx`**: Displays the animation and results when opening a card pack.
+*   **`SettingsModal.tsx`**: Allows users to configure AI assistance levels and other preferences.
+*   **`ContactModal.tsx`**: A simple contact/feedback form.
+*   **`RenameModal.tsx`**: Used for renaming files in the Playground.
+*   **`ConfirmationModal.tsx`**: A generic "Are you sure?" dialog for destructive actions.
+
+### 9.5. Common UI Components
+*   **`BadgeDisplay.tsx` / `BadgeIcon.tsx`**: Renders achievement badges with tooltips.
+*   **`BadgeNotification.tsx`**: A toast notification that slides in when a badge is earned.
+*   **`StarNotification.tsx`**: A toast notification for earned stars.
+*   **`FlyingStar.tsx`**: An animation component that moves a star from the source of reward to the user's balance.
+*   **`ToggleSwitch.tsx`**: A reusable iOS-style toggle switch.
+*   **`Resizer.tsx`**: The draggable handle between panels in the IDE layout.
 
 ---
 
