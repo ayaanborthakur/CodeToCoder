@@ -114,6 +114,7 @@ const App: React.FC = () => {
         if (path.startsWith('/profile')) return 'profile';
         if (path.startsWith('/marketplace')) return 'marketplace';
         if (path.startsWith('/about')) return 'about';
+        if (path.startsWith('/reference')) return 'reference';
         return 'mission';
     }, [location.pathname]);
 
@@ -1646,6 +1647,7 @@ const App: React.FC = () => {
                         <Route path="/playground/:fileId" element={renderIdeView()} />
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
                         <Route path="/reference" element={<ReferencePanel />} />
+                        <Route path="/reference/:itemId" element={<ReferencePanel />} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

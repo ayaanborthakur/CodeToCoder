@@ -49,7 +49,11 @@ const GENERATOR_TOPIC_ID = 'custom-generator-ui';
 type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
 type SizeLevel = 'Small' | 'Medium' | 'Large';
 
-export const ReferencePanel: React.FC = () => {
+interface ReferencePanelProps {
+    embedded?: boolean;
+}
+
+export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false }) => {
     const { itemId } = useParams();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -108,6 +112,8 @@ export const ReferencePanel: React.FC = () => {
 
     // Sync selection with URL
     useEffect(() => {
+        if (embedded) return;
+
         if (itemId) {
             const topic = allReferenceData.find(t => t.id === itemId);
             if (topic) {
@@ -117,7 +123,7 @@ export const ReferencePanel: React.FC = () => {
             // Default to first if no ID and no selection
             setSelectedTopic(REFERENCE_DATA[0]);
         }
-    }, [itemId, allReferenceData]);
+    }, [itemId, allReferenceData, embedded]);
 
     // Load custom references on mount
     useEffect(() => {
@@ -190,7 +196,11 @@ export const ReferencePanel: React.FC = () => {
             }
 
             setCustomTopics(prev => [newTopic, ...prev]);
-            navigate(`/reference/${newTopic.id}`);
+            if (embedded) {
+                setSelectedTopic(newTopic);
+            } else {
+                navigate(`/reference/${newTopic.id}`);
+            }
             setGeneratorInput('');
         } catch (error) {
             console.error("Generation failed", error);
@@ -234,7 +244,13 @@ export const ReferencePanel: React.FC = () => {
                                     {(topics as ReferenceTopic[]).map(topic => (
                                         <li key={topic.id}>
                                             <button
-                                                onClick={() => navigate(`/reference/${topic.id}`)}
+                                                onClick={() => {
+                                                    if (embedded) {
+                                                        setSelectedTopic(topic);
+                                                    } else {
+                                                        navigate(`/reference/${topic.id}`);
+                                                    }
+                                                }}
                                                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${selectedTopic?.id === topic.id
                                                     ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-medium'
                                                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
