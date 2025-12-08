@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import type { ChatMessage, Lesson, LintIssue, PracticeItem, Difficulty, QuizQuestion } from '../types';
+import type { ChatMessage, Lesson, LintIssue, PracticeItem, Difficulty } from '../types';
 
 // Helper to get or create the AI client
 const getAiClient = (): GoogleGenAI => {
@@ -236,7 +236,7 @@ export const getFeedback = async (code: string, output: string, objective?: stri
 };
 
 // DEPRECATED: Kept for reference but should be replaced by pyodideService + getFeedback
-export const runCodeWithAI = async (code: string, objective?: string, isHardMode: boolean = false): Promise<RunCodeResult> => {
+export const runCodeWithAI = async (_code: string, _objective?: string, _isHardMode: boolean = false): Promise<RunCodeResult> => {
     // This function is now deprecated in favor of client-side execution.
     // We will return a dummy response to avoid breaking existing calls until refactor is complete.
     return {
@@ -334,74 +334,7 @@ ${code}
     }
 };
 
-export const generateLessonVideo = async (title: string, contentSnippet: string): Promise<string | null> => {
-    // API Key Selection for Veo
-    if ((window as any).aistudio) {
-        const aistudio = (window as any).aistudio;
-        if (aistudio.hasSelectedApiKey && aistudio.openSelectKey) {
-            const hasKey = await aistudio.hasSelectedApiKey();
-            if (!hasKey) {
-                await aistudio.openSelectKey();
-            }
-        }
-    }
 
-    // Create a fresh client with the potentially updated API key (if re-selected)
-    const client = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
-
-    const prompt = `Create a futuristic, high-quality 3D educational visualization for a Python programming lesson titled "${title}". 
-    The video should abstractly represent this concept: "${contentSnippet.slice(0, 200)}...". 
-    Style: Tech, Cyberpunk, Glowing Data Streams, Educational.`;
-
-    // Helper to check for 404/Not Found errors specifically
-    const isNotFoundError = (e: any) => {
-        return e.status === 404 ||
-            e.message?.includes("404") ||
-            e.message?.includes("Requested entity was not found") ||
-            e.error?.code === 404 ||
-            e.error?.status === 'NOT_FOUND';
-    };
-
-    const handleKeyReset = async () => {
-        console.error("Video entity or model not found. Resetting key selection.");
-        if ((window as any).aistudio?.openSelectKey) {
-            await (window as any).aistudio.openSelectKey();
-        }
-    };
-
-    try {
-        let operation = await client.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview',
-            prompt,
-            config: {
-                numberOfVideos: 1,
-                resolution: '1080p',
-                aspectRatio: '16:9'
-            }
-        });
-
-        while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 10000));
-            operation = await client.operations.getVideosOperation({ operation });
-        }
-
-        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (!downloadLink) return null;
-
-        // The response.body contains the MP4 bytes. You must append an API key when fetching from the download link.
-        const response = await fetch(`${downloadLink}&key=${import.meta.env.VITE_API_KEY}`);
-        if (!response.ok) return null;
-
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
-    } catch (e: any) {
-        if (isNotFoundError(e)) {
-            await handleKeyReset();
-        }
-        console.error("Video generation failed", e);
-        return null;
-    }
-};
 
 export const generateReference = async (query: string, difficulty: 'Easy' | 'Medium' | 'Hard', size: 'Small' | 'Medium' | 'Large'): Promise<{ title: string; content: string }> => {
 
