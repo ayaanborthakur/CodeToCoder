@@ -37,6 +37,13 @@ export default defineConfig(() => {
         ],
         build: {
             rollupOptions: {
+                external: [
+                    'react',
+                    'react-dom',
+                    'react-dom/client',
+                    'react/jsx-runtime',
+                    '@google/genai'
+                ],
                 input: {
                     // Main entry point (the only HTML file that exists)
                     main: resolve(__dirname, 'index.html'),
