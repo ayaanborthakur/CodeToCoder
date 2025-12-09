@@ -1,96 +1,159 @@
+// services/pyodideService.ts
 
-declare global {
-    interface Window {
-        loadPyodide: any;
-        pyodide: any;
-    }
+export interface PyodideCallbacks {
+    onOutput: (text: string) => void;
+    onError: (text: string) => void;
+    onInput?: (prompt: string, callback: (value: string) => void) => void; // NOT used for sync input, but useful for UI state
 }
 
-let pyodideReadyPromise: Promise<any> | null = null;
+let worker: Worker | null = null;
+let sharedBuffer: SharedArrayBuffer | null = null;
+let sharedDataBuffer: SharedArrayBuffer | null = null;
+let int32View: Int32Array | null = null;
+let uint8View: Uint8Array | null = null;
 
+// Callbacks for the currently running execution
+let currentCallbacks: PyodideCallbacks | null = null;
+
+// Initialize the worker and buffers
 export const initializePyodide = async () => {
-    if (pyodideReadyPromise) return pyodideReadyPromise;
+    if (worker) return;
 
-    pyodideReadyPromise = new Promise(async (resolve, reject) => {
-        try {
-            // Load Pyodide script dynamically
-            if (!window.loadPyodide) {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
-                script.async = true;
-                script.onload = async () => {
-                    try {
-                        window.pyodide = await window.loadPyodide();
-                        resolve(window.pyodide);
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                script.onerror = (err) => reject(err);
-                document.body.appendChild(script);
-            } else if (!window.pyodide) {
-                window.pyodide = await window.loadPyodide();
-                resolve(window.pyodide);
-            } else {
-                resolve(window.pyodide);
-            }
-        } catch (error) {
-            reject(error);
-        }
+    worker = new Worker(new URL('./pyodide.worker.ts', import.meta.url), { type: 'module' });
+
+    // Create SharedBuffers
+    // 16 bytes for control (status, length, etc.)
+    sharedBuffer = new SharedArrayBuffer(16);
+    int32View = new Int32Array(sharedBuffer);
+    
+    // 1MB buffer for input text data
+    sharedDataBuffer = new SharedArrayBuffer(1024 * 1024);
+    uint8View = new Uint8Array(sharedDataBuffer);
+
+    worker.postMessage({
+        type: 'init',
+        buffer: sharedBuffer,
+        dataBuffer: sharedDataBuffer
     });
 
-    return pyodideReadyPromise;
+    worker.onmessage = (event) => {
+        const { type, text, stream, error, prompt } = event.data;
+
+        if (type === 'ready') {
+            console.log("Pyodide Worker Ready");
+        } else if (type === 'output') {
+             // Differentiate stdout/stderr if needed, but for now just pass text
+             if (currentCallbacks?.onOutput) {
+                 currentCallbacks.onOutput(text);
+             }
+        } else if (type === 'error') {
+            if (currentCallbacks?.onError) {
+                currentCallbacks.onError(error);
+            }
+        } else if (type === 'done') {
+            // Execution finished
+            console.log("Execution finished");
+        } else if (type === 'input_request') {
+             // The worker is WAITING. We need to get input from UI.
+             // We can trigger a UI callback here.
+             if (currentCallbacks?.onInput) {
+                 currentCallbacks.onInput(prompt || "", (userInput: string) => {
+                     sendInputToWorker(userInput);
+                 });
+             }
+        }
+    };
 };
 
-export interface PyodideResult {
-    success: boolean;
-    output: string;
-    error?: string;
-}
+// Helper to write input to the shared buffer and notify worker
+export const sendInputToWorker = (text: string) => {
+    if (!int32View || !uint8View) return;
 
-export const runPythonCode = async (code: string): Promise<PyodideResult> => {
-    try {
-        const pyodide = await initializePyodide();
-
-        // Redirect stdout/stderr to capture output and implement custom input()
-        pyodide.runPython(`
-import sys
-import io
-sys.stdout = io.StringIO()
-sys.stderr = io.StringIO()
-
-# Custom input function for browser environment
-def input(prompt=''):
-    """
-    Custom input function that works in the browser using JS prompts.
-    This replaces the default input() which doesn't work in Pyodide.
-    """
-    import js
-    result = js.prompt(str(prompt))
-    if result is None:
-        raise KeyboardInterrupt("User cancelled input")
-    return str(result)
-
-# Make input available globally
-__builtins__.input = input
-`);
-
-
-        await pyodide.runPythonAsync(code);
-
-        const stdout = pyodide.runPython("sys.stdout.getvalue()");
-        const stderr = pyodide.runPython("sys.stderr.getvalue()");
-
-        return {
-            success: !stderr,
-            output: stdout + (stderr ? `\nError:\n${stderr}` : ''),
-            error: stderr || undefined
-        };
-    } catch (error: any) {
-        return {
-            success: false,
-            output: `Runtime Error:\n${error.message}`,
-            error: error.message
-        };
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(text);
+    
+    // 1. Write data length to sharedBuffer[1]
+    int32View[1] = bytes.length;
+    
+    // 2. Write data bytes to sharedDataBuffer
+    // Ensure we don't overflow
+    if (bytes.length > uint8View.length) {
+        console.error("Input too long!");
+        // Truncate?
     }
+    uint8View.set(bytes.slice(0, uint8View.length));
+    
+    // 3. Set flag sharedBuffer[0] to 1 (RUNNING/READY)
+    Atomics.store(int32View, 0, 1);
+    
+    // 4. Wake up the worker
+    Atomics.notify(int32View, 0);
+};
+
+
+export const runPythonCode = async (
+    code: string, 
+    callbacks?: PyodideCallbacks
+): Promise<{ success: boolean; output: string }> => {
+    
+    await initializePyodide();
+    currentCallbacks = callbacks || null;
+    
+    // Collect output for the legacy Promise implementation
+    // Ideally callers should switch to using callbacks fully
+    let fullOutput = "";
+    
+    return new Promise((resolve) => {
+        // Intercept callbacks to build full output for Promise result
+        const originalOnOutput = currentCallbacks?.onOutput;
+        const originalOnError = currentCallbacks?.onError;
+        
+        // We set up specific listeners for THIS execution run directly on the worker's onmessage? 
+        // No, the global onmessage handler dispatches to 'currentCallbacks'.
+        // So we update 'currentCallbacks' to include our accumulation logic.
+        
+        currentCallbacks = {
+            ...callbacks,
+            onOutput: (text) => {
+                fullOutput += text;
+                if (originalOnOutput) originalOnOutput(text);
+            },
+            onError: (err) => {
+                 // For now, treat stderr as output but better
+                 fullOutput += `\nError: ${err}`;
+                 if (originalOnError) originalOnError(err);
+            },
+            onInput: callbacks?.onInput // Pass through
+        };
+        
+        // We need a way to detect 'done'. 
+        // The worker sends 'done'. We need to hook into that.
+        // Let's modify the global onmessage to handle 'done' resolution.
+        
+        const previousOnMessage = worker!.onmessage;
+        
+        worker!.onmessage = (event) => {
+            const { type, text, error, prompt } = event.data;
+            
+            if (type === 'done') {
+                resolve({ success: true, output: fullOutput });
+                // Restore? Maybe not needed if we always overwrite
+            } else if (type === 'error') {
+                 // Runtime error often comes as 'error' type, then maybe 'done'? 
+                 // Or 'error' terminates? assumed implementation in worker calls postMessage('error') then 'done'?
+                 // The worker code I wrote sends 'error' OR 'done'.
+                 // If error, we should probably resolve too.
+                 if (currentCallbacks?.onError) currentCallbacks.onError(error);
+                 resolve({ success: false, output: fullOutput + `\n${error}` }); // worker sends error just once
+            } else if (type === 'output') {
+                if (currentCallbacks?.onOutput) currentCallbacks.onOutput(text);
+            } else if (type === 'input_request') {
+                if (currentCallbacks?.onInput) {
+                    currentCallbacks.onInput(prompt || "", (input) => sendInputToWorker(input));
+                }
+            }
+        };
+        
+        worker!.postMessage({ type: 'run', code });
+    });
 };

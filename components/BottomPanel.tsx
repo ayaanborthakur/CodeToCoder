@@ -26,6 +26,8 @@ import CheckIcon from '../assets/icons/CheckCircleSolidIcon.svg?react';
 
 import BookIcon from '../assets/icons/BookIcon.svg?react';
 
+import { TerminalPanel } from './TerminalPanel';
+
 const LessonCompletedBanner: React.FC = () => (
     <div className="bg-green-500/10 border border-green-500/30 text-green-700 dark:bg-green-600/20 dark:border-green-500/50 dark:text-green-300 px-4 py-2 rounded-lg mb-4 flex items-center gap-3">
         <CheckIcon className="w-5 h-5" />
@@ -64,7 +66,10 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const BottomPanel: React.FC<BottomPanelProps> = ({
+export const BottomPanel: React.FC<BottomPanelProps & { 
+    isWaitingForInput?: boolean; 
+    onInputSubmit?: (text: string) => void; 
+}> = ({
     lesson,
     isCompleted,
     terminalOutput,
@@ -73,7 +78,9 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
     onToggleCollapse,
     activeTab,
     onTabChange,
-    showReference
+    showReference,
+    isWaitingForInput = false,
+    onInputSubmit = () => {}
 }) => {
 
     const isTerminal = activeTab === 'terminal';
@@ -164,15 +171,12 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
 
 
                     {activeTab === 'terminal' && (
-                        <div className="p-4 h-full font-mono text-sm">
-                            {isTerminalLoading && !terminalOutput.startsWith('Evaluating') && !terminalOutput.startsWith('Running') && (
-                                <div className="flex items-center gap-2 text-gray-400 mb-2">
-                                    <div className="w-3 h-3 border-2 border-t-transparent border-gray-400 rounded-full animate-spin"></div>
-                                    <span>Loading...</span>
-                                </div>
-                            )}
-                            <pre className="text-gray-300 whitespace-pre-wrap">{terminalOutput}</pre>
-                        </div>
+                        <TerminalPanel 
+                            output={terminalOutput}
+                            isLoading={isTerminalLoading}
+                            isWaitingForInput={isWaitingForInput}
+                            onInputSubmit={onInputSubmit}
+                        />
                     )}
                 </div>
             )}

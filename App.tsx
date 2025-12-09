@@ -158,6 +158,7 @@ const App: React.FC = () => {
     const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
 
+
     // Playground autocomplete preference
     const [isPlaygroundAutocompleteEnabled, setIsPlaygroundAutocompleteEnabled] = useState(() => {
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -166,6 +167,19 @@ const App: React.FC = () => {
         }
         return true;
     });
+
+    const [isWaitingForInput, setIsWaitingForInput] = useState(false);
+    const [inputPromiseResolve, setInputPromiseResolve] = useState<((val: string) => void) | null>(null);
+
+    const handleInputSubmit = useCallback((value: string) => {
+        // Optimistically update output to show what user typed
+        setTerminalOutput(prev => prev + value + '\n');
+        setIsWaitingForInput(false);
+        if (inputPromiseResolve) {
+            inputPromiseResolve(value);
+            setInputPromiseResolve(null);
+        }
+    }, [inputPromiseResolve]);
 
     // Persist autocomplete preference
     useEffect(() => {
@@ -743,6 +757,7 @@ const App: React.FC = () => {
         }
     }, [currentLesson, markLessonAsCompleted, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, user, completedLessons, completedPracticeItems]);
 
+
     const handleRunCode = useCallback(async () => {
         if (isTerminalLoading) return;
 
@@ -750,16 +765,24 @@ const App: React.FC = () => {
         if (!contextItem && currentView !== 'practice') return;
 
         setIsTerminalLoading(true);
-        setTerminalOutput('Running code...');
+        setTerminalOutput('Running code...\n');
         setActiveBottomTab('terminal');
         setLintIssues([]);
 
         try {
             // 1. Run Code Locally (Pyodide)
             const { runPythonCode } = await import('./services/pyodideService');
-            const result = await runPythonCode(code);
-
-            setTerminalOutput(result.output);
+            
+            // We use callbacks to stream output and handle input
+            const result = await runPythonCode(code, {
+                onOutput: (text) => setTerminalOutput(prev => prev + text),
+                onError: (err) => setTerminalOutput(prev => prev + '\nError: ' + err),
+                onInput: (prompt, callback) => {
+                    setTerminalOutput(prev => prev + prompt);
+                    setIsWaitingForInput(true);
+                    setInputPromiseResolve(() => callback);
+                }
+            });
 
             // 2. Get AI Feedback (Async, if assistance level > 5)
             if (aiAssistanceLevel > 5) {
@@ -776,6 +799,11 @@ const App: React.FC = () => {
             }
 
             // 3. Check Success (Simple check based on stderr for now, can be enhanced)
+            const success = true; // pyodideService wraps errors, but we can assume success if no 'Error:' string or similar, but simplified for now
+            // Actually result.success is available if we use standard runPythonCode wrapper, 
+            // but we might need to adjust logic since we stream output now.
+            // But wait, runPythonCode DOES return a final object too.
+            
             if (result.success && contextItem) {
                 if (currentView === 'practice') {
                     if (!completedPracticeItems.has(contextItem.id)) {
@@ -796,6 +824,7 @@ const App: React.FC = () => {
                 } else {
                     // Validate lesson completion with dual check (output + methodology)
                     if (!completedLessons.has(contextItem.id)) {
+
                         // Type guard: Only validate if it's a Lesson (not PracticeItem)
                         // PracticeItems don't have 'goal' property required by validation
                         if ('goal' in contextItem) {
@@ -1396,15 +1425,17 @@ const App: React.FC = () => {
 
                         <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
                             <BottomPanel
-                                lesson={activeContentItem}
-                                isCompleted={isClassroom && activeLesson ? completedLessons.has(activeLesson.id) : (isPractice && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
-                                terminalOutput={activeTerminalOutput}
+                                lesson={currentLesson}
+                                isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
+                                terminalOutput={terminalOutput}
                                 isTerminalLoading={isTerminalLoading}
                                 isCollapsed={panelsCollapsed.bottom}
-                                onToggleCollapse={() => handleToggleCollapse('bottom')}
+                                onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, bottom: !prev.bottom }))}
                                 activeTab={activeBottomTab}
                                 onTabChange={setActiveBottomTab}
-                                showReference={isPlayground}
+                                showReference={true}
+                                isWaitingForInput={isWaitingForInput}
+                                onInputSubmit={handleInputSubmit}
                             />
                         </div>
                     </>
