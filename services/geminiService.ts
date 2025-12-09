@@ -4,8 +4,15 @@ import type { ChatMessage, Lesson, LintIssue, PracticeItem, Difficulty } from '.
 
 // Helper to get or create the AI client
 const getAiClient = (): GoogleGenAI => {
-    // Use Vite's import.meta.env for client-side environment variables
-    return new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    // Use runtime env if available, otherwise fallback to build-time env
+    const env = (window as any).env || import.meta.env;
+    const apiKey = env.VITE_API_KEY;
+    
+    if (!apiKey) {
+        console.error("Gemini API Key is missing! Make sure VITE_API_KEY is set in .env or cloud environment.");
+    }
+    
+    return new GoogleGenAI({ apiKey });
 };
 
 // FIX: Updated model to the latest stable version.
@@ -151,7 +158,7 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
         }
 
         const lastMessage = validHistory[validHistory.length - 1];
-        let historyForApi = validHistory.slice(0, -1).map(msg => ({
+        const historyForApi = validHistory.slice(0, -1).map(msg => ({
             role: msg.role,
             parts: [{ text: msg.content }]
         }));
