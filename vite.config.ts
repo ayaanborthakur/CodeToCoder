@@ -9,7 +9,7 @@ export default defineConfig(() => {
 
     return {
         // Sets the base path to relative, which is often needed for static site deployments
-        base: '/',
+        base: process.env.VITE_BASE_URL || '/',
         server: {
             port: 3000,
             host: '0.0.0.0',
