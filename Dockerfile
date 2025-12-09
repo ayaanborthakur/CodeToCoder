@@ -21,6 +21,10 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy nginx config to templates directory for env substitution
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
+# Copy env.sh script to docker-entrypoint.d folder
+COPY scripts/env.sh /docker-entrypoint.d/40-env.sh
+RUN chmod +x /docker-entrypoint.d/40-env.sh
+
 # Default PORT to 8080 if not set
 ENV PORT=8080
 
