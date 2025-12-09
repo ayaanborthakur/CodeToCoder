@@ -23,6 +23,9 @@ const firebaseConfig = {
 if (!firebaseConfig.apiKey) {
     console.error("Firebase API Key is missing! Make sure VITE_FIREBASE_API_KEY is set in .env");
 }
+console.log(`[Firebase] Initializing with hostname: ${window.location.hostname}`);
+console.log(`[Firebase] API Key present: ${!!firebaseConfig.apiKey}`);
+
 const app = initializeApp(firebaseConfig);
 
 // Export the initialized services you need
