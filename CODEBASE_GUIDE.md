@@ -168,9 +168,7 @@ This service manages all interactions with the Google Gemini API.
 *   **`lintCodeWithAI`**:
     *   A background process that sends code to Gemini to check for logical errors (not just syntax).
     *   Uses a strict JSON schema response format to ensure the output can be parsed by the IDE.
-*   **`generateLessonVideo`**:
-    *   Uses the **Veo** model to generate 3D visualizations.
-    *   Handles the complex async polling required for video generation APIs.
+
 
 ### 6.4. `services/pyodideService.ts` (The Python Engine)
 *   **Dynamic Loading**: Checks if Pyodide is already loaded on `window` to avoid double-loading.
@@ -265,7 +263,7 @@ Understanding the types is key to understanding the data flow.
 
 ### 9.1. Layout Components
 *   **`NavigationPanel.tsx`**: The left sidebar. Renders the list of modules and lessons. Handles the "locked/unlocked" visual states based on progress.
-*   **`BottomPanel.tsx`**: The bottom area containing tabs for "Lesson Content", "Terminal", and "Video".
+*   **`BottomPanel.tsx`**: The bottom area containing tabs for "Lesson Content", "Terminal", and "Reference".
 
 ### 9.2. Core IDE Components
 *   **`IdePanel.tsx`**:

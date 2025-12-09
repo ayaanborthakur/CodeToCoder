@@ -28,7 +28,7 @@ import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
 import { LESSON_PLAN, PRACTICE_ITEMS } from './constants';
 import type { Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
-import { getChatResponse, lintCodeWithAI, generateLessonVideo } from './services/geminiService';
+import { getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
 import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
@@ -42,12 +42,6 @@ const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.le
 declare global {
     interface Window {
         confetti: any;
-        aistudio?: AIStudio;
-    }
-
-    interface AIStudio {
-        hasSelectedApiKey: () => Promise<boolean>;
-        openSelectKey: () => Promise<void>;
     }
 }
 
@@ -147,8 +141,7 @@ const App: React.FC = () => {
 
     const [activePracticeItem, setActivePracticeItem] = useState<PracticeItem | null>(null);
 
-    const [lessonVideos, setLessonVideos] = useState<Record<string, string>>({});
-    const [isVideoGenerating, setIsVideoGenerating] = useState(false);
+
 
     const [activePlaygroundFileId, setActivePlaygroundFileId] = useState<string | null>(null);
     const [playgroundEditorCode, setPlaygroundEditorCode] = useState<string>('');
@@ -221,7 +214,7 @@ const App: React.FC = () => {
         chat: false,
     });
 
-    const [activeBottomTab, setActiveBottomTab] = useState<'lesson' | 'terminal' | 'video' | 'reference'>('lesson');
+    const [activeBottomTab, setActiveBottomTab] = useState<'lesson' | 'terminal' | 'reference'>('lesson');
 
     const centerColumnRef = useRef<HTMLDivElement>(null);
     const prevCompletedLessonsRef = useRef<Set<string> | undefined>(undefined);
@@ -1128,28 +1121,7 @@ const App: React.FC = () => {
         handleSendMessage(helpMessage);
     }, [activeCode, handleSendMessage, isMobile]);
 
-    const handleGenerateVideo = useCallback(async () => {
-        const itemTitle = currentView === 'classroom' ? currentLesson?.title : activePracticeItem?.title;
-        const itemContent = currentView === 'classroom' ? currentLesson?.content : activePracticeItem?.content;
-        const itemId = currentView === 'classroom' ? currentLessonId : activePracticeItem?.id;
 
-        if (!itemTitle || !itemContent || !itemId || isVideoGenerating) return;
-
-        setIsVideoGenerating(true);
-        try {
-            const videoUrl = await generateLessonVideo(itemTitle, itemContent);
-            if (videoUrl) {
-                setLessonVideos(prev => ({ ...prev, [itemId]: videoUrl }));
-            } else {
-                alert("Unable to generate video. Please check your API key and try again.");
-            }
-        } catch (error) {
-            console.error("Video generation failed", error);
-            alert("Video generation failed.");
-        } finally {
-            setIsVideoGenerating(false);
-        }
-    }, [currentLesson, activePracticeItem, isVideoGenerating, currentView, currentLessonId]);
 
 
     const handleToggleCollapse = (panel: keyof typeof panelsCollapsed) => {
@@ -1241,7 +1213,7 @@ const App: React.FC = () => {
 
     const showChatPanel = !isPracticeQuiz && !(isClassroom && !currentLessonId) && currentView !== 'home';
 
-    const currentVideoUrl = (activeContentItem) ? (lessonVideos[activeContentItem.id] || null) : null;
+
 
     const renderIdeView = () => (
         <main className="flex flex-col md:flex-row h-full w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-hidden relative">
@@ -1432,9 +1404,6 @@ const App: React.FC = () => {
                                 onToggleCollapse={() => handleToggleCollapse('bottom')}
                                 activeTab={activeBottomTab}
                                 onTabChange={setActiveBottomTab}
-                                videoUrl={currentVideoUrl}
-                                isVideoGenerating={isVideoGenerating}
-                                onGenerateVideo={handleGenerateVideo}
                                 showReference={isPlayground}
                             />
                         </div>
