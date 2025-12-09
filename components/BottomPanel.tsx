@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import type { Lesson } from '../types';
 import { CollapseIcon } from './CollapseIcon';
 import { ReferencePanel } from './ReferencePanel';
@@ -17,17 +17,13 @@ interface BottomPanelProps {
     isTerminalLoading: boolean;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
-    activeTab: 'lesson' | 'terminal' | 'video' | 'reference';
-    onTabChange: (tab: 'lesson' | 'terminal' | 'video' | 'reference') => void;
-    videoUrl: string | null;
-    isVideoGenerating: boolean;
-    onGenerateVideo: () => void;
+    activeTab: 'lesson' | 'terminal' | 'reference';
+    onTabChange: (tab: 'lesson' | 'terminal' | 'reference') => void;
     showReference?: boolean;
 }
 
 import CheckIcon from '../assets/icons/CheckCircleSolidIcon.svg?react';
-import VideoCameraIcon from '../assets/icons/VideoCameraIcon.svg?react';
-import PlayIcon from '../assets/icons/PlayIcon.svg?react';
+
 import BookIcon from '../assets/icons/BookIcon.svg?react';
 
 const LessonCompletedBanner: React.FC = () => (
@@ -38,13 +34,12 @@ const LessonCompletedBanner: React.FC = () => (
 );
 
 const TabButton: React.FC<{
-    name: 'lesson' | 'terminal' | 'video' | 'reference';
+    name: 'lesson' | 'terminal' | 'reference';
     label: string;
-    activeTab: 'lesson' | 'terminal' | 'video' | 'reference';
-    onClick: (name: 'lesson' | 'terminal' | 'video' | 'reference') => void;
-    isTerminal?: boolean;
+    activeTab: 'lesson' | 'terminal' | 'reference';
+    onClick: (name: 'lesson' | 'terminal' | 'reference') => void;
     icon?: React.ReactNode;
-}> = ({ name, label, activeTab, onClick, isTerminal, icon }) => (
+}> = ({ name, label, activeTab, onClick, icon }) => (
     <button
         onClick={() => onClick(name)}
         data-tab={name}
@@ -60,14 +55,7 @@ const TabButton: React.FC<{
     </button>
 );
 
-const LOADING_MESSAGES = [
-    "Dreaming up pixels...",
-    "Teaching the AI to draw...",
-    "Synthesizing knowledge...",
-    "Compiling visual data...",
-    "Rendering neural frames...",
-    "Creating your video...",
-];
+
 
 const parseMarkdown = (content: string) => {
     if (typeof window !== 'undefined' && window.marked && window.marked.parse) {
@@ -85,22 +73,10 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
     onToggleCollapse,
     activeTab,
     onTabChange,
-    videoUrl,
-    isVideoGenerating,
-    onGenerateVideo,
     showReference
 }) => {
-    const isTerminal = activeTab === 'terminal';
-    const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
 
-    useEffect(() => {
-        if (isVideoGenerating) {
-            const interval = setInterval(() => {
-                setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
-            }, 3000);
-            return () => clearInterval(interval);
-        }
-    }, [isVideoGenerating]);
+    const isTerminal = activeTab === 'terminal';
 
     // Force terminal tab if no lesson (Playground mode)
     useEffect(() => {
@@ -117,25 +93,16 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                     <div className="flex items-center h-full" role="tablist">
                         {lesson && (
                             <>
-                                <TabButton name="lesson" label="Lesson" activeTab={activeTab} onClick={onTabChange} isTerminal={isTerminal} />
-                                <TabButton
-                                    name="video"
-                                    label="Video"
-                                    activeTab={activeTab}
-                                    onClick={onTabChange}
-                                    isTerminal={isTerminal}
-                                    icon={<VideoCameraIcon className="w-4 h-4" />}
-                                />
+                                <TabButton name="lesson" label="Lesson" activeTab={activeTab} onClick={onTabChange} />
                             </>
                         )}
-                        <TabButton name="terminal" label="Terminal" activeTab={activeTab} onClick={onTabChange} isTerminal={isTerminal} />
+                        <TabButton name="terminal" label="Terminal" activeTab={activeTab} onClick={onTabChange} />
                         {showReference && (
                             <TabButton
                                 name="reference"
                                 label="Reference"
                                 activeTab={activeTab}
                                 onClick={onTabChange}
-                                isTerminal={isTerminal}
                                 icon={<BookIcon className="w-4 h-4" />}
                             />
                         )}
@@ -194,73 +161,7 @@ export const BottomPanel: React.FC<BottomPanelProps> = ({
                         </div>
                     )}
 
-                    {activeTab === 'video' && lesson && (
-                        <div className="p-6 h-full flex flex-col items-center justify-center">
-                            {isVideoGenerating ? (
-                                <div className="flex flex-col items-center gap-4 animate-fade-in">
-                                    <div className="relative">
-                                        <div className="w-16 h-16 border-4 border-cyan-200 dark:border-cyan-900 rounded-full"></div>
-                                        <div className="w-16 h-16 border-4 border-cyan-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-                                    </div>
-                                    <p className="text-gray-600 dark:text-gray-300 font-medium text-center animate-pulse">
-                                        {loadingMessage}
-                                    </p>
-                                    <p className="text-xs text-gray-400 max-w-xs text-center">
-                                        AI video generation can take a moment. Hang tight!
-                                    </p>
-                                </div>
-                            ) : videoUrl ? (
-                                <div className="w-full max-w-3xl space-y-4 animate-fade-in">
-                                    <div className="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-700">
-                                        <video
-                                            src={videoUrl}
-                                            controls
-                                            className="w-full h-full object-cover"
-                                            autoPlay
-                                            loop
-                                        >
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white">{lesson.title} Visualization</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Generated by Gemini Veo</p>
-                                        </div>
-                                        <a
-                                            href={videoUrl}
-                                            download={`${lesson.title.replace(/\s+/g, '_')}_intro.mp4`}
-                                            className="text-cyan-600 hover:text-cyan-500 text-sm font-medium"
-                                        >
-                                            Download Video
-                                        </a>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center space-y-6 max-w-md animate-fade-in">
-                                    <div className="w-20 h-20 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-4">
-                                        <VideoCameraIcon className="w-10 h-10" />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                                        Visualize This Lesson
-                                    </h3>
-                                    <p className="text-gray-600 dark:text-gray-300">
-                                        Use AI to generate a short, futuristic video visualization of the concepts in <strong>{lesson.title}</strong>.
-                                    </p>
-                                    <button
-                                        onClick={onGenerateVideo}
-                                        className="inline-flex items-center gap-2 px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-full shadow-lg shadow-cyan-500/20 hover:scale-105 transition-all"
-                                    >
-                                        <PlayIcon className="w-5 h-5" />
-                                        Generate AI Video
-                                    </button>
-                                    <p className="text-xs text-gray-400">
-                                        Powered by Gemini Veo. Requires a paid API key.
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+
 
                     {activeTab === 'terminal' && (
                         <div className="p-4 h-full font-mono text-sm">
