@@ -4,9 +4,12 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
+// Fallback to import.meta.env for local development
+const env = (window as any).env || import.meta.env;
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    apiKey: env.VITE_FIREBASE_API_KEY,
     authDomain: "code2coder-a324f.firebaseapp.com",
     projectId: "code2coder-a324f",
     storageBucket: "code2coder-a324f.firebasestorage.app",
