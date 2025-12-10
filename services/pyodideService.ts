@@ -19,7 +19,7 @@ let currentCallbacks: PyodideCallbacks | null = null;
 export const initializePyodide = async () => {
     if (worker) return;
 
-    worker = new Worker(new URL('./pyodide.worker.ts', import.meta.url), { type: 'module' });
+    worker = new Worker(new URL('./pyodide.worker.ts', import.meta.url));
 
     // Create SharedBuffers
     // 16 bytes for control (status, length, etc.)
