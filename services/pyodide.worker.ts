@@ -1,12 +1,9 @@
 /// <reference lib="webworker" />
 
-import { loadPyodide } from 'pyodide';
+// Load Pyodide from CDN to avoid bundling issues
+importScripts("https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js");
 
-declare global {
-  interface Window {
-    pyodide: any;
-  }
-}
+declare function loadPyodide(config: any): Promise<any>;
 
 let pyodide: any = null;
 
