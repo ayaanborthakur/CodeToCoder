@@ -41,13 +41,7 @@ export default defineConfig(() => {
         ],
         build: {
             rollupOptions: {
-                external: [
-                    'react',
-                    'react-dom',
-                    'react-dom/client',
-                    'react/jsx-runtime',
-                    '@google/genai'
-                ],
+                external: ['pyodide'],
                 input: {
                     // Main entry point (the only HTML file that exists)
                     main: resolve(__dirname, 'index.html'),
@@ -59,6 +53,11 @@ export default defineConfig(() => {
                     // dashboard: resolve(__dirname, 'dashboard.html'),
                     // classroom: resolve(__dirname, 'classroom.html'),
                 },
+            },
+        },
+        worker: {
+            rollupOptions: {
+                external: ['pyodide'],
             },
         },
         // The 'define' block has been removed, as the VITE_ prefix handles
