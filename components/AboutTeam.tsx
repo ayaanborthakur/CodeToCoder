@@ -9,10 +9,6 @@ interface TeamMember {
 }
 
 const TEAM_MEMBERS: TeamMember[] = [
-    // Mentors (Class of 2027)
-    { name: "Vedant Hathalia", role: "Mentor", gradClass: "Graduating Class of 2027", image: "/assets/team/vedant.png" },
-    { name: "Arnav Sinha", role: "Mentor", gradClass: "Graduating Class of 2027", image: "/assets/team/arnav.png" },
-
     // Project Managers (Class of 2029)
     { name: "Aryan Kulkarni", role: "Project Manager", gradClass: "Graduating Class of 2029", image: "/assets/team/aryan.png" },
     { name: "Ayaan Borthakur", role: "Project Manager", gradClass: "Graduating Class of 2029", image: "/assets/team/ayaan.png" },
@@ -20,7 +16,6 @@ const TEAM_MEMBERS: TeamMember[] = [
 
     // Outreach Managers (Class of 2029)
     { name: "Neil Gandhi", role: "Outreach Manager", gradClass: "Graduating Class of 2029", image: "/assets/team/neil.png" },
-    { name: "Akshat Gupta", role: "Outreach Manager", gradClass: "Graduating Class of 2029", image: "/assets/team/akshat.png" },
 ];
 
 const BackIcon = () => (
