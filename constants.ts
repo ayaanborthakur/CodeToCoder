@@ -8,7 +8,7 @@ export const LESSON_PLAN: Module[] = [
       {
         id: "m1-intro1",
         title: "What is Programming?",
-        type: "quiz",
+        type: "learn",
         content: `
 # Welcome to Programming! 🎉
 
@@ -33,47 +33,23 @@ Python is one of the most popular programming languages because:
 - 🚀 **Beginner-Friendly**: Less confusing symbols than other languages
 - 💼 **Powerful**: Used by Google, NASA, Netflix, and more!
 
-## What You'll Learn
+## What You'll Learn in This Module
 
 In this module, you'll master the fundamentals:
 1. **Output**: Making the computer "speak" using \`print()\`
 2. **Comments**: Leaving notes for yourself and others
 3. **Variables**: Storing and remembering data
 
-Let's test your understanding so far!
+> 💡 **Key Takeaway**: Programming is about giving precise, step-by-step instructions to a computer. Python makes this easy because its syntax is clear and readable.
         `,
-        goal: "Complete the knowledge check to continue.",
+        goal: "Understand what programming is and why Python is great for beginners.",
         startingCode: "",
-        objective: "Understand what programming is and why we use Python.",
-        quizQuestions: [
-          {
-            id: "m1i1-q1",
-            text: "Why do computers need precise instructions?",
-            options: [
-              "They are lazy",
-              "They take instructions literally",
-              "They are slow",
-              "They prefer it",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i1-q2",
-            text: "Which is a reason Python is good for beginners?",
-            options: [
-              "It uses lots of symbols",
-              "It is hard to read",
-              "It looks like English",
-              "It only works on Mac",
-            ],
-            correctAnswerIndex: 2,
-          },
-        ],
+        objective: "Learn the fundamentals of what programming means.",
       },
       {
         id: "m1-intro2",
         title: "Understanding the Print Function",
-        type: "quiz",
+        type: "learn",
         content: `
 # The \`print()\` Function Deep Dive 🖨️
 
@@ -123,50 +99,17 @@ print("Line 2")
 **Step 2:** Python reads line 2 → Outputs "Line 2"
 
 Each print statement creates a new line of output!
+
+> 💡 **Key Takeaway**: The \`print()\` function displays text. Quotes are essential—they tell Python what is text vs. code.
         `,
-        goal: "Master the anatomy of print statements.",
+        goal: "Master the anatomy of print statements before writing your own.",
         startingCode: "",
         objective: "Understand how print() works before using it.",
-        quizQuestions: [
-          {
-            id: "m1i2-q1",
-            text: "What do the parentheses in print() contain?",
-            options: [
-              "Nothing",
-              "What you want to display",
-              "The color",
-              "The font",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i2-q2",
-            text: "Why do we put quotes around text?",
-            options: [
-              "To make it look nice",
-              "To tell Python it is text, not a command",
-              "Python requires them randomly",
-              "To make it bold",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i2-q3",
-            text: "What happens if you write: print(hello) without quotes?",
-            options: [
-              'Prints "hello"',
-              "Prints nothing",
-              "Python looks for a variable named hello",
-              "Creates a new file",
-            ],
-            correctAnswerIndex: 2,
-          },
-        ],
       },
       {
         id: "m1-intro3",
         title: "Reading Error Messages",
-        type: "quiz",
+        type: "learn",
         content: `
 # Don't Fear Errors! 🐛
 
@@ -217,50 +160,17 @@ SyntaxError: '(' was never closed
 2. **Arrow (^):** Points to where Python got confused
 3. **Error type:** SyntaxError
 4. **Message:** Explains what went wrong
+
+> 💡 **Key Takeaway**: Error messages are your friends—they tell you exactly what went wrong and where. Always read the line number and error type first!
         `,
-        goal: "Learn to decode Python error messages.",
+        goal: "Learn to decode Python error messages like a pro.",
         startingCode: "",
         objective: "Understand how to read and interpret error messages.",
-        quizQuestions: [
-          {
-            id: "m1i3-q1",
-            text: "What does a NameError usually mean?",
-            options: [
-              "Your name is wrong",
-              "Python cannot find a variable you referenced",
-              "The file is missing",
-              "Your computer is broken",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i3-q2",
-            text: "If you see \"SyntaxError: '(' was never closed\", what should you check?",
-            options: [
-              "Your internet connection",
-              "Missing closing parenthesis",
-              "Your Python version",
-              "The file name",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i3-q3",
-            text: "Which part of an error message tells you WHERE the problem is?",
-            options: [
-              "The error type",
-              "The line number and arrow",
-              "The file size",
-              "The date",
-            ],
-            correctAnswerIndex: 1,
-          },
-        ],
       },
       {
         id: "m1-intro4",
         title: "Code Tracing Practice",
-        type: "quiz",
+        type: "learn",
         content: `
 # Trace Through Code Like a Detective 🔍
 
@@ -295,9 +205,7 @@ This is Python.
 Let's code!
 \`\`\`
 
-## Challenge Trace
-
-What does this output?
+## Challenge: What Does This Output?
 
 \`\`\`python
 print("A")
@@ -306,46 +214,19 @@ print("C")
 print("A")
 \`\`\`
 
-Think about it before checking your answer!
+**Answer (click to trace mentally):**
+- Line 1: A
+- Line 2: B  
+- Line 3: C
+- Line 4: A
+
+So the output is: A, B, C, A (each on a new line)
+
+> 💡 **Key Takeaway**: Python executes code from top to bottom, one line at a time. Code tracing helps you predict output and catch bugs before running your code.
         `,
-        goal: "Practice predicting code output.",
+        goal: "Practice predicting code output before running it.",
         startingCode: "",
         objective: "Learn to trace through code and predict output.",
-        quizQuestions: [
-          {
-            id: "m1i4-q1",
-            text: "In what order does Python execute lines?",
-            options: [
-              "Random order",
-              "Bottom to top",
-              "Top to bottom",
-              "Alphabetical",
-            ],
-            correctAnswerIndex: 2,
-          },
-          {
-            id: "m1i4-q2",
-            text: 'What is the output of: print("A") then print("B") then print("C") then print("A")?',
-            options: [
-              "ABCA on one line",
-              "A then B then C then A (each on new line)",
-              "ABCD",
-              "Error",
-            ],
-            correctAnswerIndex: 1,
-          },
-          {
-            id: "m1i4-q3",
-            text: "Why is code tracing useful?",
-            options: [
-              "It makes code run faster",
-              "It helps predict output and find bugs",
-              "It is required by Python",
-              "It adds colors to code",
-            ],
-            correctAnswerIndex: 1,
-          },
-        ],
       },
       {
         id: "m1-l1",

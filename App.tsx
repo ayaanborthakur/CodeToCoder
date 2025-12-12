@@ -4,6 +4,7 @@ import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
+import { LearnPanel } from './components/LearnPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { Resizer } from './components/Resizer';
 import { HamburgerIcon } from './components/HamburgerIcon';
@@ -1235,6 +1236,7 @@ const App: React.FC = () => {
     const showSidebar = isClassroom && isNavOpen;
 
     const isQuizMode = (isClassroom && activeLesson?.type === 'quiz') || (isPractice && activePracticeItem?.type === 'quiz');
+    const isLearnMode = isClassroom && activeLesson?.type === 'learn';
     const isClassroomQuiz = isClassroom && activeLesson?.type === 'quiz';
 
     const isPracticeQuiz = isPractice && activePracticeItem?.type === 'quiz';
@@ -1360,6 +1362,29 @@ const App: React.FC = () => {
             }
         `}</style>
                     </div>
+                ) : isLearnMode && activeLesson ? (
+                    <LearnPanel
+                        lesson={activeLesson}
+                        onComplete={() => {
+                            if (!completedLessons.has(activeLesson.id)) {
+                                markLessonAsCompleted(activeLesson.id);
+                                if (user) {
+                                    import('./services/starService').then(({ awardStarsForActivity }) => {
+                                        awardStarsForActivity(user.id, 'lesson', activeLesson.id).then(result => {
+                                            if (result.awarded) {
+                                                setStarNotification({
+                                                    amount: result.amount,
+                                                    reason: `Completed ${activeLesson.title}`
+                                                });
+                                            }
+                                        });
+                                    });
+                                }
+                            }
+                            advanceToNextLesson();
+                        }}
+                        isCompleted={completedLessons.has(activeLesson.id)}
+                    />
                 ) : isQuizMode && activeContentItem ? (
                     <div className="h-full flex flex-col">
                         {isPracticeQuiz && (

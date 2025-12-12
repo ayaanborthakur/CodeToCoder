@@ -14,7 +14,7 @@ export interface Lesson {
   objective: string;
   goal: string;
   expectedOutput?: string; // Exact output required for lesson completion (optional for quizzes/random lessons)
-  type?: 'coding' | 'quiz';
+  type?: 'coding' | 'quiz' | 'learn';
   quizQuestions?: QuizQuestion[];
   commonMistakes?: string;
 }
