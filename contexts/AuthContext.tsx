@@ -32,6 +32,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     });
 
+    // Handle the redirect result (for Google Sign In)
+    authService.handleRedirectResult().catch(error => {
+      console.error("Auth redirect error:", error);
+      // Ideally we would set a global error state here, but for now console log is enough
+      // as the user will likely retry if it failed silently.
+    });
+
     return () => unsubscribe();
   }, []);
 
