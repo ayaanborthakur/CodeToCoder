@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LESSON_PLAN } from '../constants';
+import { LESSON_PLAN } from '../lessonPlan';
 
 
 interface HomePageProps {

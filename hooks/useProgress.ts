@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+
 import type { UserAchievements, Badge } from '../types';
 
 const BASE_PROGRESS_KEY = 'codetocoder_progress';
@@ -147,7 +148,7 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    const { LESSON_PLAN } = await import('../constants');
+                    const { LESSON_PLAN } = await import('../lessonPlan');
                     const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
@@ -270,7 +271,7 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    const { LESSON_PLAN } = await import('../constants');
+                    const { LESSON_PLAN } = await import('../lessonPlan');
                     const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
