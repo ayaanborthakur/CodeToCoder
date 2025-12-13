@@ -1203,7 +1203,18 @@ const App: React.FC = () => {
     }, [panelSizes, isMobile]);
 
     if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
-        return <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex items-center justify-center">Loading...</div>;
+        return (
+            <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center gap-4">
+                <div className="text-xl font-bold">Loading CodeToCoder...</div>
+                <div className="text-sm text-gray-500 flex flex-col gap-2">
+                    <div>Auth: {isAuthLoading ? 'Loading...' : 'Ready'}</div>
+                    <div>Progress: {isProgressLoaded ? 'Ready' : 'Loading...'}</div>
+                    <div>Playground: {isPlaygroundLoaded ? 'Ready' : 'Loading...'}</div>
+                    <div>Quizzes: {isQuizzesLoaded ? 'Ready' : 'Loading...'}</div>
+                    <div>Lesson: {(currentView === 'classroom' && currentLessonId && !currentLesson) ? 'Loading...' : 'Ready'}</div>
+                </div>
+            </div>
+        );
     }
 
     const isClassroom = currentView === 'classroom';
