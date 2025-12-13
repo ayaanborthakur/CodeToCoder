@@ -733,6 +733,41 @@ const App: React.FC = () => {
         }
     }, [currentModuleId, currentLesson, changeLesson, modules]);
 
+    const navigationState = useMemo(() => {
+        if (!currentModuleId || !currentLessonId || !modules.length) {
+             return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+        }
+
+        const module = modules.find(m => m.id === currentModuleId);
+        if (!module) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+        
+        const lessonIndex = module.lessons.findIndex(l => l.id === currentLessonId);
+        if (lessonIndex === -1) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+
+        const hasPrevious = lessonIndex > 0;
+        const hasNext = lessonIndex < module.lessons.length - 1;
+
+        return { 
+            hasPrevious, 
+            hasNext, 
+            prevId: hasPrevious ? module.lessons[lessonIndex - 1].id : null, 
+            nextId: hasNext ? module.lessons[lessonIndex + 1].id : null 
+        };
+
+    }, [currentModuleId, currentLessonId, modules]);
+
+    const handlePreviousLessonNav = useCallback(() => {
+        if (navigationState.hasPrevious && navigationState.prevId && currentModuleId) {
+            changeLesson(currentModuleId, navigationState.prevId);
+        }
+    }, [navigationState, currentModuleId, changeLesson]);
+
+    const handleNextLessonNav = useCallback(() => {
+        if (navigationState.hasNext && navigationState.nextId && currentModuleId) {
+            changeLesson(currentModuleId, navigationState.nextId);
+        }
+    }, [navigationState, currentModuleId, changeLesson]);
+
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
             if (!completedPracticeItems.has(activePracticeItem.id)) {
@@ -1454,6 +1489,10 @@ const App: React.FC = () => {
                             advanceToNextLesson();
                         }}
                         isCompleted={completedLessons.has(activeLesson.id)}
+                        onPreviousLesson={handlePreviousLessonNav}
+                        onNextLesson={handleNextLessonNav}
+                        hasPreviousLesson={navigationState.hasPrevious}
+                        hasNextLesson={navigationState.hasNext}
                     />
                 ) : isQuizMode && activeContentItem ? (
                     <div className="h-full flex flex-col">

@@ -8,9 +8,21 @@ interface LearnPanelProps {
     lesson: Lesson;
     onComplete: () => void;
     isCompleted: boolean;
+    onPreviousLesson?: () => void;
+    onNextLesson?: () => void;
+    hasPreviousLesson?: boolean;
+    hasNextLesson?: boolean;
 }
 
-export const LearnPanel: React.FC<LearnPanelProps> = ({ lesson, onComplete, isCompleted }) => {
+export const LearnPanel: React.FC<LearnPanelProps> = ({ 
+    lesson, 
+    onComplete, 
+    isCompleted,
+    onPreviousLesson,
+    onNextLesson,
+    hasPreviousLesson = false,
+    hasNextLesson = false
+}) => {
     const handleContinue = () => {
         onComplete();
         // Scroll to top for next lesson
