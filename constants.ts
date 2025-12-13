@@ -229,7 +229,7 @@ So the output is: A, B, C, A (each on a new line)
         objective: "Learn to trace through code and predict output.",
       },
       {
-        id: "m1-l1",
+        id: "m1-lp1",
         title: "Hello World!",
         content: `
 Welcome to your journey as a Python developer! The first tradition for every programmer, whether at Google or NASA, is to make the computer speak.
@@ -258,7 +258,7 @@ print('Single quotes work too')
         `,
       },
       {
-        id: "m1-l2",
+        id: "m1-lp2",
         title: "Comments",
         content: `
 Code isn't just for computers; it's for humans too. **Comments** are lines of text that Python ignores completely. They are used to document your code so you (or others) can understand it later.
@@ -285,7 +285,7 @@ print("This runs") # This is a note
         `,
       },
       {
-        id: "m1-l3",
+        id: "m1-lp3",
         title: "Variables",
         content: `
 Imagine a variable as a labeled box where you store data. You can put data in, take it out, or look at it later. This allows your program to remember things.
@@ -325,7 +325,7 @@ You've learned output, comments, and variables. Let's verify your knowledge befo
         objective: "Pass the quiz with 100% accuracy.",
         quizQuestions: [
           {
-            id: "q1",
+            id: "m1-lp4",
             text: "What happens if you run: print(Hello)",
             options: [
               "It prints Hello",
@@ -336,13 +336,13 @@ You've learned output, comments, and variables. Let's verify your knowledge befo
             correctAnswerIndex: 1,
           },
           {
-            id: "q2",
+            id: "m1-lp5",
             text: "Which variable name is valid in Python?",
             options: ["2nd_player", "my variable", "user_score", "def"],
             correctAnswerIndex: 2,
           },
           {
-            id: "q3",
+            id: "m1-lp6",
             text: "What does the # symbol do?",
             options: [
               "Starts a variable",
@@ -418,7 +418,7 @@ Each line creates a new labeled box in memory.
         objective: "Learn the memory model for variables.",
         quizQuestions: [
           {
-            id: "m2i1-q1",
+            id: "m2-lp1",
             text: "What does the = sign do in Python?",
             options: [
               "Checks if values are equal",
@@ -429,13 +429,13 @@ Each line creates a new labeled box in memory.
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i1-q2",
+            id: "m2-lp2",
             text: "When you write: name = \"Alice\", what is the label of the box?",
             options: ["Alice", "name", "=", "The whole line"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i1-q3",
+            id: "m2-lp3",
             text: "Can you create multiple variables (boxes) in one program?",
             options: [
               "No, only one allowed",
@@ -500,19 +500,19 @@ Notice: \`b = a\` copies the **current value** of a into b. They don't stay conn
         objective: "Learn to track variable changes step by step.",
         quizQuestions: [
           {
-            id: "m2i2-q1",
+            id: "m2-lp4",
             text: "After: x = 5, then x = 10, what is x?",
             options: ["5", "10", "15", "Error"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i2-q2",
+            id: "m2-lp5",
             text: "After: a = 3, b = a, a = 7... what is b?",
             options: ["3", "7", "10", "Error"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m2i2-q3",
+            id: "m2-lp6",
             text: "When you reassign a variable, what happens to the old value?",
             options: [
               "It is saved in a backup",
@@ -574,7 +574,7 @@ Python calculates the right side ONCE, gets a number, and stores it.
         objective: "Learn how Python processes assignment statements.",
         quizQuestions: [
           {
-            id: "m2i3-q1",
+            id: "m2-lp7",
             text: "In x = 5 + 3, what happens first?",
             options: [
               "x is created",
@@ -585,13 +585,13 @@ Python calculates the right side ONCE, gets a number, and stores it.
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i3-q2",
+            id: "m2-lp8",
             text: "After: count = 10, then count = count + 5... what is count?",
             options: ["10", "5", "15", "Error"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m2i3-q3",
+            id: "m2-lp9",
             text: "Why doesn't x = x + 1 cause an infinite loop?",
             options: [
               "Python has special protection",
@@ -660,7 +660,7 @@ Now a=10 and b=5. Swapped!
         objective: "Learn the swap algorithm conceptually.",
         quizQuestions: [
           {
-            id: "m2i4-q1",
+            id: "m2-lp10",
             text: "Why can't you just do a=b then b=a to swap?",
             options: [
               "Python doesn't allow it",
@@ -671,7 +671,7 @@ Now a=10 and b=5. Swapped!
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i4-q2",
+            id: "m2-lp11",
             text: "What is the purpose of the temp variable in swapping?",
             options: [
               "To make code longer",
@@ -682,7 +682,7 @@ Now a=10 and b=5. Swapped!
             correctAnswerIndex: 1,
           },
           {
-            id: "m2i4-q3",
+            id: "m2-lp12",
             text: "In the correct swap, what should temp hold?",
             options: [
               "The first variable's original value",
@@ -695,7 +695,7 @@ Now a=10 and b=5. Swapped!
         ],
       },
       {
-        id: "m2-l1",
+        id: "m2-lp13",
         title: "Reassigning Values",
         content: `
 Variables are dynamic. Just because \`score\` is 10 now doesn't mean it stays that way. You can overwrite the value in the "box" by assigning it again.
@@ -721,7 +721,7 @@ print(money) # Prints 50
         `,
       },
       {
-        id: "m2-l2",
+        id: "m2-lp14",
         title: "Self-Referencing Math",
         content: `
 A very common pattern in programming is updating a variable based on its *current* value. For example, adding points to a score or taking damage.
@@ -747,7 +747,7 @@ lives = lives - 1
         `,
       },
       {
-        id: "m2-l3",
+        id: "m2-lp15",
         title: "Multiple Variable Logic",
         content: `
 Programs usually juggle many variables at once. You can use values from different variables to create new ones.
@@ -838,19 +838,19 @@ This is why knowing your types is essential!
         objective: "Learn about int, float, str, and bool types.",
         quizQuestions: [
           {
-            id: "m3i1-q1",
+            id: "m3-lp1",
             text: "Which type is used for decimal numbers?",
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i1-q2",
+            id: "m3-lp2",
             text: "What does \"5\" + \"3\" produce?",
             options: ["8", "53", "Error", "5 + 3"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i1-q3",
+            id: "m3-lp3",
             text: "Which type has only two possible values?",
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 3,
@@ -916,19 +916,19 @@ Even "clean" division produces a float.
         objective: "Understand how to discover and verify types.",
         quizQuestions: [
           {
-            id: "m3i2-q1",
+            id: "m3-lp4",
             text: "What is type(\"42\")?",
             options: ["int", "str", "float", "number"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i2-q2",
+            id: "m3-lp5",
             text: "What is type(10 / 2)?",
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i2-q3",
+            id: "m3-lp6",
             text: "Are 5 and \"5\" the same type?",
             options: [
               "Yes, both are numbers",
@@ -1003,7 +1003,7 @@ result = number + 10  # Works! Result is 60
         objective: "Learn about type conversion to avoid errors.",
         quizQuestions: [
           {
-            id: "m3i3-q1",
+            id: "m3-lp7",
             text: 'Why does "Score: " + 50 cause an error?',
             options: [
               "50 is too large",
@@ -1014,7 +1014,7 @@ result = number + 10  # Works! Result is 60
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i3-q2",
+            id: "m3-lp8",
             text: 'How do you fix: "Age: " + 25?',
             options: [
               'Remove the quotes: Age: + 25',
@@ -1025,7 +1025,7 @@ result = number + 10  # Works! Result is 60
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i3-q3",
+            id: "m3-lp9",
             text: 'To do math with "100" (a string), what do you do?',
             options: [
               "Just use it directly",
@@ -1086,25 +1086,25 @@ Before answering, think carefully about each value!
         objective: "Become confident identifying Python types.",
         quizQuestions: [
           {
-            id: "m3i4-q1",
+            id: "m3-lp10",
             text: 'What type is: "3.14"?',
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m3i4-q2",
+            id: "m3-lp11",
             text: "What type is: False?",
             options: ["int", "str", "float", "bool"],
             correctAnswerIndex: 3,
           },
           {
-            id: "m3i4-q3",
+            id: "m3-lp12",
             text: 'What type is: "False"?',
             options: ["bool", "str", "None", "Error"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m3i4-q4",
+            id: "m3-lp13",
             text: "What type is: 7.0?",
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 1,
@@ -1112,7 +1112,7 @@ Before answering, think carefully about each value!
         ],
       },
       {
-        id: "m3-l1",
+        id: "m3-lp14",
         title: "Integers vs Strings",
         content: `
 Data types matter! 
@@ -1138,7 +1138,7 @@ print("5" + "5") # 55 (Concatenation)
         `,
       },
       {
-        id: "m3-l2",
+        id: "m3-lp15",
         title: "Floats (Decimals)",
         content: `
 When you need precision, use **Floats**. These are numbers with decimal points.
@@ -1157,7 +1157,7 @@ Even if the decimal is zero (\`5.0\`), Python treats it as a float.
         `,
       },
       {
-        id: "m3-l3",
+        id: "m3-lp16",
         title: "String Concatenation",
         content: `
 "Concatenation" is a fancy word for joining strings together using the \`+\` operator.
@@ -1182,7 +1182,7 @@ print(a + " " + b) # Super man
         `,
       },
       {
-        id: "m3-l4",
+        id: "m3-lp17",
         title: "Type Conversion (Casting)",
         content: `
 Sometimes you have a string \`"50"\` (like from user input) but you need to do math on it. You can convert types using functions:
@@ -1208,7 +1208,7 @@ print(age_num) # 21
         `,
       },
       {
-        id: "m3-l5",
+        id: "m3-lp18",
         title: "Input",
         content: `
 Programs are interactive. The \`input()\` function pauses the program and waits for the user to type something.
@@ -1241,19 +1241,19 @@ Verify your understanding of strings, integers, floats, and type conversion.
         objective: "Pass the quiz.",
         quizQuestions: [
           {
-            id: "m3q1",
+            id: "m3-lp19",
             text: 'What is the type of: "10.5"',
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m3q2",
+            id: "m3-lp20",
             text: "Which function converts a string to a number?",
             options: ["str()", "num()", "int()", "convert()"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m3q3",
+            id: "m3-lp21",
             text: 'What is the result of: "A" + "B"',
             options: ["Error", "AB", "A B", "NaN"],
             correctAnswerIndex: 1,
@@ -1321,19 +1321,19 @@ With \`if\`, programs can react to different situations!
         objective: "Learn the concept of Boolean decisions.",
         quizQuestions: [
           {
-            id: "m4i1-q1",
+            id: "m4-lp1",
             text: "What type of value does every if condition evaluate to?",
             options: ["String", "Integer", "Boolean (True/False)", "Float"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m4i1-q2",
+            id: "m4-lp2",
             text: "What is the result of: 10 > 5?",
             options: ["True", "False", "10", "5"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m4i1-q3",
+            id: "m4-lp3",
             text: "What operator checks if two values are equal?",
             options: ["=", "==", "!=", ">="],
             correctAnswerIndex: 1,
@@ -1407,19 +1407,19 @@ Only ONE branch ever runs.
         objective: "Learn to trace through branching code.",
         quizQuestions: [
           {
-            id: "m4i2-q1",
+            id: "m4-lp4",
             text: "In if/else, how many branches can run?",
             options: ["Both always run", "Only the if runs", "Only one runs", "Neither runs"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m4i2-q2",
+            id: "m4-lp5",
             text: "If the condition is False, which block runs?",
             options: ["The if block", "The else block", "Both blocks", "None"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m4i2-q3",
+            id: "m4-lp6",
             text: "After if/else completes, what happens?",
             options: [
               "Program ends",
@@ -1491,19 +1491,19 @@ print("Done")
         objective: "Understand loop execution flow.",
         quizQuestions: [
           {
-            id: "m4i3-q1",
+            id: "m4-lp7",
             text: "How many times does range(5) loop?",
             options: ["4 times", "5 times", "6 times", "Depends on condition"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m4i3-q2",
+            id: "m4-lp8",
             text: "What values does range(3) produce?",
             options: ["1, 2, 3", "0, 1, 2", "0, 1, 2, 3", "1, 2"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m4i3-q3",
+            id: "m4-lp9",
             text: "What happens after the loop finishes all iterations?",
             options: [
               "Program ends",
@@ -1583,19 +1583,19 @@ Always ensure your while loop can exit!
         objective: "Understand the difference between loop types.",
         quizQuestions: [
           {
-            id: "m4i4-q1",
+            id: "m4-lp10",
             text: "Which loop is best for \"repeat 10 times\"?",
             options: ["while", "for", "Either works equally well", "Neither"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m4i4-q2",
+            id: "m4-lp11",
             text: "Which loop is best for \"repeat until password correct\"?",
             options: ["for", "while", "Neither can do this", "Both required"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m4i4-q3",
+            id: "m4-lp12",
             text: "What causes an infinite loop?",
             options: [
               "Using range()",
@@ -1608,7 +1608,7 @@ Always ensure your while loop can exit!
         ],
       },
       {
-        id: "m4-l1",
+        id: "m4-lp13",
         title: "If/Else Logic",
         content: `
 Code often needs to make decisions. We use \`if\` statements for this.
@@ -1634,7 +1634,7 @@ else:
         `,
       },
       {
-        id: "m4-l2",
+        id: "m4-lp14",
         title: "Multiple Conditions (Elif)",
         content: `
 Life isn't always black and white (True/False). Sometimes there are many options. Use \`elif\` (Else If).
@@ -1662,7 +1662,7 @@ else:
         `,
       },
       {
-        id: "m4-l3",
+        id: "m4-lp15",
         title: "The For Loop",
         content: `
 Don't copy-paste code to run it multiple times. Use a loop.
@@ -1688,7 +1688,7 @@ for i in range(1, 4):
         `,
       },
       {
-        id: "m4-l4",
+        id: "m4-lp16",
         title: "The While Loop",
         content: `
 A \`while\` loop keeps running as long as its condition is True.
@@ -1782,7 +1782,7 @@ This is normal and expected.
         objective: "Learn why and how we use random numbers.",
         quizQuestions: [
           {
-            id: "m5i1-q1",
+            id: "m5-lp1",
             text: "Why do games use randomness?",
             options: [
               "To create bugs",
@@ -1793,7 +1793,7 @@ This is normal and expected.
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i1-q2",
+            id: "m5-lp2",
             text: "What does 'pseudo-random' mean?",
             options: [
               "Truly random",
@@ -1804,7 +1804,7 @@ This is normal and expected.
             correctAnswerIndex: 2,
           },
           {
-            id: "m5i1-q3",
+            id: "m5-lp3",
             text: "What happens when you run random code multiple times?",
             options: [
               "Same output every time",
@@ -1871,7 +1871,7 @@ This makes it clear what your program needs!
         objective: "Learn the import system.",
         quizQuestions: [
           {
-            id: "m5i2-q1",
+            id: "m5-lp4",
             text: "Why do we need to import modules?",
             options: [
               "Python is broken without them",
@@ -1882,7 +1882,7 @@ This makes it clear what your program needs!
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i2-q2",
+            id: "m5-lp5",
             text: "After import random, how do you call randint?",
             options: [
               "randint(1, 6)",
@@ -1893,7 +1893,7 @@ This makes it clear what your program needs!
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i2-q3",
+            id: "m5-lp6",
             text: "Where should import statements go?",
             options: [
               "At the end of the file",
@@ -1962,7 +1962,7 @@ else:                # 50% chance
         objective: "Learn to create percentage-based chances.",
         quizQuestions: [
           {
-            id: "m5i3-q1",
+            id: "m5-lp7",
             text: "What is randint(1, 4) equally likely to return?",
             options: [
               "Only 1 or 4",
@@ -1973,7 +1973,7 @@ else:                # 50% chance
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i3-q2",
+            id: "m5-lp8",
             text: "To create a 10% chance with randint(1, 100), what condition?",
             options: [
               "roll == 10",
@@ -1984,7 +1984,7 @@ else:                # 50% chance
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i3-q3",
+            id: "m5-lp9",
             text: "randint(1, 6) simulates what real object?",
             options: ["A coin", "A 6-sided dice", "A card", "A roulette wheel"],
             correctAnswerIndex: 1,
@@ -2052,7 +2052,7 @@ Useful for debugging, but remove for production!
         objective: "Understand strategies for testing randomness.",
         quizQuestions: [
           {
-            id: "m5i4-q1",
+            id: "m5-lp10",
             text: "What's the main challenge with testing random code?",
             options: [
               "It runs slowly",
@@ -2063,7 +2063,7 @@ Useful for debugging, but remove for production!
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i4-q2",
+            id: "m5-lp11",
             text: "If randint(1, 6) returns 0, what happened?",
             options: [
               "Normal behavior",
@@ -2074,7 +2074,7 @@ Useful for debugging, but remove for production!
             correctAnswerIndex: 1,
           },
           {
-            id: "m5i4-q3",
+            id: "m5-lp12",
             text: "What does random.seed() do?",
             options: [
               "Plants a garden",
@@ -2087,7 +2087,7 @@ Useful for debugging, but remove for production!
         ],
       },
       {
-        id: "m5-l1",
+        id: "m5-lp13",
         title: "Importing Modules",
         content: `
 Python has a "battery included" philosophy. It comes with many tools (modules) installed, but you have to load them to keep your program lightweight.
@@ -2107,7 +2107,7 @@ roll = random.randint(1, 6) # 1 to 6 inclusive
         `,
       },
       {
-        id: "m5-l2",
+        id: "m5-lp14",
         title: "Random Chance Logic",
         content: `
 Games rely on randomness. We can combine \`random\` with \`if\` statements to create probability.
@@ -2129,7 +2129,7 @@ if random.randint(1, 10) == 1:
         `,
       },
       {
-        id: "m5-l3",
+        id: "m5-lp15",
         title: "Shuffling Lists",
         content: `
 Want to mix up a playlist or a deck of cards? Use \`random.shuffle()\`.
@@ -2150,7 +2150,7 @@ print(deck)
         `,
       },
       {
-        id: "m5-l4",
+        id: "m5-lp16",
         title: "Random Choice",
         content: `
 If you just want to pick *one* winner from a list, use \`random.choice()\`.
@@ -2177,7 +2177,7 @@ dinner = random.choice(menu)
         objective: "Pass quiz.",
         quizQuestions: [
           {
-            id: "m5q1",
+            id: "m5-lp17",
             text: "Which function picks one item from a list?",
             options: [
               "random.pick()",
@@ -2188,7 +2188,7 @@ dinner = random.choice(menu)
             correctAnswerIndex: 1,
           },
           {
-            id: "m5q2",
+            id: "m5-lp18",
             text: "Does random.shuffle(list) return a new list?",
             options: [
               "Yes",
@@ -2199,7 +2199,7 @@ dinner = random.choice(menu)
             correctAnswerIndex: 1,
           },
           {
-            id: "m5q3",
+            id: "m5-lp19",
             text: "What range does random.randint(1, 5) cover?",
             options: ["1 to 4", "0 to 5", "1 to 5 (inclusive)", "1 to 6"],
             correctAnswerIndex: 2,
@@ -2274,7 +2274,7 @@ Functions are like recipes:
         objective: "Learn the DRY principle and function benefits.",
         quizQuestions: [
           {
-            id: "m6i1-q1",
+            id: "m6-lp1",
             text: "What does DRY stand for?",
             options: [
               "Do Run Yesterday",
@@ -2285,7 +2285,7 @@ Functions are like recipes:
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i1-q2",
+            id: "m6-lp2",
             text: "What's wrong with copying the same code many times?",
             options: [
               "Nothing, it's fine",
@@ -2296,7 +2296,7 @@ Functions are like recipes:
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i1-q3",
+            id: "m6-lp3",
             text: "If you need to change greeting behavior, where do you change it?",
             options: [
               "Every place you copied it",
@@ -2370,13 +2370,13 @@ def greet(name):
         objective: "Understand function structure.",
         quizQuestions: [
           {
-            id: "m6i2-q1",
+            id: "m6-lp4",
             text: "Which keyword starts a function definition?",
             options: ["function", "def", "func", "define"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i2-q2",
+            id: "m6-lp5",
             text: "Does defining a function run its code?",
             options: [
               "Yes, immediately",
@@ -2387,7 +2387,7 @@ def greet(name):
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i2-q3",
+            id: "m6-lp6",
             text: "What goes inside the parentheses in a definition?",
             options: [
               "The function name",
@@ -2470,7 +2470,7 @@ def test():
         objective: "Learn the difference between print and return.",
         quizQuestions: [
           {
-            id: "m6i3-q1",
+            id: "m6-lp7",
             text: "What does return do?",
             options: [
               "Prints a value",
@@ -2481,13 +2481,13 @@ def test():
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i3-q2",
+            id: "m6-lp8",
             text: "If a function prints but doesn't return, what is its return value?",
             options: ["0", "The printed value", "None", "Error"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m6i3-q3",
+            id: "m6-lp9",
             text: "What happens to code after a return statement?",
             options: [
               "It runs normally",
@@ -2565,7 +2565,7 @@ The local \`x\` "shadows" the global one inside the function.
         objective: "Learn about local and global variables.",
         quizQuestions: [
           {
-            id: "m6i4-q1",
+            id: "m6-lp10",
             text: "Where does a local variable exist?",
             options: [
               "Everywhere in the program",
@@ -2576,13 +2576,13 @@ The local \`x\` "shadows" the global one inside the function.
             correctAnswerIndex: 1,
           },
           {
-            id: "m6i4-q2",
+            id: "m6-lp11",
             text: "Can code inside a function see global variables?",
             options: ["Yes", "No", "Only with import", "Only with return"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m6i4-q3",
+            id: "m6-lp12",
             text: "If a function creates x = 5, does it change a global x = 10?",
             options: [
               "Yes, x becomes 5 everywhere",
@@ -2595,7 +2595,7 @@ The local \`x\` "shadows" the global one inside the function.
         ],
       },
       {
-        id: "m6-l1",
+        id: "m6-lp13",
         title: "Defining Functions",
         content: `
 As your code gets longer, you'll find yourself copying the same lines. Stop!
@@ -2623,7 +2623,7 @@ def launch_alert():
         `,
       },
       {
-        id: "m6-l2",
+        id: "m6-lp14",
         title: "Parameters",
         content: `
 Functions are powerful when they can handle different data. We use **parameters** (variables inside the parentheses) to pass data in.
@@ -2647,7 +2647,7 @@ welcome("Trinity")
         `,
       },
       {
-        id: "m6-l3",
+        id: "m6-lp15",
         title: "The Return Statement",
         content: `
 Printing is useful for humans, but often we want a function to calculate a value and give it back to the program to use later. We use \`return\`.
@@ -2672,7 +2672,7 @@ print(val + 5)      # 25
         `,
       },
       {
-        id: "m6-l4",
+        id: "m6-lp16",
         title: "Scope",
         content: `
 Variables created *inside* a function are **local**. They disappear when the function finishes.
@@ -2774,7 +2774,7 @@ if "hello": # True
         objective: "Learn the basics of Boolean logic.",
         quizQuestions: [
           {
-            id: "m7i1-q1",
+            id: "m7-lp1",
             text: "What are the two Boolean values in Python?",
             options: [
               "true and false",
@@ -2785,13 +2785,13 @@ if "hello": # True
             correctAnswerIndex: 1,
           },
           {
-            id: "m7i1-q2",
+            id: "m7-lp2",
             text: "What is the result of: 10 != 10?",
             options: ["True", "False", "Error", "10"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m7i1-q3",
+            id: "m7-lp3",
             text: "What's the difference between = and ==?",
             options: [
               "No difference",
@@ -2868,19 +2868,19 @@ if age < 18 or age > 65:
         objective: "Learn Boolean operators and truth tables.",
         quizQuestions: [
           {
-            id: "m7i2-q1",
+            id: "m7-lp4",
             text: "What is True and False?",
             options: ["True", "False", "Error", "None"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m7i2-q2",
+            id: "m7-lp5",
             text: "What is True or False?",
             options: ["True", "False", "Error", "None"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m7i2-q3",
+            id: "m7-lp6",
             text: "What is not True?",
             options: ["True", "False", "Error", "not"],
             correctAnswerIndex: 1,
@@ -2952,13 +2952,13 @@ if True or some_slow_function():  # some_slow_function() never runs!
         objective: "Learn to combine multiple conditions.",
         quizQuestions: [
           {
-            id: "m7i3-q1",
+            id: "m7-lp7",
             text: "What does (True and True) or False evaluate to?",
             options: ["True", "False", "Error", "Both"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m7i3-q2",
+            id: "m7-lp8",
             text: "Why use parentheses in Boolean expressions?",
             options: [
               "They're required",
@@ -2969,7 +2969,7 @@ if True or some_slow_function():  # some_slow_function() never runs!
             correctAnswerIndex: 1,
           },
           {
-            id: "m7i3-q3",
+            id: "m7-lp9",
             text: "In 'False and X', does X get evaluated?",
             options: [
               "Yes, always",
@@ -3038,7 +3038,7 @@ Explicit parentheses make your intentions clear!
         objective: "Learn the order of operations in Python.",
         quizQuestions: [
           {
-            id: "m7i4-q1",
+            id: "m7-lp10",
             text: "What is evaluated first: 5 + 3 > 6?",
             options: [
               "5 + 3, then compare",
@@ -3049,13 +3049,13 @@ Explicit parentheses make your intentions clear!
             correctAnswerIndex: 0,
           },
           {
-            id: "m7i4-q2",
+            id: "m7-lp11",
             text: "Between and/or, which has higher precedence?",
             options: ["or", "and", "Same precedence", "Depends"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m7i4-q3",
+            id: "m7-lp12",
             text: "What's the best practice when precedence is confusing?",
             options: [
               "Memorize all rules",
@@ -3068,7 +3068,7 @@ Explicit parentheses make your intentions clear!
         ],
       },
       {
-        id: "m7-l1",
+        id: "m7-lp13",
         title: "The Modulo Operator",
         content: `
 You know \`+\`, \`-\`, \`*\`, \`/\`. Meet **Modulo** \`%\`.
@@ -3088,7 +3088,7 @@ This is commonly used to check for even/odd numbers (any number % 2 == 0 is even
         `,
       },
       {
-        id: "m7-l2",
+        id: "m7-lp14",
         title: "Comparison Operators",
         content: `
 We use these to compare values. They result in a Boolean (\`True\` or \`False\`).
@@ -3109,7 +3109,7 @@ print(5 != 10) # True
         `,
       },
       {
-        id: "m7-l3",
+        id: "m7-lp15",
         title: "Logical Operators",
         content: `
 Build complex logic by combining comparisons.
@@ -3132,7 +3132,7 @@ if age > 18 and has_ticket:
         `,
       },
       {
-        id: "m7-l4",
+        id: "m7-lp16",
         title: "Assignment Operators",
         content: `
 Programmers are efficient. Instead of \`x = x + 1\`, we write \`x += 1\`.
@@ -3163,19 +3163,19 @@ health *= 2  # health is 180
         objective: "Pass quiz.",
         quizQuestions: [
           {
-            id: "m7q1",
+            id: "m7-lp17",
             text: "What is 10 % 3?",
             options: ["3", "1", "0", "3.33"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m7q2",
+            id: "m7-lp18",
             text: "True or False is...",
             options: ["True", "False", "None", "Error"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m7q3",
+            id: "m7-lp19",
             text: 'Which means "Not Equal"?',
             options: ["<>", "!=", "not =", "!=="],
             correctAnswerIndex: 1,
@@ -3248,19 +3248,19 @@ Python follows standard math order:
         objective: "Learn Python's mathematical operators.",
         quizQuestions: [
           {
-            id: "m8i1-q1",
+            id: "m8-lp1",
             text: "What is 2 ** 4?",
             options: ["6", "8", "16", "64"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m8i1-q2",
+            id: "m8-lp2",
             text: "What is 7 // 2?",
             options: ["3.5", "3", "4", "2"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i1-q3",
+            id: "m8-lp3",
             text: "What is 2 + 3 * 4?",
             options: ["20", "14", "24", "Error"],
             correctAnswerIndex: 1,
@@ -3327,19 +3327,19 @@ leftover = items % per_box      # 2 items
         objective: "Learn floor vs true division.",
         quizQuestions: [
           {
-            id: "m8i2-q1",
+            id: "m8-lp4",
             text: "What type does 10 / 2 return?",
             options: ["int", "float", "str", "bool"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i2-q2",
+            id: "m8-lp5",
             text: "What is 17 // 5?",
             options: ["3", "3.4", "4", "2"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m8i2-q3",
+            id: "m8-lp6",
             text: "When would you use // instead of /?",
             options: [
               "When you need decimals",
@@ -3411,13 +3411,13 @@ def nearly_equal(a, b, tolerance=0.0001):
         objective: "Learn about float representation issues.",
         quizQuestions: [
           {
-            id: "m8i3-q1",
+            id: "m8-lp7",
             text: "Is 0.1 + 0.2 == 0.3 in Python?",
             options: ["True", "False", "Error", "Sometimes"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i3-q2",
+            id: "m8-lp8",
             text: "Why do float precision issues happen?",
             options: [
               "Python is buggy",
@@ -3428,7 +3428,7 @@ def nearly_equal(a, b, tolerance=0.0001):
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i3-q3",
+            id: "m8-lp9",
             text: "How should you handle money in code?",
             options: [
               "Use floats for dollars",
@@ -3502,19 +3502,19 @@ print(circle_area(10))        # 314.159...
         objective: "Learn math library functions and constants.",
         quizQuestions: [
           {
-            id: "m8i4-q1",
+            id: "m8-lp10",
             text: "What is math.sqrt(25)?",
             options: ["5", "5.0", "25", "12.5"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i4-q2",
+            id: "m8-lp11",
             text: "What does math.ceil(3.1) return?",
             options: ["3", "4", "3.1", "3.0"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m8i4-q3",
+            id: "m8-lp12",
             text: "Which constant is approximately 3.14159...?",
             options: ["math.e", "math.pi", "math.tau", "math.inf"],
             correctAnswerIndex: 1,
@@ -3522,7 +3522,7 @@ print(circle_area(10))        # 314.159...
         ],
       },
       {
-        id: "m8-l1",
+        id: "m8-lp13",
         title: "Area Calculation",
         content: `
 Let's put math to use. Area of a rectangle is \`width * length\`.
@@ -3537,7 +3537,7 @@ Let's put math to use. Area of a rectangle is \`width * length\`.
         `,
       },
       {
-        id: "m8-l2",
+        id: "m8-lp14",
         title: "Division & Integers",
         content: `
 Regular division \`/\` returns a float.
@@ -3557,7 +3557,7 @@ print(10 // 3) # 3
         `,
       },
       {
-        id: "m8-l3",
+        id: "m8-lp15",
         title: "Exponents (Powers)",
         content: `
 For $x^y$, use \`**\`.
@@ -3576,7 +3576,7 @@ print(4 ** 0.5) # Square root (2.0)
         `,
       },
       {
-        id: "m8-l4",
+        id: "m8-lp16",
         title: "Math Library",
         content: `
 For complex things like Pi, square roots, or trig, import \`math\`.
@@ -3596,7 +3596,7 @@ print(math.sqrt(16))
         `,
       },
       {
-        id: "m8-l5",
+        id: "m8-final",
         title: "Final Project: Hypotenuse",
         content: `
 Pythagorean theorem: $a^2 + b^2 = c^2$.
@@ -3676,13 +3676,13 @@ letters = ["c", "a", "b"]
         objective: "Learn the concept of lists.",
         quizQuestions: [
           {
-            id: "m9i1-q1",
+            id: "m9-lp1",
             text: "What symbols create a list?",
             options: ["()", "{}", "[]", "<>"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m9i1-q2",
+            id: "m9-lp2",
             text: "Can a list contain different types?",
             options: [
               "No, only one type",
@@ -3693,7 +3693,7 @@ letters = ["c", "a", "b"]
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i1-q3",
+            id: "m9-lp3",
             text: "Are lists ordered?",
             options: [
               "No, items are random",
@@ -3766,19 +3766,19 @@ Remember: A list of 3 items has indices 0, 1, 2 (not 1, 2, 3!)
         objective: "Learn zero-based indexing.",
         quizQuestions: [
           {
-            id: "m9i2-q1",
+            id: "m9-lp4",
             text: "What is the index of the FIRST item?",
             options: ["1", "0", "-1", "first"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i2-q2",
+            id: "m9-lp5",
             text: "In ['a', 'b', 'c'], what is the index of 'c'?",
             options: ["3", "2", "1", "-1"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i2-q3",
+            id: "m9-lp6",
             text: "What does index -1 refer to?",
             options: [
               "First item",
@@ -3852,7 +3852,7 @@ This is a key difference between lists and strings!
         objective: "Learn how to modify lists.",
         quizQuestions: [
           {
-            id: "m9i3-q1",
+            id: "m9-lp7",
             text: "What does 'mutable' mean?",
             options: [
               "Cannot be created",
@@ -3863,7 +3863,7 @@ This is a key difference between lists and strings!
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i3-q2",
+            id: "m9-lp8",
             text: "Can you change a letter in a string?",
             options: [
               "Yes, strings are mutable",
@@ -3874,7 +3874,7 @@ This is a key difference between lists and strings!
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i3-q3",
+            id: "m9-lp9",
             text: "What method adds an item to the end of a list?",
             options: ["add()", "push()", "append()", "insert()"],
             correctAnswerIndex: 2,
@@ -3936,13 +3936,13 @@ list("hello")  # ['h', 'e', 'l', 'l', 'o']
         objective: "Understand similarities and differences.",
         quizQuestions: [
           {
-            id: "m9i4-q1",
+            id: "m9-lp10",
             text: "Can both strings and lists use slicing?",
             options: ["Only lists", "Only strings", "Yes, both", "Neither"],
             correctAnswerIndex: 2,
           },
           {
-            id: "m9i4-q2",
+            id: "m9-lp11",
             text: "What is the main difference between strings and lists?",
             options: [
               "Length",
@@ -3953,7 +3953,7 @@ list("hello")  # ['h', 'e', 'l', 'l', 'o']
             correctAnswerIndex: 1,
           },
           {
-            id: "m9i4-q3",
+            id: "m9-lp12",
             text: "What does list(\"abc\") return?",
             options: ["\"abc\"", "['abc']", "['a', 'b', 'c']", "Error"],
             correctAnswerIndex: 2,
@@ -3961,7 +3961,7 @@ list("hello")  # ['h', 'e', 'l', 'l', 'o']
         ],
       },
       {
-        id: "m9-l1",
+        id: "m9-lp13",
         title: "List Indexing",
         content: `
 Lists are ordered. We access items by position (index).
@@ -3981,7 +3981,7 @@ print(nums[0]) # 10
         `,
       },
       {
-        id: "m9-l2",
+        id: "m9-lp14",
         title: "Negative Indexing",
         content: `
 Python has a cool trick. Index \`-1\` means "the last item". \`-2\` is "second to last".
@@ -4001,7 +4001,7 @@ print(arr[-1]) # 99
         `,
       },
       {
-        id: "m9-l3",
+        id: "m9-lp15",
         title: "Adding & Removing",
         content: `
 Lists are mutable (changeable).
@@ -4024,7 +4024,7 @@ todo.append("Eat")
         `,
       },
       {
-        id: "m9-l4",
+        id: "m9-lp16",
         title: "Slicing",
         content: `
 Slicing extracts a portion of a list.
@@ -4056,19 +4056,19 @@ print(chars[1:3]) # ['b', 'c']
         objective: "Pass quiz.",
         quizQuestions: [
           {
-            id: "m9q1",
+            id: "m9-lp17",
             text: "Index of the first item?",
             options: ["1", "0", "-1", "start"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m9q2",
+            id: "m9-lp18",
             text: "my_list = [10, 20]; print(my_list[-1])",
             options: ["10", "20", "Error", "None"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m9q3",
+            id: "m9-lp19",
             text: "Which method adds to the end?",
             options: ["push", "add", "append", "insert"],
             correctAnswerIndex: 2,
@@ -4136,13 +4136,13 @@ Outer runs 3 times × Inner runs 2 times = **6 total iterations**
         objective: "Learn nested loop behavior.",
         quizQuestions: [
           {
-            id: "m10i1-q1",
+            id: "m10-lp1",
             text: "In a nested loop with outer(3) and inner(4), how many total iterations?",
             options: ["7", "12", "3", "4"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i1-q2",
+            id: "m10-lp2",
             text: "For each outer loop iteration, how many times does inner run?",
             options: [
               "Once",
@@ -4153,7 +4153,7 @@ Outer runs 3 times × Inner runs 2 times = **6 total iterations**
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i1-q3",
+            id: "m10-lp3",
             text: "Nested loops are useful for working with...",
             options: [
               "Single numbers",
@@ -4236,7 +4236,7 @@ while True:
         objective: "Learn loop control flow.",
         quizQuestions: [
           {
-            id: "m10i2-q1",
+            id: "m10-lp4",
             text: "What does break do?",
             options: [
               "Pauses the loop",
@@ -4247,7 +4247,7 @@ while True:
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i2-q2",
+            id: "m10-lp5",
             text: "What does continue do?",
             options: [
               "Exits the loop",
@@ -4258,7 +4258,7 @@ while True:
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i2-q3",
+            id: "m10-lp6",
             text: "In for i in range(10): break... how many iterations run?",
             options: ["10", "0", "1", "5"],
             correctAnswerIndex: 2,
@@ -4336,7 +4336,7 @@ for i, item in enumerate(items, start=1):
         objective: "Understand the enumerate function.",
         quizQuestions: [
           {
-            id: "m10i3-q1",
+            id: "m10-lp7",
             text: "What does enumerate() give you?",
             options: [
               "Just the items",
@@ -4347,13 +4347,13 @@ for i, item in enumerate(items, start=1):
             correctAnswerIndex: 2,
           },
           {
-            id: "m10i3-q2",
+            id: "m10-lp8",
             text: "What is the first index from enumerate()?",
             options: ["1", "0", "-1", "None"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i3-q3",
+            id: "m10-lp9",
             text: "How do you start enumerate at 1 instead of 0?",
             options: [
               "enumerate(list, 1)",
@@ -4444,7 +4444,7 @@ These patterns are building blocks for most programs!
         objective: "Recognize and use standard loop patterns.",
         quizQuestions: [
           {
-            id: "m10i4-q1",
+            id: "m10-lp10",
             text: "To sum a list, you typically start with...",
             options: [
               "total = 1",
@@ -4455,7 +4455,7 @@ These patterns are building blocks for most programs!
             correctAnswerIndex: 1,
           },
           {
-            id: "m10i4-q2",
+            id: "m10-lp11",
             text: "The filtering pattern creates...",
             options: [
               "A new list with only matching items",
@@ -4466,7 +4466,7 @@ These patterns are building blocks for most programs!
             correctAnswerIndex: 0,
           },
           {
-            id: "m10i4-q3",
+            id: "m10-lp12",
             text: "To find maximum, compare each item to...",
             options: [
               "Zero",
@@ -4479,7 +4479,7 @@ These patterns are building blocks for most programs!
         ],
       },
       {
-        id: "m10-l1",
+        id: "m10-lp13",
         title: "Nested Loops",
         content: `
 You can put a loop inside a loop. This is often used for 2D grids or coordinates.
@@ -4502,7 +4502,7 @@ for x in range(3):
         `,
       },
       {
-        id: "m10-l2",
+        id: "m10-lp14",
         title: "Skipping (Continue)",
         content: `
 The \`continue\` statement tells the loop: "Done with this item, skip to the next one immediately."
@@ -4517,7 +4517,7 @@ It doesn't stop the loop, just the current iteration.
         `,
       },
       {
-        id: "m10-l3",
+        id: "m10-lp15",
         title: "Breaking Out",
         content: `
 The \`break\` statement stops the loop immediately. It effectively "cancels" the rest of the looping.
@@ -4532,7 +4532,7 @@ Useful for searching: "I found what I needed, stop looking."
         `,
       },
       {
-        id: "m10-l4",
+        id: "m10-lp16",
         title: "Looping Lists",
         content: `
 The most common loop in Python is "for each" item in a list.
@@ -4567,7 +4567,7 @@ for name in ["Sam", "Dean"]:
     title: "Module 11: List Manipulation",
     lessons: [
       {
-        id: "m11-l1",
+        id: "m11-lp1",
         title: "Modifying by Index",
         content: `
 You can change an item in a list just like a variable, if you know its index.
@@ -4587,7 +4587,7 @@ box[0] = "Cat"
         `,
       },
       {
-        id: "m11-l2",
+        id: "m11-lp2",
         title: "Length of List",
         content: `
 How many items are in my list? Use \`len()\`.
@@ -4606,7 +4606,7 @@ count = len(users) # 3
         `,
       },
       {
-        id: "m11-l3",
+        id: "m11-lp3",
         title: "Sum and Max",
         content: `
 Python has helper functions for number lists.
@@ -4623,7 +4623,7 @@ Python has helper functions for number lists.
         `,
       },
       {
-        id: "m11-l4",
+        id: "m11-lp4",
         title: "Sorting",
         content: `
 To organize data, use \`list.sort()\`.
@@ -4652,19 +4652,19 @@ print(nums) # [1, 2, 3]
         objective: "Pass quiz.",
         quizQuestions: [
           {
-            id: "m11q1",
+            id: "m11-lp5",
             text: "What does sum([1, 2, 3]) return?",
             options: ["6", "5", "123", "Error"],
             correctAnswerIndex: 0,
           },
           {
-            id: "m11q2",
+            id: "m11-lp6",
             text: "What does list.sort() return?",
             options: ["The sorted list", "None", "True", "A new list"],
             correctAnswerIndex: 1,
           },
           {
-            id: "m11q3",
+            id: "m11-lp7",
             text: "Which gets the smallest number?",
             options: ["least()", "small()", "min()", "low()"],
             correctAnswerIndex: 2,
@@ -4678,7 +4678,7 @@ print(nums) # [1, 2, 3]
     title: "Module 12: Capstone Project",
     lessons: [
       {
-        id: "m12-l1",
+        id: "m12-lp1",
         title: "The Shopping Manager",
         content: `
 We are going to build a Shopping Cart program.
@@ -4694,7 +4694,7 @@ We need a list to hold items and a budget variable.
         `,
       },
       {
-        id: "m12-l2",
+        id: "m12-lp2",
         title: "Adding Inventory",
         content: `
 The user wants to buy things. Let's define a function to help.
@@ -4707,7 +4707,7 @@ The user wants to buy things. Let's define a function to help.
         `,
       },
       {
-        id: "m12-l3",
+        id: "m12-lp3",
         title: "Logic Check",
         content: `
 We need to check if we have "Apple" in the cart.
@@ -4727,7 +4727,7 @@ if "Milk" in cart:
         `,
       },
       {
-        id: "m12-l4",
+        id: "m12-lp4",
         title: "Checkout (Looping)",
         content: `
 Let's print a receipt. Iterate through the list and print each item nicely.
@@ -4741,7 +4741,7 @@ Let's print a receipt. Iterate through the list and print each item nicely.
         `,
       },
       {
-        id: "m12-l5",
+        id: "m12-final",
         title: "Final Project: Calculator",
         content: `
 The shopping trip is over. Let's calculate the total cost.
@@ -4772,49 +4772,49 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Easy",
     quizQuestions: [
       {
-        id: "pq1-q1",
+        id: "m12-lp5",
         text: "Which function prints text to the screen?",
         options: ["echo()", "print()", "log()", "write()"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq1-q2",
+        id: "m12-lp6",
         text: "How do you create a comment?",
         options: ["//", "<!-- -->", "#", "/* */"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq1-q3",
+        id: "m12-lp7",
         text: "Which is a valid variable name?",
         options: ["1user", "user-name", "user_name", "User Name"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq1-q4",
+        id: "m12-lp8",
         text: "What is the output of: print(type(5))",
         options: ['<class "str">', '<class "int">', '<class "float">', "int"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq1-q5",
+        id: "m12-lp9",
         text: "What is the result of 10 // 3?",
         options: ["3.33", "3", "3.0", "4"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq1-q6",
+        id: "m12-lp10",
         text: "Which operator is used for exponents (powers)?",
         options: ["^", "pow", "**", "//"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq1-q7",
+        id: "m12-lp11",
         text: "What is the value of: bool(0)",
         options: ["True", "False", "None", "Error"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq1-q8",
+        id: "m12-lp12",
         text: "How do you make a string?",
         options: [
           "Just type text",
@@ -4825,13 +4825,13 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 2,
       },
       {
-        id: "pq1-q9",
+        id: "m12-lp13",
         text: 'What is the result of: print("A" * 3)',
         options: ["A3", "AAA", "Error", "3A"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq1-q10",
+        id: "m12-lp14",
         text: "Which is NOT a valid way to make a number?",
         options: ["x = 5", "x = 5.0", "x = 5,0", 'x = int("5")'],
         correctAnswerIndex: 2,
@@ -4846,31 +4846,31 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Medium",
     quizQuestions: [
       {
-        id: "pq2-q1",
+        id: "m12-lp15",
         text: "What keyword checks a second condition?",
         options: ["else if", "elseif", "elif", "check"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq2-q2",
+        id: "m12-lp16",
         text: "How many times does range(5) loop?",
         options: ["4", "5", "6", "Depends on start"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq2-q3",
+        id: "m12-lp17",
         text: "Which loop runs while a condition is true?",
         options: ["for", "foreach", "while", "loop"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq2-q4",
+        id: "m12-lp18",
         text: "How do you stop a loop immediately?",
         options: ["stop", "return", "exit", "break"],
         correctAnswerIndex: 3,
       },
       {
-        id: "pq2-q5",
+        id: "m12-lp19",
         text: 'What does the "continue" keyword do?',
         options: [
           "Stops the program",
@@ -4881,31 +4881,31 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 1,
       },
       {
-        id: "pq2-q6",
+        id: "m12-lp20",
         text: 'Which operator means "Not Equal"?',
         options: ["<>", "!=", "!==", "not="],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq2-q7",
+        id: "m12-lp21",
         text: "What is the result of: True and False",
         options: ["True", "False", "None", "Error"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq2-q8",
+        id: "m12-lp22",
         text: "Which statement runs if all if/elif checks fail?",
         options: ["then", "finally", "default", "else"],
         correctAnswerIndex: 3,
       },
       {
-        id: "pq2-q9",
+        id: "m12-lp23",
         text: "What does range(2, 5) generate?",
         options: ["2, 3, 4, 5", "2, 3, 4", "3, 4", "2, 4, 5"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq2-q10",
+        id: "m12-lp24",
         text: "What evaluates to True?",
         options: ["5 < 2", "not True", '5 == "5"', "10 > 5 or 1 > 5"],
         correctAnswerIndex: 3,
@@ -4921,31 +4921,31 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Medium",
     quizQuestions: [
       {
-        id: "pq3-q1",
+        id: "m12-lp25",
         text: "Which keyword defines a function?",
         options: ["func", "def", "function", "define"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq3-q2",
+        id: "m12-lp26",
         text: "How do you send data back from a function?",
         options: ["send", "output", "return", "give"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq3-q3",
+        id: "m12-lp27",
         text: "What is the index of the first item in a list?",
         options: ["1", "0", "-1", "None"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq3-q4",
+        id: "m12-lp28",
         text: "How do you add an item to the end of a list?",
         options: ["push()", "add()", "insert()", "append()"],
         correctAnswerIndex: 3,
       },
       {
-        id: "pq3-q5",
+        id: "m12-lp29",
         text: "What does len(my_list) return?",
         options: [
           "The last item",
@@ -4956,25 +4956,25 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 1,
       },
       {
-        id: "pq3-q6",
+        id: "m12-lp30",
         text: "How do you access the last item in a list?",
         options: ["list[last]", "list[len]", "list[-1]", "list[0]"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq3-q7",
+        id: "m12-lp31",
         text: 'What symbol ends the "def" line?',
         options: [";", ".", ":", "}"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq3-q8",
+        id: "m12-lp32",
         text: "Can lists contain other lists?",
         options: ["No", "Yes", "Only integers", "Only strings"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq3-q9",
+        id: "m12-lp33",
         text: "What does list.pop(0) do?",
         options: [
           "Removes first item",
@@ -4985,7 +4985,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq3-q10",
+        id: "m12-lp34",
         text: "Which keyword exits a function with a value?",
         options: ["break", "exit", "return", "output"],
         correctAnswerIndex: 2,
@@ -5000,25 +5000,25 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Medium",
     quizQuestions: [
       {
-        id: "pq4-q1",
+        id: "m12-lp35",
         text: 'What error occurs here: print("Hello"',
         options: ["SyntaxError", "TypeError", "NameError", "ValueError"],
         correctAnswerIndex: 0,
       },
       {
-        id: "pq4-q2",
+        id: "m12-lp36",
         text: 'What error occurs here: 5 + "5"',
         options: ["ValueError", "TypeError", "SyntaxError", "MathError"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq4-q3",
+        id: "m12-lp37",
         text: "What error: print(unknown_var)",
         options: ["SyntaxError", "NameError", "KeyError", "IndexError"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq4-q4",
+        id: "m12-lp38",
         text: "Which is an IndentationError?",
         options: [
           "x = 5",
@@ -5029,7 +5029,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 1,
       },
       {
-        id: "pq4-q5",
+        id: "m12-lp39",
         text: "What happens if you divide by zero?",
         options: [
           "Returns 0",
@@ -5040,31 +5040,31 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 2,
       },
       {
-        id: "pq4-q6",
+        id: "m12-lp40",
         text: "my_list = [1,2]; print(my_list[5])",
         options: ["None", "0", "IndexError", "5"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq4-q7",
+        id: "m12-lp41",
         text: 'd = {"a":1}; print(d["b"])',
         options: ["None", "KeyError", "1", "False"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq4-q8",
+        id: "m12-lp42",
         text: 'int("hello")',
         options: ["0", "NaN", "ValueError", "TypeError"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq4-q9",
+        id: "m12-lp43",
         text: "Which fixes: if x = 5:",
         options: ["x == 5", "x := 5", "x equal 5", "x is 5"],
         correctAnswerIndex: 0,
       },
       {
-        id: "pq4-q10",
+        id: "m12-lp44",
         text: "What creates an infinite loop?",
         options: [
           "while False:",
@@ -5084,13 +5084,13 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Medium",
     quizQuestions: [
       {
-        id: "pq5-q1",
+        id: "m12-lp45",
         text: "Keyword to define a class?",
         options: ["def", "class", "struct", "object"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq5-q2",
+        id: "m12-lp46",
         text: "What is __init__?",
         options: [
           "A constructor",
@@ -5101,19 +5101,19 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq5-q3",
+        id: "m12-lp47",
         text: "Keyword to refer to the current instance?",
         options: ["this", "me", "self", "it"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq5-q4",
+        id: "m12-lp48",
         text: "How to create an object of class Dog?",
         options: ["new Dog()", "Dog()", "create Dog()", "Dog.new()"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq5-q5",
+        id: "m12-lp49",
         text: "What is inheritance?",
         options: [
           "Copying code",
@@ -5133,25 +5133,25 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Medium",
     quizQuestions: [
       {
-        id: "pq6-q1",
+        id: "m12-lp50",
         text: "Function to open a file?",
         options: ["read()", "file()", "open()", "load()"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq6-q2",
+        id: "m12-lp51",
         text: 'Mode "w" stands for?',
         options: ["Watch", "Write", "Wrap", "Web"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq6-q3",
+        id: "m12-lp52",
         text: "Method to read a single line?",
         options: ["read()", "readlines()", "readline()", "scan()"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq6-q4",
+        id: "m12-lp53",
         text: "Why close a file?",
         options: [
           "To save memory/changes",
@@ -5162,7 +5162,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq6-q5",
+        id: "m12-lp54",
         text: 'Mode "a" stands for?',
         options: ["Add", "Append", "Apply", "After"],
         correctAnswerIndex: 1,
@@ -5177,7 +5177,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Hard",
     quizQuestions: [
       {
-        id: "pq7-q1",
+        id: "m12-lp55",
         text: "What is a lambda?",
         options: [
           "A named function",
@@ -5188,7 +5188,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 1,
       },
       {
-        id: "pq7-q2",
+        id: "m12-lp56",
         text: "Syntax for lambda adding x and y?",
         options: [
           "lambda x,y: x+y",
@@ -5199,7 +5199,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq7-q3",
+        id: "m12-lp57",
         text: "What does list comprehension do?",
         options: [
           "Creates lists concisely",
@@ -5210,7 +5210,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq7-q4",
+        id: "m12-lp58",
         text: "Example of list comprehension?",
         options: [
           "[x for x in range(5)]",
@@ -5221,7 +5221,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "pq7-q5",
+        id: "m12-lp59",
         text: "What keyword yields a value from a generator?",
         options: ["return", "yield", "send", "emit"],
         correctAnswerIndex: 1,
@@ -5236,19 +5236,19 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
     difficulty: "Easy",
     quizQuestions: [
       {
-        id: "pq8-q1",
+        id: "m12-lp60",
         text: "Module for math functions?",
         options: ["calc", "math", "numbers", "algebra"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq8-q2",
+        id: "m12-lp61",
         text: "Module for random numbers?",
         options: ["rand", "random", "rng", "chance"],
         correctAnswerIndex: 1,
       },
       {
-        id: "pq8-q3",
+        id: "m12-lp62",
         text: "How to get current date?",
         options: [
           "datetime.now()",
@@ -5259,13 +5259,13 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 3,
       },
       {
-        id: "pq8-q4",
+        id: "m12-lp63",
         text: "Function to parse JSON string?",
         options: ["json.parse()", "json.load()", "json.loads()", "json.read()"],
         correctAnswerIndex: 2,
       },
       {
-        id: "pq8-q5",
+        id: "m12-lp64",
         text: "Value of math.pi?",
         options: ["3.14...", "3.14159", "22/7", "3.1415926535..."],
         correctAnswerIndex: 3,
@@ -5275,7 +5275,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
 
   // Practice Problems
   {
-    id: "pp-1",
+    id: "m12-lp65",
     title: "Celsius to Fahrenheit",
     description:
       "Write a program that converts a temperature from Celsius to Fahrenheit.",
@@ -5291,7 +5291,7 @@ Print the result.
     objective: "Calculate and print 77.0.",
   },
   {
-    id: "pp-2",
+    id: "m12-lp66",
     title: "Find the Max",
     description:
       "Find the largest number in a list without using the max() function.",
@@ -5307,7 +5307,7 @@ Print the largest number.
     objective: "Loop through list and print 20.",
   },
   {
-    id: "pp-3",
+    id: "m12-lp67",
     title: "Reverse a String",
     description: "Reverse a given string using slicing.",
     type: "problem",
@@ -5321,7 +5321,7 @@ Use slicing to print it backwards ("nohtyP").
     objective: 'Print "nohtyP".',
   },
   {
-    id: "pp-4",
+    id: "m12-lp68",
     title: "Count Vowels",
     description: "Count how many vowels are in a sentence.",
     type: "problem",
@@ -5336,7 +5336,7 @@ Print the final count.
     objective: "Count vowels and print the integer result (5).",
   },
   {
-    id: "pp-5",
+    id: "m12-lp69",
     title: "FizzBuzz",
     description: "The classic interview question.",
     type: "problem",
@@ -5354,7 +5354,7 @@ Loop from 1 to 20.
       "Print correct sequence: 1, 2, Fizz, 4, Buzz, Fizz, ..., 14, FizzBuzz, ...",
   },
   {
-    id: "pp-6",
+    id: "m12-lp70",
     title: "Palindrome Checker",
     description: "Check if a word reads the same forwards and backwards.",
     type: "problem",
@@ -5369,7 +5369,7 @@ If it is, print "Palindrome". Else print "Not Palindrome".
     objective: 'Print "Palindrome" for racecar.',
   },
   {
-    id: "pp-7",
+    id: "m12-lp71",
     title: "Factorial Calculator",
     description: "Calculate the factorial of a number (e.g., 5! = 5*4*3*2*1).",
     type: "problem",
@@ -5384,7 +5384,7 @@ Print the result.
     objective: "Print 120.",
   },
   {
-    id: "pp-8",
+    id: "m12-lp72",
     title: "Sum of Evens",
     description: "Sum all even numbers in a range.",
     type: "problem",
@@ -5398,7 +5398,7 @@ Print the total.
     objective: "Print 110.",
   },
   {
-    id: "pp-9",
+    id: "m12-lp73",
     title: "Prime Checker",
     description: "Check if a number is prime.",
     type: "problem",
@@ -5413,7 +5413,7 @@ Print "Prime" or "Not Prime".
     objective: "Print Prime.",
   },
   {
-    id: "pp-10",
+    id: "m12-lp74",
     title: "Fibonacci Sequence",
     description: "Print the first 10 numbers of the Fibonacci sequence.",
     type: "problem",
@@ -5428,7 +5428,7 @@ Print the first 10 numbers (0, 1, 1, 2, 3, 5, 8, 13, 21, 34).
     objective: "Print the correct sequence.",
   },
   {
-    id: "pp-11",
+    id: "m12-lp75",
     title: "Dictionary Search",
     description: "Look up values in a dictionary safely.",
     type: "problem",
@@ -5443,7 +5443,7 @@ Do not crash.
     objective: "Print Unknown.",
   },
   {
-    id: "pp-12",
+    id: "m12-lp76",
     title: "Anagram Checker",
     description: "Check if two strings are anagrams.",
     type: "problem",
@@ -5460,7 +5460,7 @@ Print "Anagram" or "Not".
 
   // Practice Projects
   {
-    id: "pj-1",
+    id: "m12-lp77",
     title: "Number Guessing Game",
     description:
       "Build a game where the computer picks a number and you have to guess it.",
@@ -5478,7 +5478,7 @@ Print "Anagram" or "Not".
     objective: "Implement a guessing game loop that breaks on correct guess.",
   },
   {
-    id: "pj-2",
+    id: "m12-lp78",
     title: "Simple Calculator",
     description:
       "Create a calculator that can add, subtract, multiply, and divide.",
@@ -5495,7 +5495,7 @@ Print "Anagram" or "Not".
     objective: "Create calculator functions and handle user input flow.",
   },
   {
-    id: "pj-3",
+    id: "m12-lp79",
     title: "Text Adventure",
     description: "Create a story where user choices change the outcome.",
     type: "project",
@@ -5514,7 +5514,7 @@ Create a text adventure.
       "Create a branching logic story with at least 2 levels of choice.",
   },
   {
-    id: "pj-4",
+    id: "m12-lp80",
     title: "To-Do List CLI",
     description: "Build a command-line To-Do list manager.",
     type: "project",
@@ -5532,7 +5532,7 @@ Create a text adventure.
     objective: "Implement add, view, and quit commands using a loop and list.",
   },
   {
-    id: "pj-5",
+    id: "m12-lp81",
     title: "Rock Paper Scissors",
     description: "Classic game against the computer.",
     type: "project",
@@ -5548,7 +5548,7 @@ Create a text adventure.
     objective: "Implement logic for all 3 win/loss conditions.",
   },
   {
-    id: "pj-6",
+    id: "m12-lp82",
     title: "Password Generator",
     description: "Generate strong random passwords.",
     type: "project",
@@ -5564,7 +5564,7 @@ Create a text adventure.
     objective: "Create a string of random characters of user length.",
   },
   {
-    id: "pj-7",
+    id: "m12-lp83",
     title: "Contact Book",
     description: "Store names and numbers.",
     type: "project",
@@ -5580,7 +5580,7 @@ Create a text adventure.
     objective: "CRUD operations on a dictionary.",
   },
   {
-    id: "pj-8",
+    id: "m12-lp84",
     title: "Hangman (Simple)",
     description: "Guess the word.",
     type: "project",
@@ -5597,7 +5597,7 @@ Create a text adventure.
     objective: "Letter checking loop with life counter.",
   },
   {
-    id: "pj-9",
+    id: "m12-lp85",
     title: "Tic Tac Toe",
     description: "2-player board game.",
     type: "project",
