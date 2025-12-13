@@ -31,11 +31,25 @@ export const authService = {
 
   async handleRedirectResult(): Promise<User | null> {
     try {
-      const result = await getRedirectResult(auth);
+      // Add timeout to prevent indefinite hanging due to COOP/COEP header conflicts
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Redirect result timeout')), 10000);
+      });
+      
+      const result = await Promise.race([
+        getRedirectResult(auth),
+        timeoutPromise
+      ]);
+      
       if (result) {
         return this.mapFirebaseUser(result.user);
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      // Timeout is expected in some cases - don't throw, just log
+      if (error instanceof Error && error.message === 'Redirect result timeout') {
+        console.warn('getRedirectResult timed out - this is expected if not coming from a redirect');
+        return null;
+      }
       console.error("Error handling redirect result:", error);
       throw error;
     }
