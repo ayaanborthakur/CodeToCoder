@@ -2,7 +2,7 @@
 import { Lesson, Module } from '../types';
 
 
-const BUCKET_URL = 'https://storage.googleapis.com/code2coder-static-content';
+const BUCKET_URL = 'https://storage.googleapis.com/code2coder-static-content/content_bundle';
 const MANIFEST_URL = `${BUCKET_URL}/lessons/manifest.json`;
 
 // Fallback to local constants for development/offline
@@ -23,6 +23,7 @@ class ContentService {
   private lessonCache: Map<string, Lesson> = new Map();
   private moduleCache: Map<string, Module> = new Map();
   private localLessonPlan: Module[] | null = null;
+  private usingFallback = false;
 
   private async getLocalData(): Promise<Module[]> {
       if (this.localLessonPlan) return this.localLessonPlan;
@@ -57,6 +58,7 @@ class ContentService {
       return this.manifest!;
     } catch (error) {
       console.warn('[ContentService] Failed to load manifest from GCS, falling back to local.', error);
+      this.usingFallback = true;
       // Fallback logic duplicated for safety
        const lessonPlan = await this.getLocalData();
        this.manifest = {
@@ -78,7 +80,7 @@ class ContentService {
       return this.lessonCache.get(lessonId)!;
     }
 
-    if (!USE_GCS) {
+    if (!USE_GCS || this.usingFallback) {
          // Local lookup
          const lessonPlan = await this.getLocalData();
          for (const module of lessonPlan) {
@@ -145,7 +147,7 @@ class ContentService {
       // Actually, NavigationPanel only needs titles and IDs. 
       // But if we want to be fully backward compatible with the `Module` type:
       
-      if (!USE_GCS) {
+      if (!USE_GCS || this.usingFallback) {
           const lessonPlan = await this.getLocalData();
           return lessonPlan.find(m => m.id === moduleId) || null;
       }
