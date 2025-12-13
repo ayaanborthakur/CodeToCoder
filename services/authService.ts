@@ -5,8 +5,7 @@ import {
   updateProfile,
   signInAnonymously,
   deleteUser,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
@@ -22,37 +21,11 @@ export const authService = {
     return this.mapFirebaseUser(firebaseUser);
   },
 
-  async loginWithGoogle(): Promise<void> {
-    // We use signInWithRedirect because of the Cross-Origin-Opener-Policy headers
-    // required for Pyodide (SharedArrayBuffer). These headers break signInWithPopup.
-    await signInWithRedirect(auth, googleProvider);
-    // The page will redirect, so no return value is expected here immediately.
-  },
+  async loginWithGoogle(): Promise<User> {
+    const userCredential = await signInWithPopup(auth, googleProvider);
+    const firebaseUser = userCredential.user;
 
-  async handleRedirectResult(): Promise<User | null> {
-    try {
-      // Add timeout to prevent indefinite hanging due to COOP/COEP header conflicts
-      // Use resolve instead of reject since timeout is a valid fallback path
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => {
-          console.warn('[authService] Redirect result timeout - continuing without redirect user');
-          resolve(null);
-        }, 5000);
-      });
-      
-      const result = await Promise.race([
-        getRedirectResult(auth),
-        timeoutPromise
-      ]);
-      
-      if (result) {
-        return this.mapFirebaseUser(result.user);
-      }
-    } catch (error: unknown) {
-      console.error("[authService] Error handling redirect result:", error);
-      // Don't throw - return null to allow the app to continue loading
-    }
-    return null;
+    return this.mapFirebaseUser(firebaseUser);
   },
 
   async register(email: string, password: string, name: string): Promise<User> {

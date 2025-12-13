@@ -14,7 +14,7 @@ export interface Lesson {
   objective: string;
   goal: string;
   expectedOutput?: string; // Exact output required for lesson completion (optional for quizzes/random lessons)
-  type?: 'coding' | 'quiz' | 'learn';
+  type?: 'coding' | 'quiz';
   quizQuestions?: QuizQuestion[];
   commonMistakes?: string;
 }
@@ -200,13 +200,6 @@ export interface CollectionData {
   collectibles: {
     ownedCollectibleIds: string[];
   };
-}
-
-export interface ReferenceTopic {
-  id: string;
-  title: string;
-  category: string;
-  content: string;
 }
 
 export interface ReferenceMaterial {

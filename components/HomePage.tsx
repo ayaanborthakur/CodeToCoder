@@ -1,10 +1,9 @@
 
 import React from 'react';
-import type { Module } from '../types';
+import { LESSON_PLAN } from '../constants';
 
 
 interface HomePageProps {
-  modules: Module[]; // Dynamic data
   onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about') => void;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
@@ -21,7 +20,6 @@ import StarIcon from '../assets/icons/StarIcon.svg?react';
 import ArrowRightIcon from '../assets/icons/ArrowRightIcon.svg?react';
 
 export const HomePage: React.FC<HomePageProps> = ({
-  modules, // Destructure prop
   onNavigate,
   onSelectLesson,
   completedLessons,
@@ -32,9 +30,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   // Find the most recent lesson worked on
   const getMostRecentLesson = () => {
-    if (modules.length === 0) return null; // Handle empty loading state
-
-    for (const module of modules) {
+    for (const module of LESSON_PLAN) {
       for (const lesson of module.lessons) {
         if (completedLessons.has(lesson.id)) {
           // Find the next incomplete lesson in the current module
@@ -52,14 +48,14 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     // If no completed lessons, return first lesson
     return {
-      module: modules[0],
-      lesson: modules[0].lessons[0],
+      module: LESSON_PLAN[0],
+      lesson: LESSON_PLAN[0].lessons[0],
       status: 'start' as const
     };
   };
 
   const recentLesson = getMostRecentLesson();
-  const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
+  const totalLessons = LESSON_PLAN.reduce((sum, m) => sum + m.lessons.length, 0);
   const completionPercentage = Math.round((completedLessons.size / totalLessons) * 100);
 
   return (
