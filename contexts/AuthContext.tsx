@@ -25,10 +25,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let redirectHandled = false;
     let authStateReceived = false;
     let currentFirebaseUser: FirebaseUser | null = null;
+    let authStateTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const maybeFinishLoading = () => {
       // Only finish loading when both redirect AND auth state have been processed
       if (redirectHandled && authStateReceived) {
+        // Clear any pending timeout
+        if (authStateTimeoutId) {
+          clearTimeout(authStateTimeoutId);
+          authStateTimeoutId = null;
+        }
         if (currentFirebaseUser) {
           setUser(authService.mapFirebaseUser(currentFirebaseUser));
         } else {
@@ -37,6 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
       }
     };
+
+    // Safety timeout: If onAuthStateChanged doesn't fire within 8 seconds,
+    // check auth.currentUser directly as a fallback (COOP/COEP environments
+    // can sometimes block the auth state listener)
+    authStateTimeoutId = setTimeout(() => {
+      if (!authStateReceived) {
+        console.warn('[AuthContext] onAuthStateChanged timeout - checking currentUser directly');
+        currentFirebaseUser = auth.currentUser;
+        authStateReceived = true;
+        maybeFinishLoading();
+      }
+    }, 8000);
 
     // Handle the redirect result FIRST (for Google Sign In)
     authService.handleRedirectResult()
@@ -47,13 +65,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
           redirectHandled = true;
           authStateReceived = true; // Skip waiting for auth state
+          // Clear timeout since we're done
+          if (authStateTimeoutId) {
+            clearTimeout(authStateTimeoutId);
+            authStateTimeoutId = null;
+          }
         } else {
           redirectHandled = true;
           maybeFinishLoading();
         }
       })
       .catch(error => {
-        console.error("Auth redirect error:", error);
+        console.error("[AuthContext] Auth redirect error:", error);
         redirectHandled = true;
         maybeFinishLoading();
       });
@@ -65,7 +88,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       maybeFinishLoading();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (authStateTimeoutId) {
+        clearTimeout(authStateTimeoutId);
+      }
+    };
   }, []);
 
 

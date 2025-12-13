@@ -32,8 +32,12 @@ export const authService = {
   async handleRedirectResult(): Promise<User | null> {
     try {
       // Add timeout to prevent indefinite hanging due to COOP/COEP header conflicts
-      const timeoutPromise = new Promise<null>((_, reject) => {
-        setTimeout(() => reject(new Error('Redirect result timeout')), 10000);
+      // Use resolve instead of reject since timeout is a valid fallback path
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => {
+          console.warn('[authService] Redirect result timeout - continuing without redirect user');
+          resolve(null);
+        }, 5000);
       });
       
       const result = await Promise.race([
@@ -45,13 +49,8 @@ export const authService = {
         return this.mapFirebaseUser(result.user);
       }
     } catch (error: unknown) {
-      // Timeout is expected in some cases - don't throw, just log
-      if (error instanceof Error && error.message === 'Redirect result timeout') {
-        console.warn('getRedirectResult timed out - this is expected if not coming from a redirect');
-        return null;
-      }
-      console.error("Error handling redirect result:", error);
-      throw error;
+      console.error("[authService] Error handling redirect result:", error);
+      // Don't throw - return null to allow the app to continue loading
     }
     return null;
   },
