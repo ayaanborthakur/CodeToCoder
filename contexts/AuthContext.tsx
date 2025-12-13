@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { User } from '../types';
 import { authService } from '../services/authService';
@@ -22,18 +22,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let redirectHandled = false;
+    let authStateReceived = false;
+    let currentFirebaseUser: FirebaseUser | null = null;
+    let authStateTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const maybeFinishLoading = () => {
+      // Only finish loading when both redirect AND auth state have been processed
+      if (redirectHandled && authStateReceived) {
+        // Clear any pending timeout
+        if (authStateTimeoutId) {
+          clearTimeout(authStateTimeoutId);
+          authStateTimeoutId = null;
+        }
+        if (currentFirebaseUser) {
+          setUser(authService.mapFirebaseUser(currentFirebaseUser));
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    // Safety timeout: If onAuthStateChanged doesn't fire within 8 seconds,
+    // check auth.currentUser directly as a fallback (COOP/COEP environments
+    // can sometimes block the auth state listener)
+    authStateTimeoutId = setTimeout(() => {
+      if (!authStateReceived) {
+        console.warn('[AuthContext] onAuthStateChanged timeout - checking currentUser directly');
+        currentFirebaseUser = auth.currentUser;
+        authStateReceived = true;
+        maybeFinishLoading();
+      }
+    }, 8000);
+
+    // Handle the redirect result FIRST (for Google Sign In)
+    authService.handleRedirectResult()
+      .then((redirectUser) => {
+        if (redirectUser) {
+          // If we got a user from redirect, we can set it immediately
+          setUser(redirectUser);
+          setIsLoading(false);
+          redirectHandled = true;
+          authStateReceived = true; // Skip waiting for auth state
+          // Clear timeout since we're done
+          if (authStateTimeoutId) {
+            clearTimeout(authStateTimeoutId);
+            authStateTimeoutId = null;
+          }
+        } else {
+          redirectHandled = true;
+          maybeFinishLoading();
+        }
+      })
+      .catch(error => {
+        console.error("[AuthContext] Auth redirect error:", error);
+        redirectHandled = true;
+        maybeFinishLoading();
+      });
+
     // Subscribe to Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(authService.mapFirebaseUser(firebaseUser));
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
+      currentFirebaseUser = firebaseUser;
+      authStateReceived = true;
+      maybeFinishLoading();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (authStateTimeoutId) {
+        clearTimeout(authStateTimeoutId);
+      }
+    };
   }, []);
+
 
   const login = async (email: string, password: string) => {
     // We don't need to set loading here as the auth listener handles the state update

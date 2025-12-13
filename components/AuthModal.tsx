@@ -45,7 +45,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       await loginWithGoogle();
-      onClose();
+      // Current page will redirect to Google, so we don't need to close modal
     } catch (err: any) {
       setError(err.message || "Google sign in failed");
     } finally {
