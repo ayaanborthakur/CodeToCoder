@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { REFERENCE_DATA, ReferenceTopic } from '../constants/referenceData';
+import { ReferenceTopic } from '../types';
+import { contentService } from '../services/contentService';
 import { generateReference } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { saveReferenceMaterial, loadReferenceMaterials } from '../services/userDataService';
@@ -61,6 +62,23 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
     const { user } = useAuth();
 
+    const [references, setReferences] = useState<ReferenceTopic[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const loadRefs = async () => {
+            try {
+                const data = await contentService.getReferences();
+                setReferences(data);
+            } catch (error) {
+                console.error("Failed to load references:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadRefs();
+    }, []);
+
     // Custom Generator State
     const [customTopics, setCustomTopics] = useState<ReferenceTopic[]>([]);
     const [generatorInput, setGeneratorInput] = useState('');
@@ -78,8 +96,8 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
 
     // Combine standard data with custom data
     const allReferenceData = useMemo(() => {
-        return [...REFERENCE_DATA, generatorOption, ...customTopics];
-    }, [customTopics]);
+        return [...references, generatorOption, ...customTopics];
+    }, [references, customTopics]);
 
     // Group data by category
     const categories = useMemo<Record<string, ReferenceTopic[]>>(() => {
@@ -100,38 +118,37 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
 
     // Initialize all categories as open initially
     useEffect(() => {
+        if (loading) return; // Wait for loading
+
         const initialOpen: Record<string, boolean> = {};
         Object.keys(categories).forEach(cat => initialOpen[cat] = true);
         setOpenCategories(prev => ({ ...initialOpen, ...prev })); // Merge to keep user state if possible
 
         // Select first topic by default if none selected
-        if (REFERENCE_DATA.length > 0 && !selectedTopic) {
-            setSelectedTopic(REFERENCE_DATA[0]);
+        if (references.length > 0 && !selectedTopic && !itemId) {
+            setSelectedTopic(references[0]);
         }
-    }, [categories.length]); // Only re-run if category count changes significantly (mostly on mount)
+    }, [categories.length, loading, references]); 
 
     // Sync selection with URL
     useEffect(() => {
-        if (embedded) return;
+        if (embedded || loading) return;
 
         if (itemId) {
             const topic = allReferenceData.find(t => t.id === itemId);
             if (topic) {
                 setSelectedTopic(topic);
             }
-        } else if (REFERENCE_DATA.length > 0 && !selectedTopic) {
+        } else if (references.length > 0 && !selectedTopic) {
             // Default to first if no ID and no selection
-            setSelectedTopic(REFERENCE_DATA[0]);
+            setSelectedTopic(references[0]);
         }
-    }, [itemId, allReferenceData, embedded]);
+    }, [itemId, allReferenceData, embedded, loading, references]);
 
     // Load custom references on mount
     useEffect(() => {
         if (user) {
             loadReferenceMaterials(user.id).then(materials => {
-                // Convert ReferenceMaterial to ReferenceTopic if needed, 
-                // but they seem to share structure based on usage in userDataService
-                // Let's check types.ts to be sure, but for now assuming compatibility or casting
                 const topics: ReferenceTopic[] = materials.map(m => ({
                     id: m.id,
                     title: m.title,

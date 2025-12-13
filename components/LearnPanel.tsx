@@ -93,13 +93,33 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({ lesson, onComplete, isCo
                         </div>
                     </div>
 
-                    {/* Continue Button */}
-                    <div className="pt-8 pb-12 flex justify-center">
+                    {/* Navigation Buttons */}
+                    <div className="pt-8 pb-12 flex justify-between items-center">
                         <button
-                            onClick={handleContinue}
-                            className="group px-12 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold text-xl rounded-full shadow-xl shadow-cyan-500/20 hover:shadow-2xl hover:shadow-cyan-500/30 hover:scale-105 transition-all transform flex items-center gap-3"
+                            onClick={onPreviousLesson}
+                            disabled={!hasPreviousLesson}
+                            className={`px-6 py-3 rounded-full font-bold text-lg transition-all transform flex items-center gap-2 ${
+                                hasPreviousLesson
+                                    ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 shadow-md hover:shadow-lg'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                            }`}
                         >
-                            <span>{isCompleted ? 'Continue to Next' : 'I Understand, Continue'}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                            Previous Lesson
+                        </button>
+
+                        <button
+                            onClick={onNextLesson}
+                            disabled={!hasNextLesson}
+                            className={`group px-6 py-3 rounded-full font-bold text-lg transition-all transform flex items-center gap-2 ${
+                                hasNextLesson
+                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-xl shadow-cyan-500/20 hover:shadow-2xl hover:shadow-cyan-500/30 hover:scale-105'
+                                    : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                            }`}
+                        >
+                            Next Lesson
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 group-hover:translate-x-1 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>

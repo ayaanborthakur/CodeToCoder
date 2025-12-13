@@ -1,18 +1,17 @@
-
 import React, { useState, useMemo } from 'react';
 import type { PracticeItem, PracticeType, Difficulty } from '../types';
-import { PRACTICE_ITEMS } from '../constants';
 import { GenerateQuizModal } from './GenerateQuizModal';
 import { generatePracticeQuiz } from '../services/geminiService';
 
 
 
 interface PracticeDashboardProps {
+    practiceItems: PracticeItem[]; // Built-in items from GCS or fallback
     onSelectItem: (item: PracticeItem) => void;
     completedItems: Set<string>;
     currentType: PracticeType | null;
     onSelectType: (type: PracticeType | null) => void;
-    customItems?: PracticeItem[];
+    customItems?: PracticeItem[]; // User-generated items from Firestore
     onAddCustomItem?: (item: PracticeItem) => void;
     onNavigate?: (path: string) => void;
 
@@ -41,20 +40,22 @@ const DifficultyBadge: React.FC<{ difficulty: Difficulty }> = ({ difficulty }) =
 };
 
 export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
+    practiceItems, // From GCS/fallback
     onSelectItem,
     completedItems,
     currentType,
     onSelectType,
-    customItems = [],
+    customItems = [], // From Firestore per-user
     onAddCustomItem,
     onNavigate
 
 }) => {
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
+    // Combine built-in items (from GCS) with custom items (from Firestore)
     const allItems = useMemo(() => {
-        return [...customItems, ...PRACTICE_ITEMS];
-    }, [customItems]);
+        return [...customItems, ...practiceItems];
+    }, [customItems, practiceItems]);
 
     const filteredItems = useMemo(() => {
         if (!currentType) return [];

@@ -1,4 +1,4 @@
-import type { Module, PracticeItem } from './types';
+import type { Module, PracticeItem } from '../../types';
 
 export const PRACTICE_ITEMS: PracticeItem[] = [
   // Practice Quizzes
@@ -224,7 +224,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
         correctAnswerIndex: 0,
       },
       {
-        id: "m12-lp34",
+        id: "q-34",
         text: "Which keyword exits a function with a value?",
         options: ["break", "exit", "return", "output"],
         correctAnswerIndex: 2,
@@ -514,7 +514,7 @@ export const PRACTICE_ITEMS: PracticeItem[] = [
 
   // Practice Problems
   {
-    id: "m12-lp65",
+    id: "pb-1",
     title: "Celsius to Fahrenheit",
     description:
       "Write a program that converts a temperature from Celsius to Fahrenheit.",
@@ -530,7 +530,7 @@ Print the result.
     objective: "Calculate and print 77.0.",
   },
   {
-    id: "m12-lp66",
+    id: "pb-2",
     title: "Find the Max",
     description:
       "Find the largest number in a list without using the max() function.",
@@ -546,7 +546,7 @@ Print the largest number.
     objective: "Loop through list and print 20.",
   },
   {
-    id: "m12-lp67",
+    id: "pb-3",
     title: "Reverse a String",
     description: "Reverse a given string using slicing.",
     type: "problem",
@@ -560,7 +560,7 @@ Use slicing to print it backwards ("nohtyP").
     objective: 'Print "nohtyP".',
   },
   {
-    id: "m12-lp68",
+    id: "pb-4",
     title: "Count Vowels",
     description: "Count how many vowels are in a sentence.",
     type: "problem",
@@ -575,7 +575,7 @@ Print the final count.
     objective: "Count vowels and print the integer result (5).",
   },
   {
-    id: "m12-lp69",
+    id: "pb-5",
     title: "FizzBuzz",
     description: "The classic interview question.",
     type: "problem",
@@ -593,7 +593,7 @@ Loop from 1 to 20.
       "Print correct sequence: 1, 2, Fizz, 4, Buzz, Fizz, ..., 14, FizzBuzz, ...",
   },
   {
-    id: "m12-lp70",
+    id: "pb-6",
     title: "Palindrome Checker",
     description: "Check if a word reads the same forwards and backwards.",
     type: "problem",
@@ -608,7 +608,7 @@ If it is, print "Palindrome". Else print "Not Palindrome".
     objective: 'Print "Palindrome" for racecar.',
   },
   {
-    id: "m12-lp71",
+    id: "pb-7",
     title: "Factorial Calculator",
     description: "Calculate the factorial of a number (e.g., 5! = 5*4*3*2*1).",
     type: "problem",
@@ -623,7 +623,7 @@ Print the result.
     objective: "Print 120.",
   },
   {
-    id: "m12-lp72",
+    id: "pb-8",
     title: "Sum of Evens",
     description: "Sum all even numbers in a range.",
     type: "problem",
@@ -637,7 +637,7 @@ Print the total.
     objective: "Print 110.",
   },
   {
-    id: "m12-lp73",
+    id: "pb-9",
     title: "Prime Checker",
     description: "Check if a number is prime.",
     type: "problem",
@@ -652,7 +652,7 @@ Print "Prime" or "Not Prime".
     objective: "Print Prime.",
   },
   {
-    id: "m12-lp74",
+    id: "pb-10",
     title: "Fibonacci Sequence",
     description: "Print the first 10 numbers of the Fibonacci sequence.",
     type: "problem",
@@ -667,7 +667,7 @@ Print the first 10 numbers (0, 1, 1, 2, 3, 5, 8, 13, 21, 34).
     objective: "Print the correct sequence.",
   },
   {
-    id: "m12-lp75",
+    id: "pb-11",
     title: "Dictionary Search",
     description: "Look up values in a dictionary safely.",
     type: "problem",
@@ -682,7 +682,7 @@ Do not crash.
     objective: "Print Unknown.",
   },
   {
-    id: "m12-lp76",
+    id: "pb-12",
     title: "Anagram Checker",
     description: "Check if two strings are anagrams.",
     type: "problem",
@@ -699,7 +699,7 @@ Print "Anagram" or "Not".
 
   // Practice Projects
   {
-    id: "m12-lp77",
+    id: "pj-1",
     title: "Number Guessing Game",
     description:
       "Build a game where the computer picks a number and you have to guess it.",
@@ -717,7 +717,7 @@ Print "Anagram" or "Not".
     objective: "Implement a guessing game loop that breaks on correct guess.",
   },
   {
-    id: "m12-lp78",
+    id: "pj-2",
     title: "Simple Calculator",
     description:
       "Create a calculator that can add, subtract, multiply, and divide.",
@@ -734,7 +734,7 @@ Print "Anagram" or "Not".
     objective: "Create calculator functions and handle user input flow.",
   },
   {
-    id: "m12-lp79",
+    id: "pj-3",
     title: "Text Adventure",
     description: "Create a story where user choices change the outcome.",
     type: "project",
@@ -753,7 +753,7 @@ Create a text adventure.
       "Create a branching logic story with at least 2 levels of choice.",
   },
   {
-    id: "m12-lp80",
+    id: "pj-4",
     title: "To-Do List CLI",
     description: "Build a command-line To-Do list manager.",
     type: "project",
@@ -771,7 +771,7 @@ Create a text adventure.
     objective: "Implement add, view, and quit commands using a loop and list.",
   },
   {
-    id: "m12-lp81",
+    id: "pj-5",
     title: "Rock Paper Scissors",
     description: "Classic game against the computer.",
     type: "project",
@@ -787,7 +787,7 @@ Create a text adventure.
     objective: "Implement logic for all 3 win/loss conditions.",
   },
   {
-    id: "m12-lp82",
+    id: "pj-6",
     title: "Password Generator",
     description: "Generate strong random passwords.",
     type: "project",
@@ -803,7 +803,7 @@ Create a text adventure.
     objective: "Create a string of random characters of user length.",
   },
   {
-    id: "m12-lp83",
+    id: "pj-7",
     title: "Contact Book",
     description: "Store names and numbers.",
     type: "project",
@@ -819,7 +819,7 @@ Create a text adventure.
     objective: "CRUD operations on a dictionary.",
   },
   {
-    id: "m12-lp84",
+    id: "pj-8",
     title: "Hangman (Simple)",
     description: "Guess the word.",
     type: "project",
@@ -836,7 +836,7 @@ Create a text adventure.
     objective: "Letter checking loop with life counter.",
   },
   {
-    id: "m12-lp85",
+    id: "pj-9",
     title: "Tic Tac Toe",
     description: "2-player board game.",
     type: "project",

@@ -28,7 +28,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { PRACTICE_ITEMS } from './constants';
+// PRACTICE_ITEMS removed - loaded dynamically
 import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
 import { contentService } from './services/contentService';
 import { getChatResponse, lintCodeWithAI } from './services/geminiService';
@@ -83,9 +83,22 @@ const triggerConfetti = () => {
 
 const App: React.FC = () => {
     const [modules, setModules] = useState<Module[]>([]);
+    const [practiceItems, setPracticeItems] = useState<PracticeItem[]>([]);
 
     useEffect(() => {
-        contentService.getAllModules().then(setModules).catch(console.error);
+        const loadContent = async () => {
+            try {
+                const [loadedModules, loadedPractice] = await Promise.all([
+                    contentService.getAllModules(),
+                    contentService.getPracticeItems()
+                ]);
+                setModules(loadedModules);
+                setPracticeItems(loadedPractice);
+            } catch (error) {
+                console.error("Failed to load content:", error);
+            }
+        };
+        loadContent();
     }, []);
 
     const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
@@ -588,8 +601,8 @@ const App: React.FC = () => {
                 // Check if it's already active
                 if (activePracticeItem?.id === itemId) return;
 
-                // Find item in constants or custom items
-                const item = PRACTICE_ITEMS.find(i => i.id === itemId) || customQuizzes.find(i => i.id === itemId);
+                // Find item in loaded practice items or custom quizzes
+                const item = practiceItems.find((i: PracticeItem) => i.id === itemId) || customQuizzes.find((i: PracticeItem) => i.id === itemId);
                 if (item) {
                     setActivePracticeItem(item);
                     setPracticeCategory(category as PracticeType);
@@ -599,7 +612,7 @@ const App: React.FC = () => {
             setActivePracticeItem(null);
             // Don't reset category here to allow browsing same category
         }
-    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes]);
+    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes, practiceItems]);
 
     const loadLesson = useCallback((moduleId: string, lessonId: string) => {
         const module = modules.find(m => m.id === moduleId);
@@ -1665,8 +1678,9 @@ const App: React.FC = () => {
                         <Route path="/dashboard" element={
                             <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                 <HomePage
+                                    modules={modules} // Pass loaded modules
                                     onNavigate={handleNavigate}
-                                    onSelectLesson={handleSelectLesson}
+                                    onSelectLesson={loadLesson}
                                     completedLessons={completedLessons}
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
@@ -1707,6 +1721,7 @@ const App: React.FC = () => {
 
                         <Route path="/practice" element={
                             <PracticeDashboard
+                                practiceItems={practiceItems}
                                 onSelectItem={(item) => {
                                     if (!user) {
                                         handleOpenAuth();

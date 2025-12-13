@@ -1,10 +1,5 @@
 
-export interface ReferenceTopic {
-  id: string;
-  title: string;
-  category: string;
-  content: string;
-}
+import { ReferenceTopic } from '../../types';
 
 export const REFERENCE_DATA: ReferenceTopic[] = [
   // --- BASICS ---

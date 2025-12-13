@@ -202,6 +202,13 @@ export interface CollectionData {
   };
 }
 
+export interface ReferenceTopic {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+}
+
 export interface ReferenceMaterial {
   id: string;
   title: string;

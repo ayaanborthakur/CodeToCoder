@@ -1,4 +1,4 @@
-import type { Module, PracticeItem } from './types';
+import { Module } from '../../types';
 
 export const LESSON_PLAN: Module[] = [
   {
