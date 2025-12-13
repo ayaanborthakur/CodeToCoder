@@ -45,7 +45,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       await loginWithGoogle();
-      // Current page will redirect to Google, so we don't need to close modal
+      // Popup flow success - close modal
+      onClose();
     } catch (err: any) {
       setError(err.message || "Google sign in failed");
     } finally {

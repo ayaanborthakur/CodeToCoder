@@ -143,8 +143,9 @@ const App: React.FC = () => {
     const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
 
 
-    // Initialize Pyodide
+    // Initialize Pyodide & Check Environment
     useEffect(() => {
+        console.log("[Environment] Cross-Origin Isolated:", window.crossOriginIsolated);
         import('./services/pyodideService').then(({ initializePyodide }) => {
             initializePyodide().catch(console.error);
         });

@@ -36,9 +36,7 @@ export const auth = getAuth(app);
 // standard getFirestore(app) can fail in isolated environments
 import { initializeFirestore } from 'firebase/firestore';
 
-export const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true, // Critical for COOP/COEP environments where WebSockets might be blocked or unstable
-});
+export const db = initializeFirestore(app, {});
 
 // Initialize analytics with error handling
 let analytics: any;

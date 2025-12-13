@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="/coi-serviceworker.js"></script>
+    <!-- Removed coi-serviceworker to fix Auth redirects -->
+    <!-- Added Pyodide for Main Thread execution -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <script src="/env-config.js"></script>
     <title>CodeToCoder: Learn Python with AI</title>
 
@@ -38,6 +40,23 @@
   <body>
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/input-serviceworker.js')
+            .then(reg => console.log('Input Service Worker Registered', reg.scope))
+            .catch(err => console.error('Service Worker Registration Failed', err));
+          
+          // Listen for messages from the service worker (for input requests)
+          navigator.serviceWorker.addEventListener('message', (event) => {
+             // We dispatch a custom event so pyodideService can listen to it
+             if (event.data && event.data.type === 'PYODIDE_INPUT_REQUEST') {
+                 window.dispatchEvent(new CustomEvent('pyodide-input-request', { detail: event.data }));
+             }
+          });
+        });
+      }
+    </script>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

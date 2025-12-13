@@ -87,6 +87,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authStateReceived = true;
       maybeFinishLoading();
     });
+    
+    // Handle the redirect result FIRST (for Google Sign In) - kept for legacy/cleanup
+    authService.handleRedirectResult()
+      .then((redirectUser) => {
+        if (redirectUser) {
+          setUser(redirectUser);
+          setIsLoading(false);
+          redirectHandled = true;
+          authStateReceived = true;
+          if (authStateTimeoutId) {
+            clearTimeout(authStateTimeoutId);
+            authStateTimeoutId = null;
+          }
+        } else {
+          redirectHandled = true;
+          maybeFinishLoading();
+        }
+      })
+      .catch(error => {
+        console.error("[AuthContext] Auth redirect error:", error);
+        redirectHandled = true;
+        maybeFinishLoading();
+      });
 
     return () => {
       unsubscribe();
@@ -95,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
-
 
   const login = async (email: string, password: string) => {
     // We don't need to set loading here as the auth listener handles the state update

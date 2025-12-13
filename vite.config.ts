@@ -13,10 +13,12 @@ export default defineConfig(() => {
         server: {
             port: 3000,
             host: '0.0.0.0',
-            headers: {
-                'Cross-Origin-Opener-Policy': 'same-origin',
-                'Cross-Origin-Embedder-Policy': 'require-corp',
-            },
+            // CRITICAL: Do NOT enable Cross-Origin-Opener-Policy (COOP) headers here.
+            // Enabling COOP breaks Google Sign-In (specifically signInWithPopup) by preventing
+            // communication between the popup and the main window.
+            // We successfully run Pyodide (which usually needs COOP for SharedArrayBuffer)
+            // by using a Service Worker + Sync XHR bridge instead of Atomics/SharedArrayBuffer.
+            // Maintain this "standard" header state to keep Auth working.
         },
         preview: {
             port: 3000,
