@@ -24,6 +24,7 @@ import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
+import { LoadingScreen } from './components/LoadingScreen';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -1202,18 +1203,54 @@ const App: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     }, [panelSizes, isMobile]);
 
+    // --- LOADING STATE WITH TIMEOUT ---
+    const [showReloadOption, setShowReloadOption] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded) {
+                setShowReloadOption(true);
+            }
+        }, 15000); // 15 seconds timeout
+        return () => clearTimeout(timer);
+    }, [isProgressLoaded, isPlaygroundLoaded, isQuizzesLoaded]);
+
     if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
-        return (
-            <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center gap-4">
-                <div className="text-xl font-bold">Loading CodeToCoder...</div>
-                <div className="text-sm text-gray-500 flex flex-col gap-2">
-                    <div>Auth: {isAuthLoading ? 'Loading...' : 'Ready'}</div>
-                    <div>Progress: {isProgressLoaded ? 'Ready' : 'Loading...'}</div>
-                    <div>Playground: {isPlaygroundLoaded ? 'Ready' : 'Loading...'}</div>
-                    <div>Quizzes: {isQuizzesLoaded ? 'Ready' : 'Loading...'}</div>
-                    <div>Lesson: {(currentView === 'classroom' && currentLessonId && !currentLesson) ? 'Loading...' : 'Ready'}</div>
+        if (showReloadOption) {
+            return (
+                <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
+                   <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
+                   <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
+                   <button 
+                     onClick={() => window.location.reload()} 
+                     className="px-6 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors font-semibold"
+                   >
+                     Reload Application
+                   </button>
+                   <button 
+                     onClick={() => {
+                        // Clear critical storages that might block loading
+                        localStorage.removeItem('firebase:previous_websocket_failure');
+                        window.location.reload();
+                     }}
+                     className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                   >
+                     Clear Cache & Reload
+                   </button>
                 </div>
-            </div>
+            )
+        }
+
+        return (
+            <LoadingScreen 
+                status={{
+                    auth: !isAuthLoading,
+                    progress: isProgressLoaded,
+                    playground: isPlaygroundLoaded,
+                    quizzes: isQuizzesLoaded,
+                    lesson: !((currentView === 'classroom' && currentLessonId && !currentLesson))
+                }}
+            />
         );
     }
 
