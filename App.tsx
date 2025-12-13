@@ -28,8 +28,9 @@ import { LoadingScreen } from './components/LoadingScreen';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { LESSON_PLAN, PRACTICE_ITEMS } from './constants';
-import type { Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+import { PRACTICE_ITEMS } from './constants';
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+import { contentService } from './services/contentService';
 import { getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
@@ -39,7 +40,7 @@ import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
 
-const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
 
 declare global {
     interface Window {
@@ -81,6 +82,14 @@ const triggerConfetti = () => {
 
 
 const App: React.FC = () => {
+    const [modules, setModules] = useState<Module[]>([]);
+
+    useEffect(() => {
+        contentService.getAllModules().then(setModules).catch(console.error);
+    }, []);
+
+    const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
+
     const { user, isLoading: isAuthLoading } = useAuth();
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
@@ -486,7 +495,7 @@ const App: React.FC = () => {
 
         // Module Completion Logic (Updated for Skip-Ahead Support)
         if (prevCompletedLessons && completedLessons.size > prevCompletedLessons.size) {
-            const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
+            const currentModule = modules.find(m => m.id === currentModuleId);
 
             if (currentModule && currentModule.lessons.length > 0) {
                 // Check if the FINAL lesson of the module (the gatekeeper) was just completed
@@ -531,11 +540,11 @@ const App: React.FC = () => {
             setDisplayedStars(totalStars);
         }
 
-    }, [completedLessons, completedPracticeItems, isProgressLoaded, hasCelebrated, prevCompletedLessons, prevCompletedPractice, currentModuleId, currentLessonId, displayedStars, flyingStar, totalStars, currentView]);
+    }, [completedLessons, completedPracticeItems, isProgressLoaded, hasCelebrated, prevCompletedLessons, prevCompletedPractice, currentModuleId, currentLessonId, displayedStars, flyingStar, totalStars, currentView, totalLessons, modules]);
 
     useEffect(() => {
         if (!currentModuleId || !currentLessonId) return;
-        const module = LESSON_PLAN.find(m => m.id === currentModuleId);
+        const module = modules.find(m => m.id === currentModuleId);
         const lesson = module?.lessons.find(l => l.id === currentLessonId);
         if (lesson) {
             setCurrentLesson(lesson);
@@ -544,7 +553,7 @@ const App: React.FC = () => {
                 setLintIssues([]);
             }
         }
-    }, [currentLessonId, currentModuleId, currentLesson?.id]);
+    }, [currentLessonId, currentModuleId, currentLesson?.id, modules]);
 
     useEffect(() => {
         if (currentView === 'playground') setActiveBottomTab('terminal');
@@ -593,7 +602,7 @@ const App: React.FC = () => {
     }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes]);
 
     const loadLesson = useCallback((moduleId: string, lessonId: string) => {
-        const module = LESSON_PLAN.find(m => m.id === moduleId);
+        const module = modules.find(m => m.id === moduleId);
         const lesson = module?.lessons.find(l => l.id === lessonId);
         if (lesson) {
             let savedCode: string | null = null;
@@ -614,7 +623,7 @@ const App: React.FC = () => {
             setCurrentModuleId(moduleId);
             setCurrentLessonId(lessonId);
         }
-    }, [user]);
+    }, [user, modules]);
 
     // Sync URL to State
     useEffect(() => {
@@ -698,7 +707,7 @@ const App: React.FC = () => {
     }, [changeLesson, user, handleOpenAuth]);
 
     const advanceToNextLesson = useCallback(() => {
-        const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
+        const currentModule = modules.find(m => m.id === currentModuleId);
         if (currentModule && currentLesson) {
             const currentIndex = currentModule.lessons.findIndex(l => l.id === currentLesson.id);
             if (currentIndex !== -1 && currentIndex < currentModule.lessons.length - 1) {
@@ -709,7 +718,7 @@ const App: React.FC = () => {
                 }, 2000);
             }
         }
-    }, [currentModuleId, currentLesson, changeLesson]);
+    }, [currentModuleId, currentLesson, changeLesson, modules]);
 
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
@@ -1353,7 +1362,7 @@ const App: React.FC = () => {
                             <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <NavigationPanel
-                                        modules={LESSON_PLAN}
+                                        modules={modules}
                                         currentLessonId={currentLessonId || ''}
                                         onSelectLesson={handleSelectLesson}
                                         completedLessons={completedLessons}
