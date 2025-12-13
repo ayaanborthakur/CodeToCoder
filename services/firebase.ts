@@ -29,8 +29,16 @@ console.log(`[Firebase] API Key present: ${!!firebaseConfig.apiKey}`);
 const app = initializeApp(firebaseConfig);
 
 // Export the initialized services you need
+// Export the initialized services you need
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// Initialize Firestore with specific settings for COOP/COEP compatibility
+// standard getFirestore(app) can fail in isolated environments
+import { initializeFirestore } from 'firebase/firestore';
+
+export const db = initializeFirestore(app, {
+    experimentalForceLongPolling: true, // Critical for COOP/COEP environments where WebSockets might be blocked or unstable
+});
 
 // Initialize analytics with error handling
 let analytics: any;
