@@ -71,7 +71,7 @@ export interface User {
 
 
 // Badge System Types
-export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project';
+export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project' | 'learn' | 'coding';
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface Badge {

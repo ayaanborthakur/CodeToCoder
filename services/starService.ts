@@ -4,6 +4,7 @@ import { getMarketplaceData, addStars, spendStars } from './marketplaceService';
 // Star reward base amounts (one-time only per activity)
 const STAR_REWARDS = {
     lesson: 3,
+    learn: 1, // Reading lessons
     quiz: 7,
     practice: 5,
     project: 7,
@@ -60,13 +61,13 @@ export const awardStars = async (
  */
 export const awardStarsForActivity = async (
     userId: string,
-    activityType: 'lesson' | 'quiz' | 'practice',
+    activityType: 'lesson' | 'quiz' | 'practice' | 'learn',
     activityId: string
 ): Promise<{ awarded: boolean, amount: number, reason: string }> => {
     const data = await getMarketplaceData(userId);
 
     // Determine the correct array based on activity type
-    const completedArray = activityType === 'lesson' ? data.completedActivities.lessons :
+    const completedArray = (activityType === 'lesson' || activityType === 'learn') ? data.completedActivities.lessons :
         activityType === 'quiz' ? data.completedActivities.quizzes :
             data.completedActivities.practice;
 

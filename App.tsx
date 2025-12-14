@@ -1471,12 +1471,13 @@ const App: React.FC = () => {
                 ) : isLearnMode && activeLesson ? (
                     <LearnPanel
                         lesson={activeLesson}
-                        onComplete={() => {
+                        isCompleted={completedLessons.has(activeLesson.id)}
+                        onLessonViewed={() => {
                             if (!completedLessons.has(activeLesson.id)) {
                                 markLessonAsCompleted(activeLesson.id);
                                 if (user) {
                                     import('./services/starService').then(({ awardStarsForActivity }) => {
-                                        awardStarsForActivity(user.id, 'lesson', activeLesson.id).then(result => {
+                                        awardStarsForActivity(user.id, 'learn', activeLesson.id).then(result => {
                                             if (result.awarded) {
                                                 setStarNotification({
                                                     amount: result.amount,
@@ -1487,9 +1488,7 @@ const App: React.FC = () => {
                                     });
                                 }
                             }
-                            advanceToNextLesson();
                         }}
-                        isCompleted={completedLessons.has(activeLesson.id)}
                         onPreviousLesson={handlePreviousLessonNav}
                         onNextLesson={handleNextLessonNav}
                         hasPreviousLesson={navigationState.hasPrevious}
