@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-import type { UserAchievements, Badge, Lesson } from '../types';
+import type { UserAchievements, Badge } from '../types';
 
 const BASE_PROGRESS_KEY = 'codetocoder_progress';
 const BASE_PRACTICE_KEY = 'codetocoder_practice_progress';
@@ -170,37 +170,13 @@ export const useProgress = () => {
                         });
                     }
 
-                    // Calculate stats by lesson type
-                    let learnCompleted = 0;
-                    let codingCompleted = 0;
-                    
-                    // Count completed lessons by type
-                    // We need to look up each lesson ID in the modules to determine its type
-                    for (const module of modules) {
-                        for (const lesson of module.lessons) {
-                            if (newSet.has(lesson.id)) {
-                                if (lesson.type === 'learn') {
-                                    learnCompleted++;
-                                } else {
-                                    // Default to coding if not specified or explicit
-                                    codingCompleted++;
-                                }
-                            }
-                        }
-                    }
-
-                    const totalLearn = modules.reduce((sum, m) => sum + m.lessons.filter(l => l.type === 'learn').length, 0);
-                    const totalCoding = modules.reduce((sum, m) => sum + m.lessons.filter(l => l.type !== 'learn').length, 0);
-
-                    // Check for new badges
+                    // Count practice items by type
                     const result = checkAndAwardBadges(achievements, {
-                        learnCompleted,
-                        codingCompleted,
+                        lessonsCompleted: newSet.size,
                         practiceCompleted: completedPracticeItems.size,
                         quizzesCompleted: 0,
                         projectsCompleted: 0,
-                        totalLearn,
-                        totalCoding
+                        totalLessons
                     });
 
                     if (result.newBadges.length > 0) {
@@ -298,6 +274,8 @@ export const useProgress = () => {
                     const { LESSON_PLAN } = await import('../constants');
                     const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
+                    const totalLessons = modules.reduce((sum: number, module: any) => sum + module.lessons.length, 0);
+
                     // Award stars for practice completion (only if not already rewarded)
                     if (user && !rewardedPracticeItems.has(itemId)) {
                         const starReward = calculateStarReward('practice', undefined);
@@ -314,36 +292,12 @@ export const useProgress = () => {
                         });
                     }
 
-                    // Recalculate lesson stats for consistency
-                    let learnCompleted = 0;
-                    let codingCompleted = 0;
-                    let totalLearn = 0;
-                    let totalCoding = 0;
-
-                    for (const module of modules) {
-                         const learnInModule = module.lessons.filter((l: Lesson) => l.type === 'learn').length;
-                         totalLearn += learnInModule;
-                         totalCoding += (module.lessons.length - learnInModule);
-
-                        for (const lesson of module.lessons) {
-                            if (completedLessons.has(lesson.id)) {
-                                if (lesson.type === 'learn') {
-                                    learnCompleted++;
-                                } else {
-                                    codingCompleted++;
-                                }
-                            }
-                        }
-                    }
-
                     const result = checkAndAwardBadges(achievements, {
-                        learnCompleted,
-                        codingCompleted,
+                        lessonsCompleted: completedLessons.size,
                         practiceCompleted: newSet.size,
                         quizzesCompleted: 0,
                         projectsCompleted: 0,
-                        totalLearn,
-                        totalCoding
+                        totalLessons
                     });
 
                     if (result.newBadges.length > 0) {

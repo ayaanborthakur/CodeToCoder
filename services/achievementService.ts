@@ -2,72 +2,38 @@ import type { Badge, BadgeType, BadgeTier, UserAchievements } from '../types';
 
 // Define all available badges
 export const BADGES: Badge[] = [
-    // Learn (Reading) Badges
+    // Lesson Badges
     {
-        id: 'learn_bronze',
-        name: 'Curious Reader',
-        description: 'Complete 3 learn lessons',
-        type: 'learn',
+        id: 'lesson_bronze',
+        name: 'First Steps',
+        description: 'Complete 5 lessons',
+        type: 'lesson',
         tier: 'bronze',
-        requirement: 3
+        requirement: 5
     },
     {
-        id: 'learn_silver',
-        name: 'Studious Reader',
-        description: 'Complete 10 learn lessons',
-        type: 'learn',
+        id: 'lesson_silver',
+        name: 'Learning Path',
+        description: 'Complete 10 lessons',
+        type: 'lesson',
         tier: 'silver',
         requirement: 10
     },
     {
-        id: 'learn_gold',
-        name: 'Scholar',
-        description: 'Complete 25 learn lessons',
-        type: 'learn',
+        id: 'lesson_gold',
+        name: 'Knowledge Seeker',
+        description: 'Complete 20 lessons',
+        type: 'lesson',
         tier: 'gold',
-        requirement: 25
+        requirement: 20
     },
     {
-        id: 'learn_platinum',
-        name: 'Grand Scholar',
-        description: 'Complete all learn lessons',
-        type: 'learn',
+        id: 'lesson_platinum',
+        name: 'Master Student',
+        description: 'Complete all lessons',
+        type: 'lesson',
         tier: 'platinum',
-        requirement: 999 
-    },
-
-    // Coding (Practice) Badges
-    {
-        id: 'coding_bronze',
-        name: 'Code Explorer',
-        description: 'Complete 3 coding lessons',
-        type: 'coding',
-        tier: 'bronze',
-        requirement: 3
-    },
-    {
-        id: 'coding_silver',
-        name: 'Code Builder',
-        description: 'Complete 10 coding lessons',
-        type: 'coding',
-        tier: 'silver',
-        requirement: 10
-    },
-    {
-        id: 'coding_gold',
-        name: 'Code Architect',
-        description: 'Complete 25 coding lessons',
-        type: 'coding',
-        tier: 'gold',
-        requirement: 25
-    },
-    {
-        id: 'coding_platinum',
-        name: 'Code Master',
-        description: 'Complete all coding lessons',
-        type: 'coding',
-        tier: 'platinum',
-        requirement: 999 
+        requirement: 999 // Will be updated dynamically
     },
 
     // Practice Badges
@@ -182,52 +148,38 @@ export const getBadgeGradient = (tier: BadgeTier): string => {
 export const checkAndAwardBadges = (
     currentAchievements: UserAchievements | undefined,
     stats: {
-        learnCompleted: number;
-        codingCompleted: number;
+        lessonsCompleted: number;
         practiceCompleted: number;
         quizzesCompleted: number;
         projectsCompleted: number;
-        totalLearn?: number;
-        totalCoding?: number;
+        totalLessons?: number;
     }
 ): { newBadges: Badge[]; updatedAchievements: UserAchievements } => {
     const earnedBadgeIds = currentAchievements?.earnedBadgeIds || (currentAchievements as any)?.earnedBadges || [];
     const newlyEarnedBadges: Badge[] = [];
+
+    // Update platinum lesson requirement if total lessons is known
+    // Update platinum lesson requirement if total lessons is known and reasonable
+    const lessonPlatinumBadge = BADGES.find(b => b.id === 'lesson_platinum');
+    if (lessonPlatinumBadge && stats.totalLessons) {
+        // Safety check: Don't lower the requirement below a reasonable threshold (e.g. 10)
+        // unless we are sure. This prevents premature awarding if data is incomplete.
+        if (stats.totalLessons > 10) {
+            lessonPlatinumBadge.requirement = stats.totalLessons;
+        } else {
+            console.warn('[BadgeService] Total lessons count seems low:', stats.totalLessons, 'Keeping default requirement');
+        }
+    }
 
     // Check each badge
     for (const badge of BADGES) {
         // Skip if already earned
         if (earnedBadgeIds.includes(badge.id)) continue;
 
-        // Skip legacy lesson badges to prevent confusion
-        // Only new learn/coding badges should be awarded now
-        if (badge.type === 'lesson') continue;
-
         let count = 0;
-        let requirement = badge.requirement;
-
         switch (badge.type) {
-            case 'learn':
-                count = stats.learnCompleted;
-                if (badge.tier === 'platinum') {
-                    // Only use dynamic requirement if total count is valid and substantial
-                    if (stats.totalLearn && stats.totalLearn > 5) {
-                        requirement = stats.totalLearn;
-                    } else {
-                        // If total is unknown or small, fallback to a safe high number or don't award
-                        requirement = 999;
-                    }
-                }
-                break;
-            case 'coding':
-                count = stats.codingCompleted;
-                if (badge.tier === 'platinum') {
-                    if (stats.totalCoding && stats.totalCoding > 5) {
-                        requirement = stats.totalCoding;
-                    } else {
-                        requirement = 999;
-                    }
-                }
+            case 'lesson':
+                count = stats.lessonsCompleted;
                 break;
             case 'practice':
                 count = stats.practiceCompleted;
@@ -240,33 +192,21 @@ export const checkAndAwardBadges = (
                 break;
         }
 
-        // Fix: Ensure we don't mistakenly award platinum for 0/0 or 1/1 cases if totals are weird
-        if (badge.tier === 'platinum' && count < 5) {
-             // Hard fail for low counts on platinum
-             continue;
-        }
-
         // Award badge if requirement is met
-        if (count >= requirement && requirement > 0) {
-            console.log(`[Badges] Awarding badge: ${badge.name} (${badge.id}). Count: ${count}, Req: ${requirement}`);
+        if (count >= badge.requirement) {
             newlyEarnedBadges.push(badge);
             earnedBadgeIds.push(badge.id);
         }
     }
 
-    // After awarding regular badges, check for Master badge ('code2code_master')
-    // Logic: Must have all badges EXCEPT master, and at least one other badge
-    // Filter out legacy 'lesson' badges from the requirement since they are no longer attainable or relevant
-    const relevantBadges = BADGES.filter(b => b.id !== 'code2code_master' && b.type !== 'lesson');
-    const relevantBadgeIds = relevantBadges.map(b => b.id);
-    
-    const hasAllRelevant = relevantBadgeIds.length > 0 &&
-        relevantBadgeIds.every(id => earnedBadgeIds.includes(id));
-
-    if (hasAllRelevant && !earnedBadgeIds.includes('code2code_master')) {
+    // After awarding regular badges, check for master badge
+    const allOtherBadgeIds = BADGES.filter(b => b.id !== 'code2code_master').map(b => b.id);
+    // Only award master badge if user has earned ALL other badges (and has at least one badge)
+    const hasAllOthers = allOtherBadgeIds.length > 0 &&
+        allOtherBadgeIds.every(id => earnedBadgeIds.includes(id));
+    if (hasAllOthers && !earnedBadgeIds.includes('code2code_master')) {
         const masterBadge = BADGES.find(b => b.id === 'code2code_master');
         if (masterBadge) {
-             console.log(`[Badges] Awarding Master Badge!`);
             newlyEarnedBadges.push(masterBadge);
             earnedBadgeIds.push(masterBadge.id);
         }
@@ -321,9 +261,7 @@ export const getBadgeProgress = (
 // Get all badges grouped by type
 export const getBadgesByType = (): Record<BadgeType, Badge[]> => {
     return {
-        learn: BADGES.filter(b => b.type === 'learn'),
-        coding: BADGES.filter(b => b.type === 'coding'),
-        lesson: BADGES.filter(b => b.type === 'lesson'), // For legacy
+        lesson: BADGES.filter(b => b.type === 'lesson'),
         practice: BADGES.filter(b => b.type === 'practice'),
         quiz: BADGES.filter(b => b.type === 'quiz'),
         project: BADGES.filter(b => b.type === 'project')

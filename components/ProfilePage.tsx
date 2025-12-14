@@ -211,12 +211,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                         </div>
                     </div>
                 ) : activeTab === 'badges' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                        {BADGES.filter(b => b.type !== 'lesson').map(badge => {
-                            // Filter out legacy badges from display too, unless earned?
-                            // User asked to see 'all badges I can possible earn'
-                            // So filtering out legacy 'lesson' type is correct as they are deprecated.
-                            
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {BADGES.map(badge => {
                             const isUnlocked = achievements?.earnedBadgeIds.includes(badge.id);
                             const badgeColor = getBadgeColor(badge.tier);
 

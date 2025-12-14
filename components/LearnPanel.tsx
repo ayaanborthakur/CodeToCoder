@@ -6,29 +6,28 @@ import type { Lesson } from '../types';
 
 interface LearnPanelProps {
     lesson: Lesson;
+    onComplete: () => void;
     isCompleted: boolean;
     onPreviousLesson?: () => void;
     onNextLesson?: () => void;
     hasPreviousLesson?: boolean;
     hasNextLesson?: boolean;
-    onLessonViewed?: () => void;
 }
 
 export const LearnPanel: React.FC<LearnPanelProps> = ({ 
     lesson, 
+    onComplete, 
     isCompleted,
     onPreviousLesson,
     onNextLesson,
     hasPreviousLesson = false,
-    hasNextLesson = false,
-    onLessonViewed
+    hasNextLesson = false
 }) => {
-    // Mark lesson as completed immediately when viewed using the separate handler
-    React.useEffect(() => {
-        if (onLessonViewed) {
-            onLessonViewed();
-        }
-    }, [lesson.id, onLessonViewed]);
+    const handleContinue = () => {
+        onComplete();
+        // Scroll to top for next lesson
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <div className="flex flex-col h-full w-full bg-gray-50 dark:bg-gray-900">
