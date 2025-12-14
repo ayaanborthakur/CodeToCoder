@@ -4,6 +4,7 @@ import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
+import { LearnPanel } from './components/LearnPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { Resizer } from './components/Resizer';
 import { HamburgerIcon } from './components/HamburgerIcon';
@@ -23,11 +24,13 @@ import { AuthModal } from './components/AuthModal';
 import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
+import { LoadingScreen } from './components/LoadingScreen';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
-import { LESSON_PLAN, PRACTICE_ITEMS } from './constants';
-import type { Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+// PRACTICE_ITEMS removed - loaded dynamically
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+import { contentService } from './services/contentService';
 import { getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
@@ -37,7 +40,7 @@ import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
 
-const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
+
 
 declare global {
     interface Window {
@@ -79,6 +82,27 @@ const triggerConfetti = () => {
 
 
 const App: React.FC = () => {
+    const [modules, setModules] = useState<Module[]>([]);
+    const [practiceItems, setPracticeItems] = useState<PracticeItem[]>([]);
+
+    useEffect(() => {
+        const loadContent = async () => {
+            try {
+                const [loadedModules, loadedPractice] = await Promise.all([
+                    contentService.getAllModules(),
+                    contentService.getPracticeItems()
+                ]);
+                setModules(loadedModules);
+                setPracticeItems(loadedPractice);
+            } catch (error) {
+                console.error("Failed to load content:", error);
+            }
+        };
+        loadContent();
+    }, []);
+
+    const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
+
     const { user, isLoading: isAuthLoading } = useAuth();
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
@@ -485,7 +509,7 @@ const App: React.FC = () => {
 
         // Module Completion Logic (Updated for Skip-Ahead Support)
         if (prevCompletedLessons && completedLessons.size > prevCompletedLessons.size) {
-            const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
+            const currentModule = modules.find(m => m.id === currentModuleId);
 
             if (currentModule && currentModule.lessons.length > 0) {
                 // Check if the FINAL lesson of the module (the gatekeeper) was just completed
@@ -530,11 +554,11 @@ const App: React.FC = () => {
             setDisplayedStars(totalStars);
         }
 
-    }, [completedLessons, completedPracticeItems, isProgressLoaded, hasCelebrated, prevCompletedLessons, prevCompletedPractice, currentModuleId, currentLessonId, displayedStars, flyingStar, totalStars, currentView]);
+    }, [completedLessons, completedPracticeItems, isProgressLoaded, hasCelebrated, prevCompletedLessons, prevCompletedPractice, currentModuleId, currentLessonId, displayedStars, flyingStar, totalStars, currentView, totalLessons, modules]);
 
     useEffect(() => {
         if (!currentModuleId || !currentLessonId) return;
-        const module = LESSON_PLAN.find(m => m.id === currentModuleId);
+        const module = modules.find(m => m.id === currentModuleId);
         const lesson = module?.lessons.find(l => l.id === currentLessonId);
         if (lesson) {
             setCurrentLesson(lesson);
@@ -543,7 +567,7 @@ const App: React.FC = () => {
                 setLintIssues([]);
             }
         }
-    }, [currentLessonId, currentModuleId, currentLesson?.id]);
+    }, [currentLessonId, currentModuleId, currentLesson?.id, modules]);
 
     useEffect(() => {
         if (currentView === 'playground') setActiveBottomTab('terminal');
@@ -578,8 +602,8 @@ const App: React.FC = () => {
                 // Check if it's already active
                 if (activePracticeItem?.id === itemId) return;
 
-                // Find item in constants or custom items
-                const item = PRACTICE_ITEMS.find(i => i.id === itemId) || customQuizzes.find(i => i.id === itemId);
+                // Find item in loaded practice items or custom quizzes
+                const item = practiceItems.find((i: PracticeItem) => i.id === itemId) || customQuizzes.find((i: PracticeItem) => i.id === itemId);
                 if (item) {
                     setActivePracticeItem(item);
                     setPracticeCategory(category as PracticeType);
@@ -589,10 +613,10 @@ const App: React.FC = () => {
             setActivePracticeItem(null);
             // Don't reset category here to allow browsing same category
         }
-    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes]);
+    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes, practiceItems]);
 
     const loadLesson = useCallback((moduleId: string, lessonId: string) => {
-        const module = LESSON_PLAN.find(m => m.id === moduleId);
+        const module = modules.find(m => m.id === moduleId);
         const lesson = module?.lessons.find(l => l.id === lessonId);
         if (lesson) {
             let savedCode: string | null = null;
@@ -613,7 +637,7 @@ const App: React.FC = () => {
             setCurrentModuleId(moduleId);
             setCurrentLessonId(lessonId);
         }
-    }, [user]);
+    }, [user, modules]);
 
     // Sync URL to State
     useEffect(() => {
@@ -697,7 +721,7 @@ const App: React.FC = () => {
     }, [changeLesson, user, handleOpenAuth]);
 
     const advanceToNextLesson = useCallback(() => {
-        const currentModule = LESSON_PLAN.find(m => m.id === currentModuleId);
+        const currentModule = modules.find(m => m.id === currentModuleId);
         if (currentModule && currentLesson) {
             const currentIndex = currentModule.lessons.findIndex(l => l.id === currentLesson.id);
             if (currentIndex !== -1 && currentIndex < currentModule.lessons.length - 1) {
@@ -708,7 +732,42 @@ const App: React.FC = () => {
                 }, 2000);
             }
         }
-    }, [currentModuleId, currentLesson, changeLesson]);
+    }, [currentModuleId, currentLesson, changeLesson, modules]);
+
+    const navigationState = useMemo(() => {
+        if (!currentModuleId || !currentLessonId || !modules.length) {
+             return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+        }
+
+        const module = modules.find(m => m.id === currentModuleId);
+        if (!module) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+        
+        const lessonIndex = module.lessons.findIndex(l => l.id === currentLessonId);
+        if (lessonIndex === -1) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+
+        const hasPrevious = lessonIndex > 0;
+        const hasNext = lessonIndex < module.lessons.length - 1;
+
+        return { 
+            hasPrevious, 
+            hasNext, 
+            prevId: hasPrevious ? module.lessons[lessonIndex - 1].id : null, 
+            nextId: hasNext ? module.lessons[lessonIndex + 1].id : null 
+        };
+
+    }, [currentModuleId, currentLessonId, modules]);
+
+    const handlePreviousLessonNav = useCallback(() => {
+        if (navigationState.hasPrevious && navigationState.prevId && currentModuleId) {
+            changeLesson(currentModuleId, navigationState.prevId);
+        }
+    }, [navigationState, currentModuleId, changeLesson]);
+
+    const handleNextLessonNav = useCallback(() => {
+        if (navigationState.hasNext && navigationState.nextId && currentModuleId) {
+            changeLesson(currentModuleId, navigationState.nextId);
+        }
+    }, [navigationState, currentModuleId, changeLesson]);
 
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
@@ -1202,8 +1261,55 @@ const App: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     }, [panelSizes, isMobile]);
 
+    // --- LOADING STATE WITH TIMEOUT ---
+    const [showReloadOption, setShowReloadOption] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded) {
+                setShowReloadOption(true);
+            }
+        }, 15000); // 15 seconds timeout
+        return () => clearTimeout(timer);
+    }, [isProgressLoaded, isPlaygroundLoaded, isQuizzesLoaded]);
+
     if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
-        return <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex items-center justify-center">Loading...</div>;
+        if (showReloadOption) {
+            return (
+                <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
+                   <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
+                   <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
+                   <button 
+                     onClick={() => window.location.reload()} 
+                     className="px-6 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors font-semibold"
+                   >
+                     Reload Application
+                   </button>
+                   <button 
+                     onClick={() => {
+                        // Clear critical storages that might block loading
+                        localStorage.removeItem('firebase:previous_websocket_failure');
+                        window.location.reload();
+                     }}
+                     className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                   >
+                     Clear Cache & Reload
+                   </button>
+                </div>
+            )
+        }
+
+        return (
+            <LoadingScreen 
+                status={{
+                    auth: !isAuthLoading,
+                    progress: isProgressLoaded,
+                    playground: isPlaygroundLoaded,
+                    quizzes: isQuizzesLoaded,
+                    lesson: !((currentView === 'classroom' && currentLessonId && !currentLesson))
+                }}
+            />
+        );
     }
 
     const isClassroom = currentView === 'classroom';
@@ -1236,6 +1342,7 @@ const App: React.FC = () => {
     const showSidebar = isClassroom && isNavOpen;
 
     const isQuizMode = (isClassroom && activeLesson?.type === 'quiz') || (isPractice && activePracticeItem?.type === 'quiz');
+    const isLearnMode = isClassroom && activeLesson?.type === 'learn';
     const isClassroomQuiz = isClassroom && activeLesson?.type === 'quiz';
 
     const isPracticeQuiz = isPractice && activePracticeItem?.type === 'quiz';
@@ -1304,7 +1411,7 @@ const App: React.FC = () => {
                             <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
                                 <div className="flex-1 overflow-y-auto">
                                     <NavigationPanel
-                                        modules={LESSON_PLAN}
+                                        modules={modules}
                                         currentLessonId={currentLessonId || ''}
                                         onSelectLesson={handleSelectLesson}
                                         completedLessons={completedLessons}
@@ -1611,8 +1718,9 @@ const App: React.FC = () => {
                         <Route path="/dashboard" element={
                             <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                 <HomePage
+                                    modules={modules} // Pass loaded modules
                                     onNavigate={handleNavigate}
-                                    onSelectLesson={handleSelectLesson}
+                                    onSelectLesson={loadLesson}
                                     completedLessons={completedLessons}
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
@@ -1653,6 +1761,7 @@ const App: React.FC = () => {
 
                         <Route path="/practice" element={
                             <PracticeDashboard
+                                practiceItems={practiceItems}
                                 onSelectItem={(item) => {
                                     if (!user) {
                                         handleOpenAuth();
