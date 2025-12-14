@@ -148,11 +148,10 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    const { contentService } = await import('../services/contentService');
+                    const { LESSON_PLAN } = await import('../constants');
                     const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
-                    const modules = await contentService.getAllModules();
-                    const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
+                    const totalLessons = LESSON_PLAN.reduce((sum, module) => sum + module.lessons.length, 0);
                     console.log('[useProgress] Total lessons calculated:', totalLessons);
 
                     // Award stars for lesson completion (only if not already rewarded)
@@ -296,11 +295,7 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    // Use ContentService to get the accurate lesson count (GCS or local fallback)
-                    // Use ContentService to get the accurate lesson count
-                    const { contentService } = await import('../services/contentService');
-                    const modules = await contentService.getAllModules();
-                    
+                    const { LESSON_PLAN } = await import('../constants');
                     const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
                     // Award stars for practice completion (only if not already rewarded)

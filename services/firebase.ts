@@ -29,7 +29,6 @@ console.log(`[Firebase] API Key present: ${!!firebaseConfig.apiKey}`);
 const app = initializeApp(firebaseConfig);
 
 // Export the initialized services you need
-// Export the initialized services you need
 export const auth = getAuth(app);
 
 // Initialize Firestore with specific settings for COOP/COEP compatibility
