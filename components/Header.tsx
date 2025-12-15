@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -73,6 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
+            <NavLink view="leaderboard" label="Leaderboard" />
 
           </nav>
         </div>
@@ -128,6 +128,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
+            <NavLink view="leaderboard" label="Leaderboard" />
 
             {!user && (
               <button

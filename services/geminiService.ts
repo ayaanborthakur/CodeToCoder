@@ -515,3 +515,144 @@ export const generatePracticeQuiz = async (topic: string, difficulty: Difficulty
         return null;
     }
 };
+
+export const generateCodeFromFlowchart = async (flowchart: import('../types').FlowchartData): Promise<string | null> => {
+    // Convert flowchart to descriptive text
+    let description = "Generate Python code based on this flowchart:\n\n";
+    
+    // Build a textual representation of the flowchart
+    const nodeMap = new Map(flowchart.nodes.map(n => [n.id, n]));
+    
+    flowchart.nodes.forEach((node, index) => {
+        description += `${index + 1}. `;
+        
+        switch (node.type) {
+            case 'start':
+                description += "Start of program\n";
+                break;
+            case 'end':
+                description += "End of program\n";
+                break;
+            case 'variable':
+                if (node.data.variableName) {
+                    description += `Create variable '${node.data.variableName}' = ${node.data.variableValue || 'None'}\n`;
+                } else {
+                    description += `Variable assignment (${node.data.label})\n`;
+                }
+                break;
+            case 'conditional':
+                if (node.data.condition) {
+                    description += `If ${node.data.condition}:\n`;
+                    // Find edges from this node
+                    const trueEdge = flowchart.edges.find(e => e.source === node.id && e.label?.toLowerCase().includes('true'));
+                    const falseEdge = flowchart.edges.find(e => e.source === node.id && e.label?.toLowerCase().includes('false'));
+                    if (trueEdge) {
+                        const trueNode = nodeMap.get(trueEdge.target);
+                        if (trueNode) description += `   - Then: ${trueNode.data.label}\n`;
+                    }
+                    if (falseEdge) {
+                        const falseNode = nodeMap.get(falseEdge.target);
+                        if (falseNode) description += `   - Else: ${falseNode.data.label}\n`;
+                    }
+                } else {
+                    description += `Conditional check (${node.data.label})\n`;
+                }
+                break;
+            case 'loop':
+                if (node.data.loopType && node.data.loopCondition) {
+                    description += `${node.data.loopType} loop: ${node.data.loopCondition}\n`;
+                } else {
+                    description += `Loop (${node.data.label})\n`;
+                }
+                break;
+            case 'function':
+                if (node.data.functionName) {
+                    description += `Call function ${node.data.functionName}(${node.data.functionArgs || ''})\n`;
+                } else {
+                    description += `Function call (${node.data.label})\n`;
+                }
+                break;
+            case 'output':
+                if (node.data.outputExpression) {
+                    description += `Print: ${node.data.outputExpression}\n`;
+                } else {
+                    description += `Output (${node.data.label})\n`;
+                }
+                break;
+        }
+    });
+    
+    description += "\n\nCRITICAL INSTRUCTIONS:\n";
+    description += "1. Output ONLY valid, executable Python code. No introduction, no markdown, no explanation text outside comments.\n";
+    description += "2. The code must be SIMPLE. If the flowchart is simple, the code MUST be simple.\n";
+    description += "3. Use Python comments (#) to explain the logic.\n";
+    description += "4. Do NOT define functions unless there is a 'Function' node in the flowchart.\n";
+    description += "5. Do NOT include 'if __name__ == \"__main__\":' blocks unless necessary.\n";
+    description += "6. Example Output:\n";
+    description += "   # Initialize variable\n";
+    description += "   x = 10\n";
+    description += "   # Print result\n";
+    description += "   print(x)\n";
+
+    const prompt = description;
+
+    try {
+        const client = getAiClient();
+        return await retryOperation(async () => {
+            const response = await client.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            const code = response.text;
+            console.log('🤖 Raw AI response:', code);
+            
+            if (!code) throw new Error("Empty response from AI");
+            
+            // Aggressive cleanup to extract only code
+            let cleanCode = code.trim();
+            
+            // Remove markdown code blocks
+            cleanCode = cleanCode.replace(/^```python\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '');
+
+            // Split into lines
+            const lines = cleanCode.split('\n');
+            const codeLines: string[] = [];
+            
+            // regex to identify likely code lines (not perfect, but filters out obvious conversational text)
+            // Python code usually starts with keywords, identifiers, or comments.
+            // Conversational text usually starts with "Here", "Sure", "This", "I have", etc.
+            
+            let foundCodeStart = false;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) {
+                    if (foundCodeStart) codeLines.push(line); // Preserve empty lines inside code
+                    continue;
+                }
+
+                // Skip lines that look like chat responses
+                if (!foundCodeStart && (
+                    trimmed.toLowerCase().startsWith('here is') ||
+                    trimmed.toLowerCase().startsWith('sure') || 
+                    trimmed.toLowerCase().startsWith('i have') ||
+                    trimmed.toLowerCase().startsWith('the following')
+                )) {
+                    continue;
+                }
+                
+                // Assume code starts
+                foundCodeStart = true;
+                codeLines.push(line);
+            }
+
+            const finalCode = codeLines.join('\n').trim();
+            console.log('✨ Cleaned code:', finalCode);
+            return finalCode;
+        });
+    } catch (error) {
+        console.error("Error generating code from flowchart:", error);
+        return null;
+    }
+};

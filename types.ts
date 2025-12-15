@@ -67,6 +67,7 @@ export interface User {
   avatar?: string;
   joinedAt: number;
   achievements?: UserAchievements;
+  net_value?: number; // Total value for leaderboard (e.g., total stars earned)
 }
 
 
@@ -219,3 +220,38 @@ export interface ReferenceMaterial {
   lastModified?: number;
 }
 
+
+// Flowchart Builder Types (Concept-to-Code)
+export type FlowchartNodeType = 'start' | 'end' | 'variable' | 'conditional' | 'loop' | 'function' | 'output';
+
+export interface FlowchartNodeData {
+  label: string;
+  // Variable node
+  variableName?: string;
+  variableValue?: string;
+  // Conditional node
+  condition?: string;
+  // Loop node
+  loopType?: 'for' | 'while';
+  loopCondition?: string;
+  // Function node
+  functionName?: string;
+  functionArgs?: string;
+  // Output node
+  outputExpression?: string;
+}
+
+export interface FlowchartData {
+  nodes: Array<{
+    id: string;
+    type: FlowchartNodeType;
+    data: FlowchartNodeData;
+    position?: { x: number; y: number };
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    label?: string; // For conditional branches: "True", "False"
+  }>;
+}

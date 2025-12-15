@@ -145,6 +145,15 @@ export const saveStarsData = async (userId: string, data: StarsData): Promise<vo
         const starsRef = userPaths.stars(userId);
         data.lastUpdated = Date.now();
         await setDoc(starsRef, data);
+
+        // Update net_value on root user document for leaderboard
+        // We use totalEarned as the metric for net_value to represent "all-time score"
+        const userRef = userPaths.root(userId);
+        await setDoc(userRef, {
+            net_value: data.totalEarned,
+            lastActive: Date.now()
+        }, { merge: true });
+
     } catch (error) {
         console.error('Error saving stars data:', error);
     }
