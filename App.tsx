@@ -16,6 +16,7 @@ import { MissionPage } from './components/MissionPage';
 import { PlaygroundDashboard } from './components/PlaygroundDashboard';
 import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
+import { FlowchartBuilder } from './components/FlowchartBuilder';
 
 import { Header, ViewState } from './components/Header';
 import { FlyingStar } from './components/FlyingStar';
@@ -29,9 +30,9 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
 // PRACTICE_ITEMS removed - loaded dynamically
-import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType } from './types';
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData } from './types';
 import { contentService } from './services/contentService';
-import { getChatResponse, lintCodeWithAI } from './services/geminiService';
+import { generateCodeFromFlowchart, getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
 import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
@@ -179,6 +180,7 @@ const App: React.FC = () => {
     const [isTerminalLoading, setIsTerminalLoading] = useState<boolean>(false);
     const [isNavOpen, setIsNavOpen] = useState<boolean>(true);
     const [showTutorial, setShowTutorial] = useState<boolean>(false);
+    const [isFlowchartMode, setIsFlowchartMode] = useState(false);
 
     const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
@@ -316,7 +318,7 @@ const App: React.FC = () => {
 
         window.addEventListener('starUpdate' as any, handleStarUpdate);
         return () => window.removeEventListener('starUpdate' as any, handleStarUpdate);
-    }, [user]);
+    }, [user, loadStarBalance]);
 
     // Auth-based Routing Logic
 
@@ -414,7 +416,7 @@ const App: React.FC = () => {
             setCode(codeToLoad);
             setLintIssues([]);
         }
-    }, [activePracticeItem, currentView, user, getStorageKey]);
+    }, [activePracticeItem, currentView, user, getStorageKey, currentLesson]);
 
     // Unified Autosave for Classroom and Practice
     useEffect(() => {
@@ -456,6 +458,61 @@ const App: React.FC = () => {
     }, [playgroundEditorCode, activePlaygroundFileId, currentView, updateFile, activePlaygroundFile?.content]);
 
     const activeCode = currentView === 'playground' ? playgroundEditorCode : code;
+
+    const handleCodeGenerated = useCallback((generatedCode: string | null) => {
+        console.log('📝 handleCodeGenerated called with:', generatedCode);
+        console.log('📝 Type of generatedCode:', typeof generatedCode);
+        
+        // Check if code generation was successful
+        if (!generatedCode || typeof generatedCode !== 'string') {
+            console.error('❌ Code generation failed or returned invalid data');
+            setIsFlowchartMode(false);
+            return;
+        }
+
+        console.log('✅ Code is valid, updating editor...');
+        console.log('📍 Current view:', currentView);
+
+        if (currentView === 'playground') {
+            // ALWAYS update the editor state if we are in playground mode
+            console.log('🎮 Updating playground editor code');
+            setPlaygroundEditorCode(generatedCode);
+            
+            // Only update file persistence if we have an active file
+            if (activePlaygroundFile) {
+                console.log('💾 Updating file:', activePlaygroundFile.name);
+                updateFile(activePlaygroundFile.id, { content: generatedCode });
+            }
+        } else {
+            // Update classroom/practice code
+            console.log('📚 Updating classroom/practice code');
+            setCode(generatedCode);
+        }
+        // Close flowchart mode after generating code
+        console.log('🔒 Closing flowchart mode');
+        setIsFlowchartMode(false);
+    }, [currentView, activePlaygroundFile, updateFile]);
+
+    // Handle flowchart generation - receives FlowchartData, calls AI, then updates code
+    const handleFlowchartGenerate = useCallback(async (flowchartData: FlowchartData) => {
+        console.log('🎨 handleFlowchartGenerate called with flowchart data');
+        try {
+            const generatedCode = await generateCodeFromFlowchart(flowchartData);
+            console.log('🎯 AI returned code:', generatedCode);
+            handleCodeGenerated(generatedCode);
+        } catch (error) {
+            console.error('💥 Error generating code:', error);
+            handleCodeGenerated(null);
+        }
+    }, [handleCodeGenerated]);
+
+    const handleOpenFlowchart = useCallback(() => {
+        setIsFlowchartMode(true);
+    }, []);
+
+    const handleCloseFlowchart = useCallback(() => {
+        setIsFlowchartMode(false);
+    }, []);
 
     useEffect(() => {
         if (currentView === 'home' || (currentView === 'playground' && playgroundView === 'dashboard') || (currentView === 'practice' && !activePracticeItem) || (currentView === 'practice' && activePracticeItem?.type === 'quiz')) return;
@@ -686,7 +743,7 @@ const App: React.FC = () => {
         if (isMobile) {
             setIsNavOpen(false);
         }
-    }, [code, currentLessonId, user, isMobile, getStorageKey, navigate]);
+    }, [code, currentLessonId, isMobile, getStorageKey, navigate]);
 
     const handleNavigate = useCallback((view: ViewState) => {
         if (view === 'classroom') {
@@ -1054,7 +1111,7 @@ const App: React.FC = () => {
         } finally {
             setIsChatLoading(false);
         }
-    }, [chatHistory, activePlaygroundFile, currentLesson, isChatLoading, aiAssistanceLevel, currentView, updateFile, activePracticeItem, activePlaygroundFileId]);
+    }, [chatHistory, activePlaygroundFile, currentLesson, isChatLoading, aiAssistanceLevel, currentView, updateFile, activePracticeItem, activePlaygroundFileId, activeCode]);
 
     const handleResetCode = useCallback(() => {
         setIsResetModalOpen(true);
@@ -1371,94 +1428,103 @@ const App: React.FC = () => {
             )}
             {showCompletionModal && <CompletionModal onClose={() => setShowCompletionModal(false)} />}
 
-            {(isClassroom) && (
+            {isFlowchartMode ? (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <FlowchartBuilder 
+                        onGenerateCode={handleFlowchartGenerate}
+                        onClose={handleCloseFlowchart}
+                    />
+                </div>
+            ) : (
                 <>
-                    {/* Mobile Navigation Overlay */}
-                    {isMobile && isNavOpen && (
-                        <div
-                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
-                            onClick={() => setIsNavOpen(false)}
-                        />
-                    )}
+                    {(isClassroom) && (
+                        <>
+                            {/* Mobile Navigation Overlay */}
+                            {isMobile && isNavOpen && (
+                                <div
+                                    className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+                                    onClick={() => setIsNavOpen(false)}
+                                />
+                            )}
 
-                    <aside
-                        style={{
-                            width: isMobile ? '80%' : (showSidebar ? `${panelSizes.nav}%` : 'auto'),
-                            maxWidth: isMobile ? '300px' : 'none',
-                            // Update height and top to match new header height (5rem/80px)
-                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
-                            top: isMobile ? '5rem' : '0'
-                        }}
-                        className={`
+                            <aside
+                                style={{
+                                    width: isMobile ? '80%' : (showSidebar ? `${panelSizes.nav}%` : 'auto'),
+                                    maxWidth: isMobile ? '300px' : 'none',
+                                    // Update height and top to match new header height (5rem/80px)
+                                    height: isMobile ? 'calc(100% - 5rem)' : '100%',
+                                    top: isMobile ? '5rem' : '0'
+                                }}
+                                className={`
             bg-gray-50 dark:bg-gray-900 flex flex-col 
             transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800
             ${isMobile
-                                ? `fixed left-0 z-40 transform ${isNavOpen ? 'translate-x-0' : '-translate-x-full'}`
-                                : 'relative h-full flex-shrink-0'
-                            }
+                                    ? `fixed left-0 z-40 transform ${isNavOpen ? 'translate-x-0' : '-translate-x-full'}`
+                                    : 'relative h-full flex-shrink-0'
+                                }
             ${!showSidebar && !isMobile ? 'hidden' : ''}
         `}
-                    >
-                        <div className={`h-12 px-4 flex items-center justify-between flex-shrink-0 border-b border-gray-200 dark:border-gray-800`}>
-                            <div className="flex items-center gap-2">
-                                <HamburgerIcon onClick={() => setIsNavOpen(!isNavOpen)} isOpen={isNavOpen} />
-                                {showSidebar && (
-                                    <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
-                                )}
-                            </div>
-                        </div>
-                        {showSidebar && (
-                            <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
-                                <div className="flex-1 overflow-y-auto">
-                                    <NavigationPanel
-                                        modules={modules}
-                                        currentLessonId={currentLessonId || ''}
-                                        onSelectLesson={handleSelectLesson}
-                                        completedLessons={completedLessons}
-                                    />
+                            >
+                                <div className={`h-12 px-4 flex items-center justify-between flex-shrink-0 border-b border-gray-200 dark:border-gray-800`}>
+                                    <div className="flex items-center gap-2">
+                                        <HamburgerIcon onClick={() => setIsNavOpen(!isNavOpen)} isOpen={isNavOpen} />
+                                        {showSidebar && (
+                                            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                                {showSidebar && (
+                                    <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
+                                        <div className="flex-1 overflow-y-auto">
+                                            <NavigationPanel
+                                                modules={modules}
+                                                currentLessonId={currentLessonId || ''}
+                                                onSelectLesson={handleSelectLesson}
+                                                completedLessons={completedLessons}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </aside>
+                        </>
+                    )}
+
+                    {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
+
+                    <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
+                        {/* Mobile Curriculum Trigger (When Nav is hidden) */}
+                        {isClassroom && isMobile && !isNavOpen && (
+                            <button
+                                onClick={() => setIsNavOpen(true)}
+                                className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
+                                aria-label="Open Curriculum"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                </svg>
+                            </button>
                         )}
-                    </aside>
-                </>
-            )}
 
-            {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
-
-            <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
-                {/* Mobile Curriculum Trigger (When Nav is hidden) */}
-                {isClassroom && isMobile && !isNavOpen && (
-                    <button
-                        onClick={() => setIsNavOpen(true)}
-                        className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
-                        aria-label="Open Curriculum"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                        </svg>
-                    </button>
-                )}
-
-                {(isClassroom && !currentLessonId) ? (
-                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-8 text-center animate-fade-in h-full">
-                        <div className="max-w-md space-y-6">
-                            <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-6">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                </svg>
-                            </div>
-                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to the Classroom</h2>
-                            <p className="text-lg">
-                                Select a module from the sidebar on the left to start your lesson.
-                            </p>
-                            <div className="flex justify-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-bounce-x">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                                </svg>
-                                <span>Pick a lesson</span>
-                            </div>
-                        </div>
-                        <style>{`
+                        {(isClassroom && !currentLessonId) ? (
+                            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-8 text-center animate-fade-in h-full">
+                                <div className="max-w-md space-y-6">
+                                    <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-6">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                                        </svg>
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to the Classroom</h2>
+                                    <p className="text-lg">
+                                        Select a module from the sidebar on the left to start your lesson.
+                                    </p>
+                                    <div className="flex justify-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-bounce-x">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                                        </svg>
+                                        <span>Pick a lesson</span>
+                                    </div>
+                                </div>
+                                <style>{`
             @keyframes bounce-x {
                 0%, 100% { transform: translateX(0); }
                 50% { transform: translateX(-25%); }
@@ -1467,179 +1533,182 @@ const App: React.FC = () => {
                 animation: bounce-x 1s infinite;
             }
         `}</style>
-                    </div>
-                ) : isLearnMode && activeLesson ? (
-                    <LearnPanel
-                        lesson={activeLesson}
-                        onComplete={() => {
-                            if (!completedLessons.has(activeLesson.id)) {
-                                markLessonAsCompleted(activeLesson.id);
-                                if (user) {
-                                    import('./services/starService').then(({ awardStarsForActivity }) => {
-                                        awardStarsForActivity(user.id, 'lesson', activeLesson.id).then(result => {
-                                            if (result.awarded) {
-                                                setStarNotification({
-                                                    amount: result.amount,
-                                                    reason: `Completed ${activeLesson.title}`
-                                                });
-                                            }
-                                        });
-                                    });
-                                }
-                            }
-                            advanceToNextLesson();
-                        }}
-                        isCompleted={completedLessons.has(activeLesson.id)}
-                        onPreviousLesson={handlePreviousLessonNav}
-                        onNextLesson={handleNextLessonNav}
-                        hasPreviousLesson={navigationState.hasPrevious}
-                        hasNextLesson={navigationState.hasNext}
-                    />
-                ) : isQuizMode && activeContentItem ? (
-                    <div className="h-full flex flex-col">
-                        {isPracticeQuiz && (
-                            <div className="h-14 flex-shrink-0 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between relative z-10">
-                                <button
-                                    onClick={() => {
-                                        setActivePracticeItem(null);
-                                        navigate('/practice');
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                                    </svg>
-                                    Back
-                                </button>
-                                <h2 className="font-bold text-gray-800 dark:text-gray-200 text-sm mr-4">{activeContentItem.title}</h2>
                             </div>
+                        ) : isLearnMode && activeLesson ? (
+                            <LearnPanel
+                                lesson={activeLesson}
+                                onComplete={() => {
+                                    if (!completedLessons.has(activeLesson.id)) {
+                                        markLessonAsCompleted(activeLesson.id);
+                                        if (user) {
+                                            import('./services/starService').then(({ awardStarsForActivity }) => {
+                                                awardStarsForActivity(user.id, 'lesson', activeLesson.id).then(result => {
+                                                    if (result.awarded) {
+                                                        setStarNotification({
+                                                            amount: result.amount,
+                                                            reason: `Completed ${activeLesson.title}`
+                                                        });
+                                                    }
+                                                });
+                                            });
+                                        }
+                                    }
+                                    advanceToNextLesson();
+                                }}
+                                isCompleted={completedLessons.has(activeLesson.id)}
+                                onPreviousLesson={handlePreviousLessonNav}
+                                onNextLesson={handleNextLessonNav}
+                                hasPreviousLesson={navigationState.hasPrevious}
+                                hasNextLesson={navigationState.hasNext}
+                            />
+                        ) : isQuizMode && activeContentItem ? (
+                            <div className="h-full flex flex-col">
+                                {isPracticeQuiz && (
+                                    <div className="h-14 flex-shrink-0 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 bg-white dark:bg-gray-900 justify-between relative z-10">
+                                        <button
+                                            onClick={() => {
+                                                setActivePracticeItem(null);
+                                                navigate('/practice');
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                                            </svg>
+                                            Back
+                                        </button>
+                                        <h2 className="font-bold text-gray-800 dark:text-gray-200 text-sm mr-4">{activeContentItem.title}</h2>
+                                    </div>
+                                )}
+                                <QuizPanel
+                                    questions={activeContentItem.quizQuestions || []}
+                                    onComplete={handleQuizComplete}
+                                    isCollapsed={false}
+                                    onToggleCollapse={() => { }}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <div
+                                    style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
+                                    className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
+                                >
+                                    <IdePanel
+                                        code={activeCode}
+                                        setCode={activeSetCode}
+                                        onRunCode={activeRunCode}
+                                        isLoading={isTerminalLoading}
+                                        onResetCode={handleResetCode}
+                                        onGetHelp={handleGetHelp}
+                                        isCollapsed={panelsCollapsed.ide}
+                                        onToggleCollapse={() => handleToggleCollapse('ide')}
+                                        onExportCode={(isPlayground || isPractice) ? handleExportCode : undefined}
+                                        onImportCode={(isPlayground || isPractice) ? handleImportCode : undefined}
+                                        resetButtonLabel={isPlayground ? "Clear" : "Reset"}
+                                        lintIssues={lintIssues}
+                                        saveStatus={saveStatus}
+                                        fileName={isPlayground ? activePlaygroundFile?.name : (isPractice ? activePracticeItem?.title : undefined)}
+                                        onFileNameChange={isPlayground && activePlaygroundFileId ? (newName) => updateFile(activePlaygroundFileId, { name: newName }) : undefined}
+                                        onBackToDashboard={isPlayground ? () => {
+                                            setPlaygroundView('dashboard');
+                                            navigate('/playground');
+                                        } : isPractice ? () => {
+                                            setActivePracticeItem(null);
+                                            navigate('/practice');
+                                        } : undefined}
+                                        backButtonLabel={isPlayground ? "Files" : (isPractice ? "Back" : undefined)}
+                                        enableAutocomplete={isPlayground && isPlaygroundAutocompleteEnabled}
+                                        onToggleAutocomplete={isPlayground ? () => setIsPlaygroundAutocompleteEnabled(prev => !prev) : undefined}
+                                    />
+                                </div>
+
+                                {!panelsCollapsed.ide && !panelsCollapsed.bottom && !isMobile && <Resizer direction="vertical" onMouseDown={(e) => handleMouseDown('ide', e)} />}
+
+                                <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
+                                    <BottomPanel
+                                        lesson={currentLesson}
+                                        isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
+                                        terminalOutput={terminalOutput}
+                                        isTerminalLoading={isTerminalLoading}
+                                        isCollapsed={panelsCollapsed.bottom}
+                                        onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, bottom: !prev.bottom }))}
+                                        activeTab={activeBottomTab}
+                                        onTabChange={setActiveBottomTab}
+                                        showReference={true}
+                                        isWaitingForInput={isWaitingForInput}
+                                        onInputSubmit={handleInputSubmit}
+                                    />
+                                </div>
+                            </>
                         )}
-                        <QuizPanel
-                            questions={activeContentItem.quizQuestions || []}
-                            onComplete={handleQuizComplete}
-                            isCollapsed={false}
-                            onToggleCollapse={() => { }}
-                        />
                     </div>
-                ) : (
-                    <>
-                        <div
-                            style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
-                            className={`flex flex-col transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
-                        >
-                            <IdePanel
-                                code={activeCode}
-                                setCode={activeSetCode}
-                                onRunCode={activeRunCode}
-                                isLoading={isTerminalLoading}
-                                onResetCode={handleResetCode}
-                                onGetHelp={handleGetHelp}
-                                isCollapsed={panelsCollapsed.ide}
-                                onToggleCollapse={() => handleToggleCollapse('ide')}
-                                onExportCode={(isPlayground || isPractice) ? handleExportCode : undefined}
-                                onImportCode={(isPlayground || isPractice) ? handleImportCode : undefined}
-                                resetButtonLabel={isPlayground ? "Clear" : "Reset"}
-                                lintIssues={lintIssues}
-                                saveStatus={saveStatus}
-                                fileName={isPlayground ? activePlaygroundFile?.name : (isPractice ? activePracticeItem?.title : undefined)}
-                                onFileNameChange={isPlayground && activePlaygroundFileId ? (newName) => updateFile(activePlaygroundFileId, { name: newName }) : undefined}
-                                onBackToDashboard={isPlayground ? () => {
-                                    setPlaygroundView('dashboard');
-                                    navigate('/playground');
-                                } : isPractice ? () => {
-                                    setActivePracticeItem(null);
-                                    navigate('/practice');
-                                } : undefined}
-                                backButtonLabel={isPlayground ? "Files" : (isPractice ? "Back" : undefined)}
-                                enableAutocomplete={isPlayground && isPlaygroundAutocompleteEnabled}
-                                onToggleAutocomplete={isPlayground ? () => setIsPlaygroundAutocompleteEnabled(prev => !prev) : undefined}
-                            />
-                        </div>
 
-                        {!panelsCollapsed.ide && !panelsCollapsed.bottom && !isMobile && <Resizer direction="vertical" onMouseDown={(e) => handleMouseDown('ide', e)} />}
+                    {showChatPanel && (
+                        <>
+                            {!panelsCollapsed.chat && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('chat', e)} />}
 
-                        <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
-                            <BottomPanel
-                                lesson={currentLesson}
-                                isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
-                                terminalOutput={terminalOutput}
-                                isTerminalLoading={isTerminalLoading}
-                                isCollapsed={panelsCollapsed.bottom}
-                                onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, bottom: !prev.bottom }))}
-                                activeTab={activeBottomTab}
-                                onTabChange={setActiveBottomTab}
-                                showReference={true}
-                                isWaitingForInput={isWaitingForInput}
-                                onInputSubmit={handleInputSubmit}
-                            />
-                        </div>
-                    </>
-                )}
-            </div>
+                            {/* Mobile Chat Overlay */}
+                            {isMobile && !panelsCollapsed.chat && (
+                                <div
+                                    className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
+                                    onClick={() => handleToggleCollapse('chat')}
+                                />
+                            )}
 
-            {showChatPanel && (
-                <>
-                    {!panelsCollapsed.chat && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('chat', e)} />}
-
-                    {/* Mobile Chat Overlay */}
-                    {isMobile && !panelsCollapsed.chat && (
-                        <div
-                            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
-                            onClick={() => handleToggleCollapse('chat')}
-                        />
-                    )}
-
-                    <aside
-                        style={{
-                            width: isMobile ? '85%' : (panelsCollapsed.chat ? 'auto' : `${panelSizes.chat}%`),
-                            maxWidth: isMobile ? '350px' : 'none',
-                            // Update height and top to match new header height (5rem/80px)
-                            height: isMobile ? 'calc(100% - 5rem)' : '100%',
-                            top: isMobile ? '5rem' : '0'
-                        }}
-                        className={`
+                            <aside
+                                style={{
+                                    width: isMobile ? '85%' : (panelsCollapsed.chat ? 'auto' : `${panelSizes.chat}%`),
+                                    maxWidth: isMobile ? '350px' : 'none',
+                                    // Update height and top to match new header height (5rem/80px)
+                                    height: isMobile ? 'calc(100% - 5rem)' : '100%',
+                                    top: isMobile ? '5rem' : '0'
+                                }}
+                                className={`
             bg-gray-50 dark:bg-gray-900 flex flex-col 
             transition-all duration-300 ease-in-out border-l border-gray-200 dark:border-gray-800
             ${!panelsCollapsed.chat ? 'min-w-[250px]' : ''}
             ${isMobile
-                                ? `fixed right-0 z-40 transform ${!panelsCollapsed.chat ? 'translate-x-0' : 'translate-x-full'}`
-                                : 'relative h-full flex-shrink-0'
-                            }
+                                    ? `fixed right-0 z-40 transform ${!panelsCollapsed.chat ? 'translate-x-0' : 'translate-x-full'}`
+                                    : 'relative h-full flex-shrink-0'
+                                }
         `}
-                    >
-                        {/* Mobile Chat Toggle */}
-                        {isMobile && panelsCollapsed.chat && !isQuizMode && (
-                            <button
-                                onClick={() => handleToggleCollapse('chat')}
-                                className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
-                                aria-label="Open AI Chat"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-                                </svg>
-                            </button>
-                        )}
+                                {/* Mobile Chat Toggle */}
+                                {isMobile && panelsCollapsed.chat && !isQuizMode && (
+                                    <button
+                                        onClick={() => handleToggleCollapse('chat')}
+                                        className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
+                                        aria-label="Open AI Chat"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+                                        </svg>
+                                    </button>
+                                )}
 
-                        {isClassroomQuiz ? (
-                            <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
-                                <div className="p-6 rounded-full bg-gray-900 mb-4">
-                                    <LockIcon className="w-12 h-12 text-gray-500" />
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
-                                <p className="text-sm text-center px-6 mt-2">
-                                    The AI assistant is disabled during classroom quizzes to test your knowledge.
-                                </p>
-                            </div>
-                        ) : (
-                            <ChatPanel
-                                messages={activeChatHistory}
-                                onSendMessage={handleSendMessage}
-                                isLoading={isChatLoading}
-                                isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
-                                onToggleCollapse={() => handleToggleCollapse('chat')}
-                            />
-                        )}
-                    </aside>
+                                {isClassroomQuiz ? (
+                                    <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
+                                        <div className="p-6 rounded-full bg-gray-900 mb-4">
+                                            <LockIcon className="w-12 h-12 text-gray-500" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
+                                        <p className="text-sm text-center px-6 mt-2">
+                                            The AI assistant is disabled during classroom quizzes to test your knowledge.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <ChatPanel
+                                        messages={activeChatHistory}
+                                        onSendMessage={handleSendMessage}
+                                        isLoading={isChatLoading}
+                                        isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
+                                        onToggleCollapse={() => handleToggleCollapse('chat')}
+                                        onOpenFlowchart={handleOpenFlowchart}
+                                    />
+                                )}
+                            </aside>
+                        </>
+                    )}
                 </>
             )}
         </main>

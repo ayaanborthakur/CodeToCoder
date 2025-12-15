@@ -1,9 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { CollapseIcon } from './CollapseIcon';
 
-declare var marked: { parse: (markdown: string) => string } | undefined;
+declare let marked: { parse: (markdown: string) => string } | undefined;
 
 declare global {
     interface Window {
@@ -18,11 +17,13 @@ interface ChatPanelProps {
     isLoading: boolean;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
+    onOpenFlowchart?: () => void; // Callback to open flowchart builder
 }
 
 import SparklesIcon from '../assets/icons/SparklesIcon.svg?react';
 import PaperAirplaneIcon from '../assets/icons/PaperAirplaneIcon.svg?react';
 import XMarkIcon from '../assets/icons/XMarkIcon.svg?react';
+import NetworkIcon from '../assets/icons/NetworkIcon.svg?react';
 
 const parseMarkdown = (content: string) => {
     if (typeof window !== 'undefined' && window.marked && window.marked.parse) {
@@ -31,7 +32,7 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart }) => {
     const [isInputOpen, setIsInputOpen] = useState(false);
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -121,13 +122,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                     {/* Footer Action Area */}
                     <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
                         {!isInputOpen ? (
-                            <button
-                                onClick={() => setIsInputOpen(true)}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm text-gray-700 dark:text-gray-200 font-semibold hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all group"
-                            >
-                                <SparklesIcon className="w-5 h-5 text-gray-400 group-hover:text-cyan-500 transition-colors" />
-                                <span>Ask a Question</span>
-                            </button>
+                            <div className="flex gap-2">
+                                {onOpenFlowchart && (
+                                    <button
+                                        onClick={onOpenFlowchart}
+                                        disabled={isLoading}
+                                        className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-gray-700 dark:text-gray-200 hover:border-purple-500 dark:hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Build flowchart and generate code"
+                                    >
+                                        <NetworkIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => setIsInputOpen(true)}
+                                    className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-gray-700 dark:text-gray-200 font-medium hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all group"
+                                >
+                                    <SparklesIcon className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 transition-colors" />
+                                    <span className="text-sm">Ask a Question</span>
+                                </button>
+                            </div>
                         ) : (
                             <form onSubmit={handleSubmit} className="flex flex-col gap-3 animate-slide-up">
                                 <div className="relative">

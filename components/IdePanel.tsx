@@ -1,5 +1,6 @@
-
-import React, { useRef, useMemo, useLayoutEffect, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import Editor, { Monaco } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import { CollapseIcon } from './CollapseIcon';
 import { IconButton } from './IconButton';
 import type { LintIssue } from '../types';
@@ -26,21 +27,6 @@ interface IdePanelProps {
     onToggleAutocomplete?: () => void;
 }
 
-declare global {
-    interface Window {
-        Prism: any;
-    }
-}
-
-const KEYWORDS = [
-    'print', 'input', 'len', 'range', 'return', 'def', 'class', 'import', 'from',
-    'if', 'else', 'elif', 'while', 'for', 'in', 'not', 'and', 'or', 'True', 'False', 'None',
-    'break', 'continue', 'pass', 'try', 'except', 'finally', 'raise', 'with', 'as', 'global',
-    'lambda', 'yield', 'async', 'await', 'int', 'str', 'float', 'list', 'dict', 'set', 'bool',
-    'random', 'math', 'append', 'pop', 'remove', 'sort', 'split', 'join', 'lower', 'upper',
-    'sum', 'max', 'min', 'abs', 'round', 'enumerate', 'zip', 'map', 'filter'
-];
-
 import PlayIcon from '../assets/icons/IdePlayIcon.svg?react';
 import SpinnerIcon from '../assets/icons/SpinnerIcon.svg?react';
 import HelpIcon from '../assets/icons/HelpIcon.svg?react';
@@ -50,14 +36,6 @@ import ImportIcon from '../assets/icons/ImportIcon.svg?react';
 import BackIcon from '../assets/icons/BackIcon.svg?react';
 import CheckIcon from '../assets/icons/CheckIcon.svg?react';
 import SettingsIcon from '../assets/icons/SettingsIcon.svg?react';
-
-const editorTypography: React.CSSProperties = {
-    fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
-    fontSize: '14px',
-    lineHeight: '24px',
-    tabSize: 4,
-    MozTabSize: 4,
-};
 
 const FileNameEditor: React.FC<{ name: string; onChange: (newName: string) => void; }> = ({ name, onChange }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -125,338 +103,124 @@ export const IdePanel: React.FC<IdePanelProps> = ({
     enableAutocomplete = false,
     onToggleAutocomplete
 }) => {
-    const lineNumbersRef = useRef<HTMLPreElement>(null);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const preRef = useRef<HTMLPreElement>(null);
-    const errorLayerRef = useRef<HTMLDivElement>(null);
-    const measureRef = useRef<HTMLSpanElement>(null);
-    const cursorRequestRef = useRef<number | null>(null);
-
-    const [hoveredIssue, setHoveredIssue] = useState<{ x: number, y: number, issue: LintIssue } | null>(null);
+    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const monacoRef = useRef<Monaco | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
-    // Autocomplete State
-    const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [selectedIndex, setSelectedIndex] = useState(0);
-    const [suggestionPos, setSuggestionPos] = useState<{ top: number, left: number } | null>(null);
-    const [charWidth, setCharWidth] = useState(0);
-
-    const lineCount = useMemo(() => code.split('\n').length, [code]);
-    const lineNumbers = useMemo(() =>
-        Array.from({ length: lineCount }, (_, i) => i + 1).join('\n'),
-        [lineCount]
-    );
-
-    const highlightedCode = useMemo(() => {
-        if (typeof window !== 'undefined' && window.Prism && window.Prism.languages.python) {
-            return window.Prism.highlight(code, window.Prism.languages.python, 'python');
-        }
-        return code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }, [code]);
-
-    // Measure character width for fallback
+    // Detect dark mode from document
     useEffect(() => {
-        if (measureRef.current) {
-            const rect = measureRef.current.getBoundingClientRect();
-            if (rect.width > 0) {
-                setCharWidth(rect.width);
-            }
-        }
+        const checkDarkMode = () => {
+            setIsDarkMode(document.documentElement.classList.contains('dark'));
+        };
+        
+        checkDarkMode();
+        
+        // Watch for theme changes
+        const observer = new MutationObserver(checkDarkMode);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+        return () => observer.disconnect();
     }, []);
 
-    // Extract User Identifiers for Smart Autocomplete
-    const userIdentifiers = useMemo(() => {
-        if (!enableAutocomplete) return [];
+    // Handle editor mount
+    const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor, monaco: Monaco) => {
+        editorRef.current = editor;
+        monacoRef.current = monaco;
 
-        const identifiers = new Set<string>();
-        const add = (str: string) => {
-            if (!str || /^\d+$/.test(str)) return;
-            identifiers.add(str);
-        };
+        // Force update value if it doesn't match prop (fixes race condition on mount)
+        if (code && editor.getValue() !== code) {
+            editor.setValue(code);
+        }
 
-        const assignmentRegex = /(?:^|[\n;]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*=(?!=)/g;
-        const defRegex = /def\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-        const classRegex = /class\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-        const forRegex = /for\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in/g;
-        const importRegex = /import\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-        const fromImportRegex = /from\s+[\w.]+\s+import\s+([a-zA-Z_][a-zA-Z0-9_]*)/g;
-        const argScopeRegex = /def\s+[a-zA-Z0-9_]*\s*\(([^)]+)\)/g;
+        // Configure editor options
+        editor.updateOptions({
+            fontSize: 14,
+            fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
+            lineHeight: 24,
+            tabSize: 4,
+            insertSpaces: true,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            wordWrap: 'off',
+            automaticLayout: true,
+            quickSuggestions: enableAutocomplete,
+            suggestOnTriggerCharacters: enableAutocomplete,
+            acceptSuggestionOnCommitCharacter: enableAutocomplete,
+            tabCompletion: enableAutocomplete ? 'on' : 'off',
+            parameterHints: { enabled: enableAutocomplete },
+            suggest: {
+                showKeywords: enableAutocomplete,
+                showSnippets: enableAutocomplete,
+            }
+        });
 
-        let match;
-        while ((match = assignmentRegex.exec(code)) !== null) add(match[1]);
-        while ((match = defRegex.exec(code)) !== null) add(match[1]);
-        while ((match = classRegex.exec(code)) !== null) add(match[1]);
-        while ((match = forRegex.exec(code)) !== null) add(match[1]);
-        while ((match = importRegex.exec(code)) !== null) add(match[1]);
-        while ((match = fromImportRegex.exec(code)) !== null) add(match[1]);
+        // Focus the editor
+        editor.focus();
+    };
 
-        while ((match = argScopeRegex.exec(code)) !== null) {
-            const argsStr = match[1];
-            const args = argsStr.split(',');
-            args.forEach(arg => {
-                let clean = arg.replace(/^[\s*]+/, '');
-                clean = clean.split(/[:=]/)[0].trim();
-                if (clean && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(clean)) {
-                    add(clean);
+    // Update lint markers when lintIssues change
+    useEffect(() => {
+        if (editorRef.current && monacoRef.current) {
+            const model = editorRef.current.getModel();
+            if (model) {
+                const markers: monaco.editor.IMarkerData[] = lintIssues.map(issue => ({
+                    severity: issue.type === 'error' 
+                        ? monacoRef.current!.MarkerSeverity.Error 
+                        : monacoRef.current!.MarkerSeverity.Warning,
+                    startLineNumber: issue.line,
+                    startColumn: 1,
+                    endLineNumber: issue.line,
+                    endColumn: model.getLineMaxColumn(issue.line),
+                    message: issue.message,
+                }));
+                
+                monacoRef.current.editor.setModelMarkers(model, 'linter', markers);
+            }
+        }
+    }, [lintIssues]);
+
+    // Update autocomplete settings
+    useEffect(() => {
+        if (editorRef.current) {
+            editorRef.current.updateOptions({
+                quickSuggestions: enableAutocomplete,
+                suggestOnTriggerCharacters: enableAutocomplete,
+                acceptSuggestionOnCommitCharacter: enableAutocomplete,
+                tabCompletion: enableAutocomplete ? 'on' : 'off',
+                parameterHints: { enabled: enableAutocomplete },
+                suggest: {
+                    showKeywords: enableAutocomplete,
+                    showSnippets: enableAutocomplete,
                 }
             });
         }
+    }, [enableAutocomplete]);
 
-        return Array.from(identifiers).filter(id => !KEYWORDS.includes(id));
-    }, [code, enableAutocomplete]);
-
-    const suggestionsList = useMemo(() => {
-        return [...userIdentifiers, ...KEYWORDS];
-    }, [userIdentifiers]);
-
-    // Synchronize scrolling
-    const syncScroll = (scrollTop: number, scrollLeft: number) => {
-        if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = scrollTop;
-        if (preRef.current) {
-            preRef.current.scrollTop = scrollTop;
-            preRef.current.scrollLeft = scrollLeft;
-        }
-        if (errorLayerRef.current) {
-            errorLayerRef.current.scrollTop = scrollTop;
-            errorLayerRef.current.scrollLeft = scrollLeft;
-        }
-    };
-
-    useLayoutEffect(() => {
-        if (textareaRef.current) {
-            const { scrollTop, scrollLeft } = textareaRef.current;
-            syncScroll(scrollTop, scrollLeft);
-        }
-    }, [code, lintIssues]);
-
-    const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
-        const { scrollTop, scrollLeft } = e.currentTarget;
-        syncScroll(scrollTop, scrollLeft);
-        setHoveredIssue(null);
-        setSuggestionPos(null); // Close autocomplete on scroll
-        setSuggestions([]);
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const newValue = e.target.value;
-        const cursorStart = e.target.selectionStart;
-        setCode(newValue);
-
-        if (!enableAutocomplete) {
-            setSuggestions([]);
-            return;
-        }
-
-        const textBeforeCursor = newValue.slice(0, cursorStart);
-        // Match the last word boundary
-        const match = textBeforeCursor.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)$/);
-
-        if (match) {
-            const word = match[1];
-            // Minimum 1 character to trigger
-            if (word.length < 1) {
-                setSuggestions([]);
-                setSuggestionPos(null);
-                return;
-            }
-
-            const matches = suggestionsList.filter(k => k.startsWith(word) && k !== word);
-
-            if (matches.length > 0) {
-                // Calculate precise position
-                const lines = textBeforeCursor.split('\n');
-                const row = lines.length - 1;
-                const currentLineText = lines[lines.length - 1];
-
-                // Measure text width precisely
-                let leftOffset = 0;
-                if (measureRef.current) {
-                    measureRef.current.textContent = currentLineText;
-                    leftOffset = measureRef.current.getBoundingClientRect().width;
-                } else {
-                    leftOffset = currentLineText.length * charWidth;
-                }
-
-                const lineHeight = 24;
-                const topOffset = (row + 1) * lineHeight + 16; // 16px padding top
-
-                // Account for scroll
-                const scrollTop = textareaRef.current?.scrollTop || 0;
-                const scrollLeft = textareaRef.current?.scrollLeft || 0;
-
-                setSuggestions(matches.slice(0, 5)); // Limit to top 5
-                setSelectedIndex(0);
-                setSuggestionPos({
-                    top: topOffset - scrollTop,
-                    left: leftOffset + 16 - scrollLeft // 16px padding left
-                });
-                return;
-            }
-        }
-
-        setSuggestions([]);
-        setSuggestionPos(null);
-    };
-
-    const acceptSuggestion = useCallback((index: number) => {
-        if (suggestions.length === 0 || !textareaRef.current) return;
-
-        const suggestion = suggestions[index];
-        const cursor = textareaRef.current.selectionStart;
-        const textBeforeCursor = code.slice(0, cursor);
-        const match = textBeforeCursor.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)$/);
-
-        if (match) {
-            const word = match[1];
-            const newValue = code.slice(0, cursor - word.length) + suggestion + code.slice(cursor);
-            setCode(newValue);
-            cursorRequestRef.current = cursor - word.length + suggestion.length;
-            setSuggestions([]);
-            setSuggestionPos(null);
-        }
-    }, [code, suggestions, setCode]);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        // Autocomplete handling
-        if (suggestions.length > 0) {
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setSelectedIndex(prev => (prev + 1) % suggestions.length);
-                return;
-            }
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSelectedIndex(prev => (prev - 1 + suggestions.length) % suggestions.length);
-                return;
-            }
-            if (e.key === 'Tab' || e.key === 'Enter') {
-                e.preventDefault();
-                acceptSuggestion(selectedIndex);
-                return;
-            }
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                setSuggestions([]);
-                setSuggestionPos(null);
-                return;
-            }
-        }
-
-        // Editor shortcuts and typing enhancements
-        const textarea = e.currentTarget;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const value = textarea.value;
-
-        if (e.key === 'Tab') {
-            e.preventDefault();
-
-            if (e.shiftKey) {
-                // Unindent current line
-                const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-                const lineEnd = value.indexOf('\n', start);
-                // Handle last line case
-                const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-                const lineContent = value.substring(lineStart, actualLineEnd);
-
-                if (lineContent.startsWith("    ")) {
-                    const newValue = value.substring(0, lineStart) + lineContent.substring(4) + value.substring(actualLineEnd);
-                    setCode(newValue);
-                    // Try to preserve relative cursor position, but don't go before line start
-                    cursorRequestRef.current = Math.max(lineStart, start - 4);
-                }
-            } else {
-                // Tab: Insert 4 spaces (Standard Python Indent)
-                const newValue = value.substring(0, start) + "    " + value.substring(end);
-                setCode(newValue);
-                cursorRequestRef.current = start + 4;
-            }
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-
-            // Auto-indentation logic
-            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-            const currentLine = value.substring(lineStart, start);
-
-            // Get current indentation
-            const match = currentLine.match(/^(\s*)/);
-            let indent = match ? match[1] : "";
-
-            // Increase indent if line ends with colon
-            if (currentLine.trim().endsWith(':')) {
-                indent += "    ";
-            }
-
-            const newValue = value.substring(0, start) + "\n" + indent + value.substring(end);
-            setCode(newValue);
-            cursorRequestRef.current = start + 1 + indent.length;
-        } else if (e.key === 'Backspace') {
-            // Smart Backspace: Delete 4 spaces at once if at indentation
-            if (start === end) {
-                const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-                const textBefore = value.substring(lineStart, start);
-
-                // Check if we are in the indentation zone (only whitespace before cursor on this line)
-                // and if there are at least 4 spaces before the cursor
-                if (/^\s+$/.test(textBefore) && textBefore.endsWith("    ")) {
-                    e.preventDefault();
-                    const newValue = value.substring(0, start - 4) + value.substring(end);
-                    setCode(newValue);
-                    cursorRequestRef.current = start - 4;
-                }
-            }
-        }
-    };
-
-    // Update cursor position after autocomplete or shortcuts
+    // Handle code changes from parent (e.g., Reset, Import, Concept-to-Code)
     useEffect(() => {
-        if (cursorRequestRef.current !== null && textareaRef.current) {
-            textareaRef.current.setSelectionRange(cursorRequestRef.current, cursorRequestRef.current);
-            cursorRequestRef.current = null;
+        if (editorRef.current) {
+            const currentValue = editorRef.current.getValue();
+            // Directly compare strings to avoid unnecessary updates, but ensure update if different
+            if (currentValue !== code) {
+                // Use executeEdits to preserve undo stack if desired, or setValue for complete replacement
+                // For "Concept-to-Code" replacement, setValue is safer to ensure exact match.
+                editorRef.current.setValue(code);
+            }
         }
-    }, [code]);
+    }, [code]); // Dependency on 'code' ensures this runs whenever parent updates prop
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLTextAreaElement>) => {
-        if (lintIssues.length === 0) return;
-
-        const textarea = e.currentTarget;
-        const rect = textarea.getBoundingClientRect();
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-
-        const relativeY = mouseY - rect.top + textarea.scrollTop - 16;
-
-        if (relativeY < 0) {
-            setHoveredIssue(null);
-            return;
+    const handleEditorChange = (value: string | undefined) => {
+        if (value !== undefined) {
+            setCode(value);
         }
-
-        const lineHeight = 24;
-        const lineIndex = Math.floor(relativeY / lineHeight);
-        const issue = lintIssues.find(i => i.line === lineIndex + 1);
-
-        if (issue) {
-            setHoveredIssue({ x: mouseX, y: mouseY + 20, issue });
-        } else {
-            setHoveredIssue(null);
-        }
-    };
-
-    const handleMouseLeave = () => {
-        setHoveredIssue(null);
     };
 
     return (
         <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800">
-            {/* Hidden span to measure character width for auto-suggest alignment */}
-            <span
-                ref={measureRef}
-                style={{ ...editorTypography, position: 'absolute', visibility: 'hidden', whiteSpace: 'pre' }}
-                aria-hidden="true"
-            >
-                M
-            </span>
-
             <div className="h-12 px-2 sm:px-4 flex justify-between items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
                 <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
                     <button
@@ -621,118 +385,27 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                 )}
             </div>
             {!isCollapsed && (
-                <div className="flex-1 flex overflow-hidden p-2 relative">
-                    {/* Hover Tooltip */}
-                    {hoveredIssue && (
-                        <div
-                            className={`fixed z-50 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg border-l-4 max-w-xs animate-fade-in pointer-events-none ${hoveredIssue.issue.type === 'warning' ? 'border-blue-500' : 'border-red-500'}`}
-                            style={{ left: hoveredIssue.x, top: hoveredIssue.y }}
-                        >
-                            <p className={`font-bold mb-1 ${hoveredIssue.issue.type === 'warning' ? 'text-blue-300' : 'text-red-300'}`}>
-                                {hoveredIssue.issue.type === 'error' ? 'Syntax Error' : 'Warning'}
-                            </p>
-                            <p>{hoveredIssue.issue.message}</p>
-                        </div>
-                    )}
-
-                    <div className="flex-1 flex overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm relative">
-                        {/* Line Numbers */}
-                        <pre
-                            ref={lineNumbersRef}
-                            className="py-4 pr-3 pl-4 text-right text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 select-none overflow-hidden border-r border-gray-200 dark:border-gray-700 font-mono hidden sm:block"
-                            style={editorTypography}
-                            aria-hidden="true"
-                        >
-                            {lineNumbers}
-                        </pre>
-
-                        {/* Editor Container */}
-                        <div className="relative flex-1 overflow-hidden h-full bg-white dark:bg-gray-900">
-                            {/* Wrapper for absolute positioning to work with scrolling content */}
-                            <div className="min-w-full min-h-full relative">
-                                {/* Error Marker Layer (Below text) */}
-                                <div
-                                    ref={errorLayerRef}
-                                    className="absolute inset-0 m-0 py-4 pl-4 pr-4 whitespace-pre pointer-events-none font-mono z-0"
-                                    style={editorTypography}
-                                    aria-hidden="true"
-                                >
-                                    {lintIssues.map((issue, i) => {
-                                        const lines = code.split('\n');
-                                        const lineContent = lines[issue.line - 1] || '';
-                                        const width = `${lineContent.length || 1}ch`;
-                                        return (
-                                            <div
-                                                key={`${issue.line}-${i}`}
-                                                className={`absolute border-b-2 border-dashed opacity-80 ${issue.type === 'warning' ? 'border-blue-500' : 'border-red-500'}`}
-                                                style={{
-                                                    top: `${(issue.line - 1) * 24 + 16 + 20}px`,
-                                                    left: '16px',
-                                                    width: width,
-                                                    height: '2px'
-                                                }}
-                                            />
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Syntax Highlighting Layer */}
-                                <pre
-                                    ref={preRef}
-                                    className="absolute inset-0 m-0 py-4 pl-4 pr-4 whitespace-pre pointer-events-none select-none font-mono z-10"
-                                    style={editorTypography}
-                                    aria-hidden="true"
-                                >
-                                    <code
-                                        className="language-python"
-                                        style={{ ...editorTypography, fontFamily: 'inherit' }}
-                                        dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                                    />
-                                </pre>
-
-                                {/* Input Layer */}
-                                <textarea
-                                    ref={textareaRef}
-                                    value={code}
-                                    onChange={handleChange}
-                                    onKeyDown={handleKeyDown}
-                                    onScroll={handleScroll}
-                                    onMouseMove={handleMouseMove}
-                                    onMouseLeave={handleMouseLeave}
-                                    className="absolute inset-0 w-full h-full py-4 pl-4 pr-4 bg-transparent text-transparent caret-gray-900 dark:caret-white resize-none outline-none whitespace-pre overflow-hidden z-30 font-mono"
-                                    style={editorTypography}
-                                    spellCheck="false"
-                                    autoCapitalize="off"
-                                    autoComplete="off"
-                                    autoCorrect="off"
-                                />
-
-                                {/* Dropdown Suggestions Layer (Z-index higher than textarea to float on top) */}
-                                {suggestions.length > 0 && suggestionPos && (
-                                    <ul
-                                        className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg overflow-hidden min-w-[150px]"
-                                        style={{
-                                            top: suggestionPos.top,
-                                            left: suggestionPos.left
-                                        }}
-                                    >
-                                        {suggestions.map((suggestion, index) => (
-                                            <li
-                                                key={suggestion}
-                                                onClick={() => acceptSuggestion(index)}
-                                                className={`px-3 py-1 text-sm font-mono cursor-pointer flex justify-between items-center ${index === selectedIndex
-                                                    ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300'
-                                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                                    }`}
-                                            >
-                                                <span>{suggestion}</span>
-                                                {index === selectedIndex && <span className="text-[10px] opacity-50 ml-2">Tab</span>}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
+                <div className="flex-1 overflow-hidden p-2">
+                    <div className="h-full border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+                        <Editor
+                            height="100%"
+                            defaultLanguage="python"
+                            value={code}
+                            onChange={handleEditorChange}
+                            onMount={handleEditorDidMount}
+                            theme={isDarkMode ? 'vs-dark' : 'vs-light'}
+                            options={{
+                                fontSize: 14,
+                                fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
+                                lineHeight: 24,
+                                tabSize: 4,
+                                insertSpaces: true,
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                wordWrap: 'off',
+                                automaticLayout: true,
+                            }}
+                        />
                     </div>
                 </div>
             )}

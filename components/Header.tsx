@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'concept-map';
 
 interface HeaderProps {
   currentView: ViewState;
