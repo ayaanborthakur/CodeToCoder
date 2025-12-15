@@ -26,6 +26,7 @@ import { AboutTeam } from './components/AboutTeam';
 import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
+import { LeaderboardPage } from './components/LeaderboardPage';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -132,6 +133,7 @@ const App: React.FC = () => {
         if (path.startsWith('/practice')) return 'practice';
         if (path.startsWith('/profile')) return 'profile';
         if (path.startsWith('/marketplace')) return 'marketplace';
+        if (path.startsWith('/leaderboard')) return 'leaderboard';
         if (path.startsWith('/about')) return 'about';
         if (path.startsWith('/reference')) return 'reference';
         return 'mission';
@@ -299,9 +301,13 @@ const App: React.FC = () => {
             setStarBalance(0);
             return;
         }
-        const { getMarketplaceData } = await import('./services/marketplaceService');
+        const { getMarketplaceData, getStarsData, saveStarsData } = await import('./services/marketplaceService');
         const data = await getMarketplaceData(user.id);
         setStarBalance(data.stars.balance);
+
+        // Background sync: Ensure net_value is up-to-date on root document for leaderboard
+        const stars = await getStarsData(user.id);
+        await saveStarsData(user.id, stars);
     }, [user]);
 
     // Load star balance
@@ -793,23 +799,23 @@ const App: React.FC = () => {
 
     const navigationState = useMemo(() => {
         if (!currentModuleId || !currentLessonId || !modules.length) {
-             return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
+            return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
         }
 
         const module = modules.find(m => m.id === currentModuleId);
         if (!module) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
-        
+
         const lessonIndex = module.lessons.findIndex(l => l.id === currentLessonId);
         if (lessonIndex === -1) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
 
         const hasPrevious = lessonIndex > 0;
         const hasNext = lessonIndex < module.lessons.length - 1;
 
-        return { 
-            hasPrevious, 
-            hasNext, 
-            prevId: hasPrevious ? module.lessons[lessonIndex - 1].id : null, 
-            nextId: hasNext ? module.lessons[lessonIndex + 1].id : null 
+        return {
+            hasPrevious,
+            hasNext,
+            prevId: hasPrevious ? module.lessons[lessonIndex - 1].id : null,
+            nextId: hasNext ? module.lessons[lessonIndex + 1].id : null
         };
 
     }, [currentModuleId, currentLessonId, modules]);
@@ -889,7 +895,7 @@ const App: React.FC = () => {
         try {
             // 1. Run Code Locally (Pyodide)
             const { runPythonCode } = await import('./services/pyodideService');
-            
+
             // We use callbacks to stream output and handle input
             const result = await runPythonCode(code, {
                 onOutput: (text) => setTerminalOutput(prev => prev + text),
@@ -920,7 +926,7 @@ const App: React.FC = () => {
             // Actually result.success is available if we use standard runPythonCode wrapper, 
             // but we might need to adjust logic since we stream output now.
             // But wait, runPythonCode DOES return a final object too.
-            
+
             if (result.success && contextItem) {
                 if (currentView === 'practice') {
                     if (!completedPracticeItems.has(contextItem.id)) {
@@ -1334,30 +1340,30 @@ const App: React.FC = () => {
         if (showReloadOption) {
             return (
                 <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
-                   <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
-                   <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
-                   <button 
-                     onClick={() => window.location.reload()} 
-                     className="px-6 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors font-semibold"
-                   >
-                     Reload Application
-                   </button>
-                   <button 
-                     onClick={() => {
-                        // Clear critical storages that might block loading
-                        localStorage.removeItem('firebase:previous_websocket_failure');
-                        window.location.reload();
-                     }}
-                     className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
-                   >
-                     Clear Cache & Reload
-                   </button>
+                    <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
+                    <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors font-semibold"
+                    >
+                        Reload Application
+                    </button>
+                    <button
+                        onClick={() => {
+                            // Clear critical storages that might block loading
+                            localStorage.removeItem('firebase:previous_websocket_failure');
+                            window.location.reload();
+                        }}
+                        className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                    >
+                        Clear Cache & Reload
+                    </button>
                 </div>
             )
         }
 
         return (
-            <LoadingScreen 
+            <LoadingScreen
                 status={{
                     auth: !isAuthLoading,
                     progress: isProgressLoaded,
@@ -1811,6 +1817,8 @@ const App: React.FC = () => {
                         } />
 
                         <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />} />
+
+                        <Route path="/leaderboard" element={<LeaderboardPage />} />
 
 
 

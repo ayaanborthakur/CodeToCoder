@@ -67,6 +67,7 @@ export interface User {
   avatar?: string;
   joinedAt: number;
   achievements?: UserAchievements;
+  net_value?: number; // Total value for leaderboard (e.g., total stars earned)
 }
 
 
