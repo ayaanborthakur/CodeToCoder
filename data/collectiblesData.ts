@@ -306,13 +306,13 @@ export const RARITY_GLOW = {
     divine: 'shadow-cyan-400/80 animate-pulse'
 };
 
-// Drop rate percentages for reference
-export const RARITY_DROP_RATES = {
-    common: 0.60,      // 60%
-    uncommon: 0.25,    // 25%
-    rare: 0.10,        // 10%
-    epic: 0.04,        // 4%
-    legendary: 0.008,  // 0.8%
-    mythic: 0.005,     // 0.5% (decreased from 0.2%)
-    divine: 0.001      // 0.1%
+// Collectible sell rates by rarity
+export const COLLECTIBLE_SELL_RATES = {
+    common: 5,
+    uncommon: 10,
+    rare: 25,
+    epic: 100,
+    legendary: 250,
+    mythic: 500,
+    divine: 1000
 };

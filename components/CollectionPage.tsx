@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getOwnedCollectibles, sellCollectible } from '../services/marketplaceService';
-import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW } from '../data/collectiblesData';
+import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW, COLLECTIBLE_SELL_RATES } from '../data/collectiblesData';
 import type { Collectible, Rarity } from '../types';
 
 import { ViewState } from './Header';
@@ -60,16 +60,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
     };
 
     const getSellValue = (rarity: Rarity) => {
-        switch (rarity) {
-            case 'common': return 10;
-            case 'uncommon': return 20;
-            case 'rare': return 50;
-            case 'epic': return 100;
-            case 'legendary': return 250;
-            case 'mythic': return 500;
-            case 'divine': return 1000;
-            default: return 0;
-        }
+        return COLLECTIBLE_SELL_RATES[rarity] || 0;
     };
 
     const rarities: (Rarity | 'all')[] = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine'];

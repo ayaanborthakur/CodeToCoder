@@ -49,9 +49,9 @@ export const calculateStarReward = (
     return Math.floor(baseReward);
 };
 
-import { PACKS } from '../data/marketplaceData';
+import { PACKS_DATA } from '../data/packsData';
 import { DAILY_CHALLENGES } from '../data/dailyChallengesData';
-import { COLLECTIBLES } from '../data/collectiblesData';
+import { COLLECTIBLES, COLLECTIBLE_SELL_RATES } from '../data/collectiblesData';
 
 const CURRENT_MARKETPLACE_VERSION = 3; // Incremented for new structure
 
@@ -399,7 +399,7 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
 
     const starsData = await getStarsData(userId);
     const collectionData = await getCollectionData(userId);
-    const pack = PACKS.find(p => p.id === packId);
+    const pack = PACKS_DATA.find(p => p.id === packId);
 
     if (!pack) throw new Error('Pack not found');
     if (starsData.balance < pack.cost) throw new Error('Insufficient stars');
@@ -429,34 +429,24 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
             let rarity: Rarity = 'common';
             const rarityRoll = Math.random();
 
-            // Determine rarity based on pack tier
-            if (pack.tier === 'designer') {
-                if (rarityRoll < 0.05) rarity = 'divine';
-                else if (rarityRoll < 0.40) rarity = 'mythic';
-                else rarity = 'legendary';
-            } else if (pack.tier === 'developer') {
-                if (rarityRoll < 0.05) rarity = 'legendary';
-                else if (rarityRoll < 0.15) rarity = 'epic';
-                else if (rarityRoll < 0.40) rarity = 'rare';
-                else if (rarityRoll < 0.70) rarity = 'uncommon';
-                else rarity = 'common';
-            } else if (pack.tier === 'elite') {
-                if (rarityRoll < 0.05) rarity = 'divine';
-                else if (rarityRoll < 0.20) rarity = 'mythic';
-                else if (rarityRoll < 0.50) rarity = 'legendary';
-                else rarity = 'epic';
-            } else if (pack.tier === 'premium') {
-                if (rarityRoll < 0.01) rarity = 'mythic';
-                else if (rarityRoll < 0.05) rarity = 'legendary';
-                else if (rarityRoll < 0.20) rarity = 'epic';
-                else if (rarityRoll < 0.45) rarity = 'rare';
-                else if (rarityRoll < 0.50) rarity = 'uncommon';
-                else rarity = 'common';
+            // Determine rarity based on pack drop rates
+            const dropRates = pack.dropRates;
+            
+            // Calculate cumulative probabilities
+            if (rarityRoll < dropRates.divine) {
+                rarity = 'divine';
+            } else if (rarityRoll < dropRates.divine + dropRates.mythic) {
+                rarity = 'mythic';
+            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary) {
+                rarity = 'legendary';
+            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic) {
+                rarity = 'epic';
+            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic + dropRates.rare) {
+                rarity = 'rare';
+            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic + dropRates.rare + dropRates.uncommon) {
+                rarity = 'uncommon';
             } else {
-                if (rarityRoll < 0.05) rarity = 'epic';
-                else if (rarityRoll < 0.20) rarity = 'rare';
-                else if (rarityRoll < 0.50) rarity = 'uncommon';
-                else rarity = 'common';
+                rarity = 'common';
             }
 
             const availableCollectibles = COLLECTIBLES.filter(c => c.rarity === rarity);
@@ -631,20 +621,12 @@ export const sellCollectible = async (userId: string, collectibleId: string, amo
 
     collectionData.collectibles.ownedCollectibleIds = newOwned;
 
-    // Calculate sell value
+    // Calculate sell value using COLLECTIBLE_SELL_RATES
     const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
-    let sellValuePerItem = 10;
+    let sellValuePerItem = COLLECTIBLE_SELL_RATES.common; // Default to common rarity value
 
     if (collectible) {
-        switch (collectible.rarity) {
-            case 'common': sellValuePerItem = 10; break;
-            case 'uncommon': sellValuePerItem = 20; break;
-            case 'rare': sellValuePerItem = 50; break;
-            case 'epic': sellValuePerItem = 100; break;
-            case 'legendary': sellValuePerItem = 250; break;
-            case 'mythic': sellValuePerItem = 500; break;
-            case 'divine': sellValuePerItem = 1000; break;
-        }
+        sellValuePerItem = COLLECTIBLE_SELL_RATES[collectible.rarity];
     }
 
     const totalSellValue = sellValuePerItem * amount;
