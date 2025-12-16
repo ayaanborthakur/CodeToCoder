@@ -9,7 +9,7 @@ import {
     getTimeUntilDailyPrize,
     claimChallengeReward
 } from '../services/marketplaceService';
-import { PACKS } from '../data/marketplaceData';
+import { PACKS_DATA } from '../data/packsData';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import type { UserStars, DailyChallenge, Collectible } from '../types';
 
@@ -31,7 +31,6 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
     const [purchasingPack, setPurchasingPack] = useState<string | null>(null);
     const [claimingPrize, setClaimingPrize] = useState(false);
     const [claimingChallengeId, setClaimingChallengeId] = useState<string | null>(null);
-    const [showRarityInfo, setShowRarityInfo] = useState(false);
     const [showPackDropRates, setShowPackDropRates] = useState<string | null>(null);
 
     // New Collectible Modal State
@@ -147,99 +146,31 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                 />
             )}
 
-            {/* Rarity Info Modal */}
-            {showRarityInfo && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowRarityInfo(false)}>
-                    <div className="bg-surface border border-border-default rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-text-primary">Rarity Drop Rates</h3>
-                            <button onClick={() => setShowRarityInfo(false)} className="text-text-secondary hover:text-text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-border-default">
-                                <span className="font-bold text-text-secondary">Common</span>
-                                <span className="font-mono text-text-primary">50%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-green-900/30">
-                                <span className="font-bold text-green-400">Uncommon</span>
-                                <span className="font-mono text-text-primary">30%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-blue-900/30">
-                                <span className="font-bold text-blue-400">Rare</span>
-                                <span className="font-mono text-text-primary">12%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-purple-900/30">
-                                <span className="font-bold text-purple-400">Epic</span>
-                                <span className="font-mono text-text-primary">5%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-yellow-900/30">
-                                <span className="font-bold text-yellow-400">Legendary</span>
-                                <span className="font-mono text-text-primary">2%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-red-900/30">
-                                <span className="font-bold text-red-500 animate-pulse">Mythic</span>
-                                <span className="font-mono text-text-primary">0.5%</span>
-                            </div>
-                            <div className="flex items-center justify-between p-3 bg-surface-highlight rounded-lg border border-cyan-900/30">
-                                <span className="font-bold text-cyan-300 animate-pulse">Divine</span>
-                                <span className="font-mono text-text-primary">0.1%</span>
-                            </div>
-                        </div>
-                        <p className="mt-4 text-xs text-text-secondary text-center">
-                            Higher tier packs increase your chances for rarer items!
-                        </p>
-                    </div>
-                </div>
-            )}
-
             {/* Pack-Specific Drop Rates Modal */}
             {showPackDropRates && (() => {
-                const pack = PACKS.find(p => p.id === showPackDropRates);
+                const pack = PACKS_DATA.find(p => p.id === showPackDropRates);
                 if (!pack) return null;
 
                 const getPackDropRates = () => {
-                    if (pack.tier === 'designer') {
-                        return [
-                            { rarity: 'Legendary', rate: '60%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
-                            { rarity: 'Mythic', rate: '35%', color: 'text-red-500', border: 'border-red-900/30' },
-                            { rarity: 'Divine', rate: '5%', color: 'text-cyan-300', border: 'border-cyan-900/30' },
-                        ];
-                    } else if (pack.tier === 'developer') {
-                        return [
-                            { rarity: 'Common', rate: '30%', color: 'text-slate-400', border: 'border-slate-800' },
-                            { rarity: 'Uncommon', rate: '30%', color: 'text-green-400', border: 'border-green-900/30' },
-                            { rarity: 'Rare', rate: '25%', color: 'text-blue-400', border: 'border-blue-900/30' },
-                            { rarity: 'Epic', rate: '10%', color: 'text-purple-400', border: 'border-purple-900/30' },
-                            { rarity: 'Legendary', rate: '5%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
-                        ];
-                    } else if (pack.tier === 'elite') {
-                        return [
-                            { rarity: 'Epic', rate: '50%', color: 'text-purple-400', border: 'border-purple-900/30' },
-                            { rarity: 'Legendary', rate: '30%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
-                            { rarity: 'Mythic', rate: '15%', color: 'text-red-500', border: 'border-red-900/30' },
-                            { rarity: 'Divine', rate: '5%', color: 'text-cyan-300', border: 'border-cyan-900/30' },
-                        ];
-                    } else if (pack.tier === 'premium') {
-                        return [
-                            { rarity: 'Common', rate: '50%', color: 'text-slate-400', border: 'border-slate-800' },
-                            { rarity: 'Uncommon', rate: '5%', color: 'text-green-400', border: 'border-green-900/30' },
-                            { rarity: 'Rare', rate: '25%', color: 'text-blue-400', border: 'border-blue-900/30' },
-                            { rarity: 'Epic', rate: '15%', color: 'text-purple-400', border: 'border-purple-900/30' },
-                            { rarity: 'Legendary', rate: '4%', color: 'text-yellow-400', border: 'border-yellow-900/30' },
-                            { rarity: 'Mythic', rate: '1%', color: 'text-red-500', border: 'border-red-900/30' },
-                        ];
-                    } else {
-                        return [
-                            { rarity: 'Common', rate: '50%', color: 'text-slate-400', border: 'border-slate-800' },
-                            { rarity: 'Uncommon', rate: '30%', color: 'text-green-400', border: 'border-green-900/30' },
-                            { rarity: 'Rare', rate: '15%', color: 'text-blue-400', border: 'border-blue-900/30' },
-                            { rarity: 'Epic', rate: '5%', color: 'text-purple-400', border: 'border-purple-900/30' },
-                        ];
-                    }
+                    // Convert pack.dropRates to display format, filtering out 0% rates
+                    const rarityOrder: Array<keyof typeof pack.dropRates> = ['divine', 'mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
+                    const rarityColors = {
+                        common: { color: 'text-slate-400', border: 'border-slate-800' },
+                        uncommon: { color: 'text-green-400', border: 'border-green-900/30' },
+                        rare: { color: 'text-blue-400', border: 'border-blue-900/30' },
+                        epic: { color: 'text-purple-400', border: 'border-purple-900/30' },
+                        legendary: { color: 'text-yellow-400', border: 'border-yellow-900/30' },
+                        mythic: { color: 'text-red-500', border: 'border-red-900/30' },
+                        divine: { color: 'text-cyan-300', border: 'border-cyan-900/30' }
+                    };
+
+                    return rarityOrder
+                        .filter(rarity => pack.dropRates[rarity] > 0)
+                        .map(rarity => ({
+                            rarity: rarity.charAt(0).toUpperCase() + rarity.slice(1),
+                            rate: `${(pack.dropRates[rarity] * 100).toFixed(pack.dropRates[rarity] < 0.01 ? 1 : 0)}%`,
+                            ...rarityColors[rarity]
+                        }));
                 };
 
                 const rates = getPackDropRates();
@@ -478,7 +409,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {PACKS.map(pack => {
+                                {PACKS_DATA.map(pack => {
                                     const canAfford = stars.balance >= pack.cost;
                                     const isPurchasing = purchasingPack === pack.id;
 

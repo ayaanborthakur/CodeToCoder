@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { PACKS } from '../data/marketplaceData';
+import { PACKS_DATA } from '../data/packsData';
 
 interface PackOpeningModalProps {
     packId: string;
@@ -22,7 +22,7 @@ export const PackOpeningModal: React.FC<PackOpeningModalProps> = ({ packId, onCo
     const [isExploding, setIsExploding] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const pack = PACKS.find(p => p.id === packId);
+    const pack = PACKS_DATA.find(p => p.id === packId);
 
     const getMaxCracks = () => {
         if (!pack) return 3;
