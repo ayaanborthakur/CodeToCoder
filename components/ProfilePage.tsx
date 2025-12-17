@@ -143,7 +143,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                 <div className="flex gap-1 mb-8 border-b border-border-default pb-1 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('stats')}
-                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg ${activeTab === 'stats'
+                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg focus:outline-none ${activeTab === 'stats'
                             ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                             }`}
@@ -155,7 +155,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     </button>
                     <button
                         onClick={() => setActiveTab('badges')}
-                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg ${activeTab === 'badges'
+                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg focus:outline-none ${activeTab === 'badges'
                             ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                             }`}
@@ -167,7 +167,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     </button>
                     <button
                         onClick={() => setActiveTab('collection')}
-                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg ${activeTab === 'collection'
+                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg focus:outline-none ${activeTab === 'collection'
                             ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                             }`}
@@ -179,7 +179,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
-                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg ${activeTab === 'settings'
+                        className={`py-2 px-4 font-bold transition-all duration-200 relative whitespace-nowrap rounded-t-lg focus:outline-none ${activeTab === 'settings'
                             ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                             }`}

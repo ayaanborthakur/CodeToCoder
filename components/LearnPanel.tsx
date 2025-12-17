@@ -105,7 +105,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                         <button
                             onClick={onPreviousLesson}
                             disabled={!hasPreviousLesson}
-                            className={`px-6 py-3 rounded-full font-bold text-lg transition-all transform flex items-center gap-2 ${
+                            className={`px-6 py-3 rounded-full font-bold text-lg transition-colors flex items-center gap-2 ${
                                 hasPreviousLesson
                                     ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 shadow-md hover:shadow-lg'
                                     : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed'
@@ -120,9 +120,9 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                         <button
                             onClick={onNextLesson}
                             disabled={!hasNextLesson}
-                            className={`group px-6 py-3 rounded-full font-bold text-lg transition-all transform flex items-center gap-2 ${
+                            className={`group px-6 py-3 rounded-full font-bold text-lg transition-colors flex items-center gap-2 ${
                                 hasNextLesson
-                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-xl shadow-cyan-500/20 hover:shadow-2xl hover:shadow-cyan-500/30 hover:scale-105'
+                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md hover:shadow-lg'
                                     : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             }`}
                         >

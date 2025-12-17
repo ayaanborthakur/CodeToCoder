@@ -295,7 +295,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                 {selectedTopic?.id === GENERATOR_TOPIC_ID ? (
                     <div className="max-w-2xl mx-auto animate-fade-in">
                         <div className="text-center mb-12">
-                            <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-cyan-500/30">
+                            <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
                                 <SparklesIcon className="w-10 h-10 text-white" />
                             </div>
                             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">

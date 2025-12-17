@@ -291,7 +291,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!allAnswered}
-                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-xl shadow-cyan-500/20 hover:bg-cyan-500 hover:scale-105 hover:shadow-2xl disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:scale-100 disabled:cursor-not-allowed disabled:shadow-none transition-all transform"
+                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-md hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none transition-colors duration-200"
                                 >
                                     Submit Answers
                                 </button>

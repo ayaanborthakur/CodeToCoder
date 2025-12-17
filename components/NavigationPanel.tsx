@@ -51,9 +51,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
           return (
             <div
               key={module.id}
-              className={`rounded-xl transition-all duration-300 overflow-hidden border ${isOpen
+              className={`rounded-xl transition-colors duration-200 overflow-hidden border ${isOpen
                 ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 shadow-sm'
-                : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-white/5'
+                : 'bg-transparent border-transparent hover:bg-gray-50 dark:hover:bg-white/5'
                 } ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
             >
               <button
@@ -89,7 +89,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                 )}
               </button>
 
-              <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`transition-[max-height,opacity] duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <ul className="px-3 pb-3 space-y-1">
                   {module.lessons.map((lesson, lessonIndex) => {
                     const isCompleted = completedLessons.has(lesson.id);
@@ -105,9 +105,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                             e.preventDefault();
                             onSelectLesson(module.id, lesson.id);
                           }}
-                          className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-all text-sm group ${isCurrent
-                            ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
+                          className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-colors duration-200 text-sm group border-l-4 ${isCurrent
+                            ? 'bg-cyan-50/50 dark:bg-cyan-500/10 border-cyan-500 text-cyan-900 dark:text-cyan-100 font-medium'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:bg-cyan-50/30 dark:hover:bg-cyan-500/5 hover:text-cyan-800 dark:hover:text-cyan-200'
                             }`}
                         >
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors flex-shrink-0 ${isCompleted
