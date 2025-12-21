@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
+import { getFunctions } from 'firebase/functions';
 
 // Fallback to import.meta.env for local development
 const env = (window as any).env || import.meta.env;
@@ -52,4 +53,5 @@ try {
 
 export { analytics };
 export const googleProvider = new GoogleAuthProvider();
+export const functions = getFunctions(app);
 export default app;

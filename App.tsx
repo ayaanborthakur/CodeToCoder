@@ -17,6 +17,7 @@ import { PlaygroundDashboard } from './components/PlaygroundDashboard';
 import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
 import { FlowchartBuilder } from './components/FlowchartBuilder';
+import { Helmet } from 'react-helmet-async';
 
 import { Header, ViewState } from './components/Header';
 import { FlyingStar } from './components/FlyingStar';
@@ -144,6 +145,8 @@ const App: React.FC = () => {
 
     const [starBalance, setStarBalance] = useState<number>(0);
     const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
+
+
 
 
     // Initialize Pyodide & Check Environment
@@ -535,7 +538,7 @@ const App: React.FC = () => {
                 const issues = await lintCodeWithAI(activeCode);
                 if (isTerminalLoadingRef.current) return;
                 setLintIssues(issues);
-            } catch (error) { /* Silently fail in background */ }
+            } catch { /* Silently fail in background */ }
         }, 15000);
 
         return () => clearTimeout(handler);
@@ -922,7 +925,7 @@ const App: React.FC = () => {
             }
 
             // 3. Check Success (Simple check based on stderr for now, can be enhanced)
-            const success = true; // pyodideService wraps errors, but we can assume success if no 'Error:' string or similar, but simplified for now
+            // pyodideService wraps errors, but we can assume success if no 'Error:' string or similar, but simplified for now
             // Actually result.success is available if we use standard runPythonCode wrapper, 
             // but we might need to adjust logic since we stream output now.
             // But wait, runPythonCode DOES return a final object too.
@@ -1056,7 +1059,7 @@ const App: React.FC = () => {
                     }
                 });
             }
-        } catch (error) {
+        } catch {
             updateFile(activePlaygroundFileId, { terminalOutput: "An error occurred while running the playground code." });
         } finally {
             setIsTerminalLoading(false);
@@ -1340,6 +1343,11 @@ const App: React.FC = () => {
         if (showReloadOption) {
             return (
                 <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
+                    <Helmet>
+                        <title>CodeToCoder - Learn Python Online with AI Coding Tutor</title>
+                        <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
+                        <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
+                    </Helmet>
                     <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
                     <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
                     <button
@@ -1382,7 +1390,6 @@ const App: React.FC = () => {
 
     const activeSetCode = (isClassroom || isPractice) ? setCode : setPlaygroundEditorCode;
     const activeRunCode = (isClassroom || isPractice) ? handleRunCode : handleRunPlaygroundCode;
-    const activeTerminalOutput = (isClassroom || isPractice) ? terminalOutput : activePlaygroundFile?.terminalOutput ?? '';
     const activeChatHistory = (isClassroom || isPractice) ? chatHistory : activePlaygroundFile?.chatHistory ?? [];
     const activeLesson = isClassroom ? currentLesson : null;
 
@@ -1724,6 +1731,11 @@ const App: React.FC = () => {
 
     return (
         <>
+            <Helmet titleTemplate="CodeToCoder | %s" defaultTitle="CodeToCoder: Learn Python with AI">
+                <title>CodeToCoder: Learn Python with AI</title>
+                <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
+                <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
+            </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             <div className="h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans relative overflow-hidden">
                 {flyingStar && (

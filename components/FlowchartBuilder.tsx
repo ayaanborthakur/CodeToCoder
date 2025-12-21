@@ -1,4 +1,5 @@
 import React, { useState, useCallback, DragEvent } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
     ReactFlow,
     Node,
@@ -321,6 +322,9 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
 
     return (
         <div className="flex h-full bg-gray-50 dark:bg-gray-900">
+            <Helmet>
+                <title>Flowchart Builder</title>
+            </Helmet>
             {/* Left Sidebar - Draggable Palette */}
             <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-lg">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700">

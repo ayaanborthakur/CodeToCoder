@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { ContactModal } from './ContactModal';
 
 interface MissionPageProps {
@@ -25,13 +26,16 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
 
     return (
         <div className="min-h-full bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 flex flex-col font-sans transition-colors duration-300">
+            <Helmet>
+                <title>Learn Python with AI</title>
+            </Helmet>
             {/* Hero Section */}
             <header className="flex-1 flex flex-col items-center justify-center text-center px-4 pt-20 pb-32 animate-fade-in max-w-5xl mx-auto">
                 <div className="inline-block mb-4 px-4 py-1.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm font-semibold tracking-wide">
-                    Empowering The Community
+                    Zero Setup • Instant Execution • AI-Powered
                 </div>
                 <h1 className="text-5xl md:text-7xl font-extrabold mb-8 tracking-tight text-gray-900 dark:text-white leading-tight">
-                    Building Bridges <br /> Through <span
+                    Master Python with <br /> <span
                         className="text-cyan-600 dark:text-cyan-400 font-extrabold"
                         style={{
                             background: 'linear-gradient(to right, #06b6d4, #2563eb)',
@@ -41,13 +45,13 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             display: 'inline-block',
                             paddingBottom: '0.15em',
                             overflow: 'visible',
-                            // Ensure the gradient is always applied
                             backgroundImage: 'linear-gradient(to right, #06b6d4, #2563eb)',
                         }}
-                    >Technology</span>
+                    >AI-First Tutoring</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mb-12 leading-relaxed">
-                    We are on a mission to make coding accessible to everyone. Join a community where education meets opportunity.
+                    Run Python instantly in your browser with Pyodide. Get personalized guidance from Google Gemini AI. 
+                    No downloads, no servers, no barriers—just pure learning.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                     <button
@@ -116,6 +120,52 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             </div>
                         </div>
                     </div>
+
+                    {/* Features Grid: The "How" */}
+                    <div className="mb-20">
+                        <div className="text-center mb-16">
+                            <span className="text-cyan-600 dark:text-cyan-400 font-bold tracking-wider uppercase text-sm mb-2 block">Powered by WebAssembly</span>
+                            <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-white">
+                                Why Client-Side?
+                            </h2>
+                            <p className="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                                We use <strong>Pyodide</strong> to run Python directly in your browser. This isn't just a tech choice—it's a mission choice.
+                            </p>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-8">
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
+                                <div className="w-14 h-14 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-6">
+                                    <BoltIcon className="w-8 h-8" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Lightning Fast</h3>
+                                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    No server latency. Your code runs instantly on your device. Whether you're on a high-end laptop or a budget Chromebook, the experience is snappy and responsive.
+                                </p>
+                            </div>
+
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
+                                <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6">
+                                    <div className="w-8 h-8">🛡️</div>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Private & Secure</h3>
+                                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    Your code never leaves your browser. You can experiment safely without worrying about data privacy or server-side vulnerabilities. It's your sandbox.
+                                </p>
+                            </div>
+
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
+                                <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 mb-6">
+                                    <div className="w-8 h-8">🌍</div>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Offline Capable</h3>
+                                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    Once loaded, CodeToCoder works even with spotty internet. We believe access to education shouldn't be limited by bandwidth.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </section>
 

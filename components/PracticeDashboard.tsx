@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { PracticeItem, PracticeType, Difficulty } from '../types';
 import { GenerateQuizModal } from './GenerateQuizModal';
 import { generatePracticeQuiz } from '../services/geminiService';
+import { Helmet } from 'react-helmet-async';
 
 
 
@@ -93,6 +94,10 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
 
         return (
             <div className="p-8 max-w-5xl mx-auto h-full overflow-y-auto w-full">
+            <Helmet>
+              <title>Practice {typeLabel} - CodeToCoder</title>
+              <meta name="description" content={`Practice your Python skills with interactive ${typeLabel.toLowerCase()}. Get instant feedback and track your progress.`} />
+            </Helmet>
                 <GenerateQuizModal
                     isOpen={isGenerateModalOpen}
                     onClose={() => setIsGenerateModalOpen(false)}
@@ -196,6 +201,10 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
 
     return (
         <div className="flex flex-col items-center justify-center h-full w-full p-8 overflow-y-auto">
+            <Helmet>
+                <title>Practice Dashboard</title>
+                <meta name="description" content="Choose your practice mode: Quizzes, Problems, or Projects. Hone your Python skills." />
+            </Helmet>
             <div className="w-full max-w-5xl mx-auto flex flex-col items-center animate-fade-in">
                 <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-12 text-center">Choose Your Practice</h1>
 

@@ -20,6 +20,9 @@ import TrashIcon from '../assets/icons/TrashIcon.svg?react';
 import ImportIcon from '../assets/icons/ImportIcon.svg?react';
 import PlusIcon from '../assets/icons/PlusIcon.svg?react';
 import PlayIcon from '../assets/icons/PlayIcon.svg?react';
+import ShareIcon from '../assets/icons/ShareIcon.svg?react';
+import { functions } from '../services/firebase';
+import { httpsCallable } from 'firebase/functions';
 
 const timeAgo = (timestamp: number) => {
     const now = Date.now();
@@ -50,6 +53,41 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     const [fileToDelete, setFileToDelete] = useState<PlaygroundFile | null>(null);
     const [fileToRename, setFileToRename] = useState<PlaygroundFile | null>(null);
     const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
+    const [isSharing, setIsSharing] = useState<string | null>(null);
+
+    const handleShare = async (file: PlaygroundFile) => {
+        setIsSharing(file.id);
+        try {
+            const payload = {
+                fileId: file.id,
+                fileName: file.name,
+                code: file.content || "# No content",
+            };
+            
+            console.log("Sharing file payload:", payload);
+
+            if (!payload.fileId || !payload.fileName) {
+                console.error("Missing required fields in payload:", payload);
+                throw new Error("Missing required fields for sharing");
+            }
+
+            const generateShareImage = httpsCallable(functions, 'generateShareImage');
+            const result = await generateShareImage(payload);
+            
+            const { imageUrl } = result.data as { imageUrl: string };
+            
+            // Open share dialog or copy link
+            const shareUrl = `https://codetocoder.com/playground/${file.id}?og=${encodeURIComponent(imageUrl)}`;
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out my python code "${file.name}" on CodeToCoder! 🐍`)}&url=${encodeURIComponent(shareUrl)}`;
+            
+            window.open(twitterUrl, '_blank');
+        } catch (error) {
+            console.error("Failed to generate share image:", error);
+            alert("Failed to create share image. Please try again.");
+        } finally {
+            setIsSharing(null);
+        }
+    };
 
     const handleCreateNew = () => {
         setIsNewFileModalOpen(true);
@@ -171,31 +209,60 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     {files.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {[...files].sort((a, b) => b.lastModified - a.lastModified).map((file, idx) => (
-                                <div key={file.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 transition-all shadow-sm hover:shadow-md hover:border-cyan-500/50 dark:hover:border-cyan-500/50 flex flex-col group animate-slide-up opacity-0" style={{ animationDelay: `${200 + (idx * 50)}ms` }}>
-                                    <button onClick={() => onOpenFile(file.id)} className="flex-grow p-4 text-left">
+                                <div 
+                                    key={file.id} 
+                                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 transition-all shadow-sm hover:shadow-md hover:border-cyan-500/50 dark:hover:border-cyan-500/50 flex flex-col group animate-slide-up opacity-0" 
+                                    style={{ animationDelay: `${200 + (idx * 50)}ms` }}
+                                >
+                                    <div className="flex-grow p-4 flex flex-col h-full relative">
                                         <div className="flex justify-between items-start mb-2">
-                                            <DocumentIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
-                                            {/* Actions visible on group hover */}
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div 
+                                                onClick={() => onOpenFile(file.id)} 
+                                                className="cursor-pointer hover:scale-110 transition-transform"
+                                            >
+                                                <DocumentIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                                            </div>
+                                            
+                                            {/* Actions always visible */}
+                                            <div className="flex gap-1 z-20">
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); setFileToRename(file); }}
                                                     className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white cursor-pointer hover:scale-110 transition-transform"
+                                                    title="Rename File"
                                                 >
                                                     <PencilIcon className="w-4 h-4" />
                                                 </div>
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
                                                     className="p-1.5 rounded-md text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 cursor-pointer hover:scale-110 transition-transform"
+                                                    title="Delete File"
                                                 >
                                                     <TrashIcon className="w-4 h-4" />
                                                 </div>
+                                                <div
+                                                    onClick={(e) => { e.stopPropagation(); handleShare(file); }}
+                                                    className="p-1.5 rounded-md text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-500 cursor-pointer hover:scale-110 transition-transform"
+                                                    title="Share on Twitter"
+                                                >
+                                                    {isSharing === file.id ? (
+                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                    ) : (
+                                                        <ShareIcon className="w-4 h-4" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                        <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{file.name}</h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Edited {timeAgo(file.lastModified)}
-                                        </p>
-                                    </button>
+                                        
+                                        <div 
+                                            onClick={() => onOpenFile(file.id)}
+                                            className="cursor-pointer flex-grow"
+                                        >
+                                            <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{file.name}</h3>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                Edited {timeAgo(file.lastModified)}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
                         </div>

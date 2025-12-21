@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
 import { useProgress } from '../hooks/useProgress';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
@@ -87,6 +88,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
 
     return (
         <div className="h-full w-full overflow-y-auto bg-background text-text-primary">
+            <Helmet>
+                <title>Profile</title>
+            </Helmet>
             <div className="max-w-4xl mx-auto p-6 md:p-8">
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">

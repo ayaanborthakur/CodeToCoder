@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import type { Module } from '../types';
 
 
@@ -64,6 +65,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="min-h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-200 overflow-y-auto">
+      <Helmet>
+        <title>Dashboard</title>
+      </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Header */}
         <div className="mb-12">

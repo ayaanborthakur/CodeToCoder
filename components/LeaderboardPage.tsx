@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { getLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -33,6 +34,9 @@ export const LeaderboardPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8 pt-24 font-sans overflow-y-auto">
+            <Helmet>
+                <title>Leaderboard</title>
+            </Helmet>
             <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-10">
                     <h1 className="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-orange-400 to-red-500 mb-4 animate-gradient-x">

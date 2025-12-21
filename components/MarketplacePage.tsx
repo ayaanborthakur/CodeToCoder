@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
+
 import { useAuth } from '../contexts/AuthContext';
 import { CollectionPage } from './CollectionPage';
 import {
@@ -128,6 +130,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
 
     return (
         <div className="h-full w-full overflow-y-auto bg-background text-text-primary relative">
+            <Helmet>
+                <title>Star Market</title>
+            </Helmet>
             {/* Pack Opening Animation */}
             {openingPackId && (
                 <PackOpeningModal
