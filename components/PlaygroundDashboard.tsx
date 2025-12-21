@@ -138,7 +138,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
 
 
     return (
-        <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col p-6 animate-fade-in overflow-y-auto">
+        <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col p-4 animate-fade-in overflow-y-auto">
             {fileToDelete && (
                 <ConfirmationModal
                     isOpen={!!fileToDelete}
@@ -166,26 +166,34 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                 />
             )}
 
-            <div className="max-w-6xl w-full mx-auto space-y-8">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white animate-slide-up" style={{ animationDelay: '0ms' }}>Playground</h1>
-                    <p className="text-md text-gray-500 dark:text-gray-400 mt-1 animate-slide-up" style={{ animationDelay: '50ms' }}>Your personal space to code and create.</p>
+            <div className="max-w-6xl w-full mx-auto space-y-5">
+                {/* Header with stats */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Playground</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Your personal space to code and create</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
+                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300">{files.length} files</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Main Action Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up opacity-0" style={{ animationDelay: '100ms' }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* Resume Card */}
                     {lastActiveFile && onResume && (
                         <button
                             onClick={() => onResume(lastActiveFile.id)}
-                            className="bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-xl p-6 shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:scale-[1.02] transition-all text-left flex flex-col justify-between min-h-[160px]"
+                            className="bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-lg p-4 shadow-lg hover:shadow-xl transition-all text-left flex flex-col justify-between min-h-[120px]"
                         >
-                            <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                                <PlayIcon className="w-6 h-6" />
+                            <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-2">
+                                <PlayIcon className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold mb-1">Resume Session</h3>
-                                <p className="text-cyan-100 text-sm truncate">Continue editing {lastActiveFile.name}</p>
+                                <h3 className="text-base font-bold mb-0.5">Resume Session</h3>
+                                <p className="text-cyan-100 text-xs truncate">{lastActiveFile.name}</p>
                             </div>
                         </button>
                     )}
@@ -193,77 +201,91 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     {/* New File Card */}
                     <button
                         onClick={handleCreateNew}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 hover:scale-[1.02] transition-all text-left flex flex-col justify-between min-h-[160px] group"
+                        className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-cyan-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
                     >
-                        <div className="bg-cyan-100 dark:bg-cyan-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-                            <PlusIcon className="w-6 h-6" />
+                        <div className="bg-cyan-100 dark:bg-cyan-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                            <PlusIcon className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">New File</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">Start a fresh Python script</p>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">New File</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">Create Python script</p>
                         </div>
                     </button>
 
                     {/* Import File Card */}
                     <button
                         onClick={onImportFile}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:shadow-md hover:border-cyan-500 hover:scale-[1.02] transition-all text-left flex flex-col justify-between min-h-[160px] group"
+                        className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
                     >
-                        <div className="bg-purple-100 dark:bg-purple-900/30 w-12 h-12 rounded-lg flex items-center justify-center mb-4 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                            <ImportIcon className="w-6 h-6" />
+                        <div className="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                            <ImportIcon className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Open File</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">Upload .py or .txt file</p>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Import</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">Upload .py or .txt</p>
                         </div>
                     </button>
+
+                    {/* Templates Card */}
+                    <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-4 text-left flex flex-col justify-between min-h-[120px]">
+                        <div className="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-orange-600 dark:text-orange-400">
+                            <DocumentIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white">Templates</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">Coming soon...</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Recent Files List */}
-                <div className="animate-slide-up opacity-0" style={{ animationDelay: '200ms' }}>
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4">Your Files</h2>
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">Your Files</h2>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Sorted by last edited</span>
+                    </div>
                     {files.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                             {[...files].sort((a, b) => b.lastModified - a.lastModified).map((file, idx) => (
                                 <div 
                                     key={file.id} 
-                                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 transition-all shadow-sm hover:shadow-md hover:border-cyan-500/50 dark:hover:border-cyan-500/50 flex flex-col group animate-slide-up opacity-0" 
-                                    style={{ animationDelay: `${200 + (idx * 50)}ms` }}
+                                    className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 transition-all hover:border-cyan-500/50 dark:hover:border-cyan-500/50 flex flex-col group animate-slide-up opacity-0" 
+                                    style={{ animationDelay: `${100 + (idx * 30)}ms` }}
                                 >
-                                    <div className="flex-grow p-4 flex flex-col h-full relative">
+                                    <div className="flex-grow p-3 flex flex-col h-full relative">
                                         <div className="flex justify-between items-start mb-2">
                                             <div 
                                                 onClick={() => onOpenFile(file.id)} 
-                                                className="cursor-pointer hover:scale-110 transition-transform"
+                                                className="cursor-pointer hover:scale-105 transition-transform"
                                             >
-                                                <DocumentIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                                                <DocumentIcon className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
                                             </div>
                                             
-                                            {/* Actions always visible */}
-                                            <div className="flex gap-1 z-20">
+                                            {/* Actions */}
+                                            <div className="flex gap-0.5 z-20">
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); setFileToRename(file); }}
-                                                    className="p-1.5 rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white cursor-pointer hover:scale-110 transition-transform"
-                                                    title="Rename File"
+                                                    className="p-1 rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white cursor-pointer"
+                                                    title="Rename"
                                                 >
-                                                    <PencilIcon className="w-4 h-4" />
+                                                    <PencilIcon className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
-                                                    className="p-1.5 rounded-md text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 cursor-pointer hover:scale-110 transition-transform"
-                                                    title="Delete File"
+                                                    className="p-1 rounded-md text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 cursor-pointer"
+                                                    title="Delete"
                                                 >
-                                                    <TrashIcon className="w-4 h-4" />
+                                                    <TrashIcon className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); handleShare(file); }}
-                                                    className="p-1.5 rounded-md text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-500 cursor-pointer hover:scale-110 transition-transform"
-                                                    title="Share on Twitter"
+                                                    className="p-1 rounded-md text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-500 cursor-pointer"
+                                                    title="Share"
                                                 >
                                                     {isSharing === file.id ? (
-                                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                        <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                                     ) : (
-                                                        <ShareIcon className="w-4 h-4" />
+                                                        <ShareIcon className="w-3.5 h-3.5" />
                                                     )}
                                                 </div>
                                             </div>
@@ -273,9 +295,9 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                             onClick={() => onOpenFile(file.id)}
                                             className="cursor-pointer flex-grow"
                                         >
-                                            <h3 className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{file.name}</h3>
+                                            <h3 className="font-bold text-sm text-gray-800 dark:text-gray-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{file.name}</h3>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                Edited {timeAgo(file.lastModified)}
+                                                {timeAgo(file.lastModified)}
                                             </p>
                                         </div>
                                     </div>
@@ -283,8 +305,8 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
-                            <p className="text-gray-500 dark:text-gray-400">No files yet. Create one to get started!</p>
+                        <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">No files yet. Create one to get started!</p>
                         </div>
                     )}
                 </div>

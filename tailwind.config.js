@@ -9,6 +9,15 @@ export default {
     darkMode: 'class',
     theme: {
         extend: {
+            borderRadius: {
+                DEFAULT: '6px',
+                sm: '4px',
+                md: '6px',
+                lg: '8px',
+                xl: '10px',
+                '2xl': '12px',
+                '3xl': '14px',
+            },
             colors: {
                 background: 'var(--background)',
                 surface: 'var(--surface)',

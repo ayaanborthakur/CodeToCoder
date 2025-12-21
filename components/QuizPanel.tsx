@@ -125,10 +125,106 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                 )}
             </div>
 
-            {/* Content */}
+            {/* Content - 2 Column Layout */}
             {!isCollapsed && (
-                <div id="quiz-container" className="flex-1 overflow-y-auto p-4 sm:p-8 scroll-smooth">
-                    <div className="max-w-3xl mx-auto space-y-8 pb-20">
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Question Sidebar */}
+                    <div className="hidden lg:flex w-64 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 flex-col">
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Questions</h4>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {Object.keys(answers).length} of {questions.length} answered
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                            {questions.map((q, index) => {
+                                const isAnswered = answers[q.id] !== undefined;
+                                const isCorrect = submitted && answers[q.id] === q.correctAnswerIndex;
+                                const isWrong = submitted && answers[q.id] !== q.correctAnswerIndex && isAnswered;
+                                
+                                return (
+                                    <button
+                                        key={q.id}
+                                        onClick={() => {
+                                            const el = document.getElementById(`question-${q.id}`);
+                                            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }}
+                                        className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left transition-all ${
+                                            submitted
+                                                ? isCorrect
+                                                    ? 'bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                                    : isWrong
+                                                        ? 'bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                                                        : 'bg-gray-100 dark:bg-gray-700 border border-transparent'
+                                                : isAnswered
+                                                    ? 'bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800'
+                                                    : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-cyan-300'
+                                        }`}
+                                    >
+                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                                            submitted
+                                                ? isCorrect
+                                                    ? 'bg-green-500 text-white'
+                                                    : isWrong
+                                                        ? 'bg-red-500 text-white'
+                                                        : 'bg-gray-300 text-gray-600'
+                                                : isAnswered
+                                                    ? 'bg-cyan-500 text-white'
+                                                    : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'
+                                        }`}>
+                                            {index + 1}
+                                        </div>
+                                        <span className={`text-sm truncate ${
+                                            submitted
+                                                ? isCorrect
+                                                    ? 'text-green-700 dark:text-green-300'
+                                                    : isWrong
+                                                        ? 'text-red-700 dark:text-red-300'
+                                                        : 'text-gray-600 dark:text-gray-400'
+                                                : isAnswered
+                                                    ? 'text-cyan-700 dark:text-cyan-300 font-medium'
+                                                    : 'text-gray-600 dark:text-gray-400'
+                                        }`}>
+                                            Q{index + 1}
+                                        </span>
+                                        {submitted && (
+                                            <span className="ml-auto">
+                                                {isCorrect ? (
+                                                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                                                ) : isWrong ? (
+                                                    <XCircleIcon className="w-4 h-4 text-red-500" />
+                                                ) : null}
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Submit Button in Sidebar */}
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                            {!submitted ? (
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={!allAnswered}
+                                    className="w-full py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm"
+                                >
+                                    Submit ({Object.keys(answers).length}/{questions.length})
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleRetry}
+                                    className="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                                >
+                                    Retake Quiz
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Main Quiz Content */}
+                    <div id="quiz-container" className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth">
+                        <div className="max-w-3xl mx-auto space-y-6 pb-20">
 
                         {/* Result Summary Card - Shows at top when submitted */}
                         {submitted && (
@@ -173,7 +269,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                             const userAnswer = answers[q.id];
 
                             return (
-                                <div key={q.id} className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border overflow-hidden transition-all duration-300 ${submitted ? (isCorrect ? 'border-green-200 dark:border-green-900/50' : 'border-red-200 dark:border-red-900/50') : 'border-gray-200 dark:border-gray-700 hover:shadow-md'}`}>
+                                <div key={q.id} id={`question-${q.id}`} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border overflow-hidden transition-all duration-300 ${submitted ? (isCorrect ? 'border-green-200 dark:border-green-900/50' : 'border-red-200 dark:border-red-900/50') : 'border-gray-200 dark:border-gray-700 hover:shadow-md'}`}>
                                     <div className="p-6 sm:p-8">
                                         <div className="flex gap-5 mb-6">
                                             <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${submitted ? (isCorrect ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400') : 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400'}`}>
@@ -291,7 +387,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!allAnswered}
-                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-md hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none transition-colors duration-200"
+                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-md hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none transition-colors duration-200 lg:hidden"
                                 >
                                     Submit Answers
                                 </button>
@@ -299,6 +395,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                         </div>
                     </div>
                 </div>
+            </div>
             )}
         </div>
     );
