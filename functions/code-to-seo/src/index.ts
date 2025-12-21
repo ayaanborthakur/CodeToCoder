@@ -19,8 +19,8 @@ setGlobalOptions({maxInstances: 10});
 export const generateShareImage = onCall(
   {
     maxInstances: 5,
-    memory: "1GiB",
-    timeoutSeconds: 60,
+    memory: "4GiB",
+    timeoutSeconds: 300,
   },
   async (request) => {
     const {fileId, code, fileName} = request.data || {};
@@ -32,7 +32,7 @@ export const generateShareImage = onCall(
 
     try {
       // Check if image already exists in cache
-      const bucket = admin.storage().bucket();
+      const bucket = admin.storage().bucket("code2coder-a324f.firebasestorage.app");
       const imagePath = `og-images/${fileId}.png`;
       const file = bucket.file(imagePath);
       const [exists] = await file.exists();
@@ -51,9 +51,9 @@ export const generateShareImage = onCall(
       // Generate new image with Puppeteer (Serverless)
       const browser = await puppeteer.launch({
         args: chromium.args,
-        defaultViewport: {width: 1200, height: 630},
+        defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
-        headless: true,
+        headless: chromium.headless,
       });
 
       const page = await browser.newPage();
@@ -143,13 +143,17 @@ export const generateShareImage = onCall(
       // Upload to Cloud Storage
       await file.save(screenshot, {
         metadata: {contentType: "image/png"},
-        public: true,
+        public: false, // Do not make public via ACL
       });
 
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${imagePath}`;
+      // Generate Signed URL for the new image
+      const [signedUrl] = await file.getSignedUrl({
+        action: "read",
+        expires: "03-01-2500", // Long expiry
+      });
 
-      logger.info("OG image generated successfully", {fileId, publicUrl});
-      return {imageUrl: publicUrl};
+      logger.info("OG image generated successfully", {fileId, signedUrl});
+      return {imageUrl: signedUrl};
     } catch (error) {
       logger.error("Error generating OG image", error);
       throw new HttpsError("internal", "Failed to generate image");

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { PlaygroundFile } from '../types';
+import { toPng } from 'html-to-image';
 import { ConfirmationModal } from './ConfirmationModal';
 import { RenameModal } from './RenameModal';
 
@@ -21,8 +22,6 @@ import ImportIcon from '../assets/icons/ImportIcon.svg?react';
 import PlusIcon from '../assets/icons/PlusIcon.svg?react';
 import PlayIcon from '../assets/icons/PlayIcon.svg?react';
 import ShareIcon from '../assets/icons/ShareIcon.svg?react';
-import { functions } from '../services/firebase';
-import { httpsCallable } from 'firebase/functions';
 
 const timeAgo = (timestamp: number) => {
     const now = Date.now();
@@ -55,37 +54,54 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
     const [isSharing, setIsSharing] = useState<string | null>(null);
 
+    const shareRef = React.useRef<HTMLDivElement>(null);
+    const [shareData, setShareData] = useState<{ name: string; content: string } | null>(null);
+
     const handleShare = async (file: PlaygroundFile) => {
         setIsSharing(file.id);
+        setShareData({ name: file.name, content: file.content || "# No content" });
+        
+        // Wait longer for render to ensure fonts/layout are stable
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (!shareRef.current) {
+            console.error("Share ref not found after wait");
+            setIsSharing(null);
+            return;
+        }
+
         try {
-            const payload = {
-                fileId: file.id,
-                fileName: file.name,
-                code: file.content || "# No content",
-            };
-            
-            console.log("Sharing file payload:", payload);
+            // optimized options to prevent hanging and CORS errors
+            const dataUrl = await toPng(shareRef.current, { 
+                cacheBust: true, 
+                backgroundColor: '#0f172a',
+                fontEmbedCSS: '',
+                pixelRatio: 1, 
+                skipAutoScale: true
+            });
 
-            if (!payload.fileId || !payload.fileName) {
-                console.error("Missing required fields in payload:", payload);
-                throw new Error("Missing required fields for sharing");
+            const blob = await (await fetch(dataUrl)).blob();
+            const imageFile = new File([blob], `${file.name}.png`, { type: 'image/png' });
+
+            if (navigator.share) {
+                await navigator.share({
+                    title: `CodeToCoder: ${file.name}`,
+                    text: `Check out my python code "${file.name}" on CodeToCoder! 🐍`,
+                    files: [imageFile],
+                });
+            } else {
+                // Fallback to download
+                const link = document.createElement('a');
+                link.download = `${file.name}.png`;
+                link.href = dataUrl;
+                link.click();
             }
-
-            const generateShareImage = httpsCallable(functions, 'generateShareImage');
-            const result = await generateShareImage(payload);
-            
-            const { imageUrl } = result.data as { imageUrl: string };
-            
-            // Open share dialog or copy link
-            const shareUrl = `https://codetocoder.com/playground/${file.id}?og=${encodeURIComponent(imageUrl)}`;
-            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out my python code "${file.name}" on CodeToCoder! 🐍`)}&url=${encodeURIComponent(shareUrl)}`;
-            
-            window.open(twitterUrl, '_blank');
         } catch (error) {
+            // Ignore errors (like user cancelling share) to prevent annoying popups
             console.error("Failed to generate share image:", error);
-            alert("Failed to create share image. Please try again.");
         } finally {
             setIsSharing(null);
+            setShareData(null);
         }
     };
 
@@ -273,6 +289,38 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     )}
                 </div>
             </div>
+
+             {/* Hidden Share Container - Rendered Offscreen */}
+            {shareData && (
+                <div 
+                    ref={shareRef} 
+                    className="fixed top-0 left-0 w-[800px] p-8 bg-slate-900 text-white font-mono rounded-lg z-[-10]"
+                    style={{ opacity: 0, pointerEvents: 'none' }} 
+                >
+                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
+                        <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400">
+                            <DocumentIcon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold">{shareData.name}</h2>
+                            <p className="text-slate-400 text-sm">Created with CodeToCoder</p>
+                        </div>
+                    </div>
+                    <div className="bg-slate-950 p-6 rounded-lg border border-slate-800 shadow-2xl">
+                        <pre className="text-sm leading-relaxed overflow-hidden whitespace-pre-wrap break-words text-slate-300">
+                            {shareData.content}
+                        </pre>
+                    </div>
+                    <div className="mt-6 flex justify-between items-center text-slate-500 text-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500"/>
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"/>
+                            <div className="w-3 h-3 rounded-full bg-green-500"/>
+                        </div>
+                        <span>codetocoder.com</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
