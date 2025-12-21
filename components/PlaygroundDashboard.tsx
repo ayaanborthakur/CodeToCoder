@@ -11,33 +11,9 @@ interface PlaygroundDashboardProps {
     onDeleteFile: (fileId: string) => void;
     onRenameFile: (fileId: string, newName: string) => void;
     onImportFile: () => void;
-    lastActiveFile?: PlaygroundFile | null;
+    lastActiveFileId?: string | null;
     onResume?: (fileId: string) => void;
 }
-
-import DocumentIcon from '../assets/icons/DocumentIcon.svg?react';
-import PencilIcon from '../assets/icons/PencilIcon.svg?react';
-import TrashIcon from '../assets/icons/TrashIcon.svg?react';
-import ImportIcon from '../assets/icons/ImportIcon.svg?react';
-import PlusIcon from '../assets/icons/PlusIcon.svg?react';
-import PlayIcon from '../assets/icons/PlayIcon.svg?react';
-import ShareIcon from '../assets/icons/ShareIcon.svg?react';
-
-const timeAgo = (timestamp: number) => {
-    const now = Date.now();
-    const seconds = Math.floor((now - timestamp) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-    return "just now";
-};
 
 export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     files,
@@ -45,14 +21,50 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     onOpenFile,
     onDeleteFile,
     onRenameFile,
-    onImportFile,
-    lastActiveFile,
-    onResume
+    lastActiveFileId,
+    onResume,
+    onImportFile
 }) => {
-    const [fileToDelete, setFileToDelete] = useState<PlaygroundFile | null>(null);
+    // Local processing of files to handle renaming
     const [fileToRename, setFileToRename] = useState<PlaygroundFile | null>(null);
-    const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
+    const [newFileName, setNewFileName] = useState('');
+    const [fileToDelete, setFileToDelete] = useState<PlaygroundFile | null>(null);
     const [isSharing, setIsSharing] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (fileToRename) {
+            setNewFileName(fileToRename.name);
+        }
+    }, [fileToRename]);
+
+    const handleRename = useCallback(() => {
+        if (fileToRename && newFileName.trim() !== '') {
+            onRenameFile(fileToRename.id, newFileName.trim());
+            setFileToRename(null);
+            setNewFileName('');
+        }
+    }, [fileToRename, newFileName, onRenameFile]);
+
+    const handleCreateNew = useCallback(() => {
+        // Generate a simple default name
+        const baseName = "Untitled";
+        let name = `${baseName}.py`;
+        let counter = 1;
+        
+        // Simple client-side check to avoid immediate duplicate names if possible
+        // though the real check should happen in onNewFile or backend
+        while (files.some(f => f.name === name)) {
+            name = `${baseName} ${counter}.py`;
+            counter++;
+        }
+        
+        onNewFile(name);
+    }, [onNewFile, files]);
+
+    const lastActiveFile = useMemo(() =>
+        files.find(f => f.id === lastActiveFileId),
+        [files, lastActiveFileId]
+    );
 
     const shareRef = React.useRef<HTMLDivElement>(null);
     const [shareData, setShareData] = useState<{ name: string; content: string } | null>(null);
@@ -105,65 +117,53 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
         }
     };
 
-    const handleCreateNew = () => {
-        setIsNewFileModalOpen(true);
-    };
-
-    const handleNewFileConfirm = (name: string) => {
-        let fileName = name.trim();
-        if (!fileName) fileName = "Untitled.py";
-
-        // Auto-append extension if missing
-        if (!fileName.endsWith('.py') && !fileName.endsWith('.txt')) {
-            fileName += '.py';
-        }
-
-        onNewFile(fileName);
-        setIsNewFileModalOpen(false);
-    };
-
-    const handleConfirmDelete = () => {
-        if (fileToDelete) {
-            onDeleteFile(fileToDelete.id);
-            setFileToDelete(null);
-        }
-    };
-
-    const handleConfirmRename = (newName: string) => {
-        if (fileToRename) {
-            onRenameFile(fileToRename.id, newName);
-            setFileToRename(null);
-        }
-    };
-
-
     return (
         <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col p-4 animate-fade-in overflow-y-auto">
             {fileToDelete && (
                 <ConfirmationModal
                     isOpen={!!fileToDelete}
                     onClose={() => setFileToDelete(null)}
-                    onConfirm={handleConfirmDelete}
-                    title="Delete File?"
-                    message={`Are you sure you want to permanently delete "${fileToDelete.name}"? This action cannot be undone.`}
+                    onConfirm={() => {
+                        onDeleteFile(fileToDelete.id);
+                        setFileToDelete(null);
+                    }}
+                    title="Delete File"
+                    message={`Are you sure you want to delete "${fileToDelete.name}"? This cannot be undone.`}
                 />
             )}
+
             {fileToRename && (
-                <RenameModal
-                    isOpen={!!fileToRename}
-                    onClose={() => setFileToRename(null)}
-                    onConfirm={handleConfirmRename}
-                    currentName={fileToRename.name}
-                />
-            )}
-            {isNewFileModalOpen && (
-                <RenameModal
-                    isOpen={isNewFileModalOpen}
-                    onClose={() => setIsNewFileModalOpen(false)}
-                    onConfirm={handleNewFileConfirm}
-                    currentName=""
-                    title="Create New File"
-                />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in border border-gray-200 dark:border-gray-700">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Rename File</h3>
+                        <input
+                            type="text"
+                            value={newFileName}
+                            onChange={(e) => setNewFileName(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none mb-6"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleRename();
+                                }
+                            }}
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setFileToRename(null)}
+                                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleRename}
+                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors font-semibold"
+                            >
+                                Rename
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             <div className="max-w-6xl w-full mx-auto space-y-5">
@@ -189,7 +189,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                             className="bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-lg p-4 shadow-lg hover:shadow-xl transition-all text-left flex flex-col justify-between min-h-[120px]"
                         >
                             <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-2">
-                                <PlayIcon className="w-5 h-5" />
+                                <Play className="w-5 h-5" />
                             </div>
                             <div>
                                 <h3 className="text-base font-bold mb-0.5">Resume Session</h3>
@@ -204,7 +204,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                         className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-cyan-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
                     >
                         <div className="bg-cyan-100 dark:bg-cyan-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-                            <PlusIcon className="w-5 h-5" />
+                            <Plus className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">New File</h3>
@@ -212,13 +212,13 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                         </div>
                     </button>
 
-                    {/* Import File Card */}
+                    {/* Open File / Import Card */}
                     <button
                         onClick={onImportFile}
                         className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
                     >
                         <div className="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                            <ImportIcon className="w-5 h-5" />
+                            <Upload className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Import</h3>
@@ -229,7 +229,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     {/* Templates Card */}
                     <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-4 text-left flex flex-col justify-between min-h-[120px]">
                         <div className="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-orange-600 dark:text-orange-400">
-                            <DocumentIcon className="w-5 h-5" />
+                            <FileText className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="text-base font-bold text-gray-900 dark:text-white">Templates</h3>
@@ -258,7 +258,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                                 onClick={() => onOpenFile(file.id)} 
                                                 className="cursor-pointer hover:scale-105 transition-transform"
                                             >
-                                                <DocumentIcon className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
+                                                <FileText className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
                                             </div>
                                             
                                             {/* Actions */}
@@ -268,14 +268,14 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                                     className="p-1 rounded-md text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                                                     title="Rename"
                                                 >
-                                                    <PencilIcon className="w-3.5 h-3.5" />
+                                                    <Pencil className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
                                                     className="p-1 rounded-md text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 cursor-pointer"
                                                     title="Delete"
                                                 >
-                                                    <TrashIcon className="w-3.5 h-3.5" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div
                                                     onClick={(e) => { e.stopPropagation(); handleShare(file); }}
@@ -283,9 +283,9 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                                     title="Share"
                                                 >
                                                     {isSharing === file.id ? (
-                                                        <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                        <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
                                                     ) : (
-                                                        <ShareIcon className="w-3.5 h-3.5" />
+                                                        <Share2 className="w-3.5 h-3.5" />
                                                     )}
                                                 </div>
                                             </div>
@@ -310,39 +310,53 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
 
-             {/* Hidden Share Container - Rendered Offscreen */}
-            {shareData && (
-                <div 
-                    ref={shareRef} 
-                    className="fixed top-0 left-0 w-[800px] p-8 bg-slate-900 text-white font-mono rounded-lg z-[-10]"
-                    style={{ opacity: 0, pointerEvents: 'none' }} 
-                >
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
-                        <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400">
-                            <DocumentIcon className="w-6 h-6" />
+                 {/* Hidden Share Container - Rendered Offscreen */}
+                {shareData && (
+                    <div 
+                        ref={shareRef} 
+                        className="fixed top-0 left-0 w-[800px] p-8 bg-slate-900 text-white font-mono rounded-lg z-[-10]"
+                        style={{ opacity: 0, pointerEvents: 'none' }} 
+                    >
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
+                            <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center text-cyan-400">
+                                <FileText className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                                    {shareData.name}
+                                </h1>
+                                <p className="text-slate-400 text-sm flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                    CodeToCoder Playground
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-bold">{shareData.name}</h2>
-                            <p className="text-slate-400 text-sm">Created with CodeToCoder</p>
+                        
+                        <div className="relative">
+                            {/* Line numbers column */}
+                            <div className="absolute left-0 top-0 bottom-0 w-8 text-slate-600 text-right pr-3 select-none text-sm font-mono leading-6">
+                                {shareData.content.split('\n').map((_, i) => (
+                                    <div key={i}>{i + 1}</div>
+                                ))}
+                            </div>
+                            
+                            {/* Code content */}
+                            <pre className="pl-10 text-sm font-mono leading-6 text-slate-300 overflow-x-hidden whitespace-pre-wrap">
+                                {shareData.content}
+                            </pre>
+                        </div>
+
+                        <div className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <div className="text-xs text-slate-500">Generated with</div>
+                                <div className="text-sm font-bold text-cyan-400">CodeToCoder</div>
+                            </div>
+                            <div className="text-xs text-slate-600">code2coder.com</div>
                         </div>
                     </div>
-                    <div className="bg-slate-950 p-6 rounded-lg border border-slate-800 shadow-2xl">
-                        <pre className="text-sm leading-relaxed overflow-hidden whitespace-pre-wrap break-words text-slate-300">
-                            {shareData.content}
-                        </pre>
-                    </div>
-                    <div className="mt-6 flex justify-between items-center text-slate-500 text-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-500"/>
-                            <div className="w-3 h-3 rounded-full bg-yellow-500"/>
-                            <div className="w-3 h-3 rounded-full bg-green-500"/>
-                        </div>
-                        <span>codetocoder.com</span>
-                    </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

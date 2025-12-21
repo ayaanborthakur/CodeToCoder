@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
 import { useAuth } from '../contexts/AuthContext';
+import { Medal, Star, BarChart3, User, Trophy } from 'lucide-react';
 
 export const LeaderboardPage: React.FC = () => {
     const { user } = useAuth();
@@ -25,10 +26,11 @@ export const LeaderboardPage: React.FC = () => {
     }, []);
 
     // Function to get rank badge or number
+    // Function to get rank badge or number
     const getRankDisplay = (rank: number) => {
-        if (rank === 1) return <span className="text-3xl filter drop-shadow-md">🥇</span>;
-        if (rank === 2) return <span className="text-3xl filter drop-shadow-md">🥈</span>;
-        if (rank === 3) return <span className="text-3xl filter drop-shadow-md">🥉</span>;
+        if (rank === 1) return <Medal className="w-8 h-8 text-yellow-400 fill-yellow-400 drop-shadow-md" />;
+        if (rank === 2) return <Medal className="w-8 h-8 text-slate-300 fill-slate-300 drop-shadow-md" />;
+        if (rank === 3) return <Medal className="w-8 h-8 text-amber-700 fill-amber-700 drop-shadow-md" />;
         return <span className="text-slate-400 font-mono font-bold text-lg">#{rank}</span>;
     };
 
@@ -93,7 +95,7 @@ export const LeaderboardPage: React.FC = () => {
                         <div className="divide-y divide-slate-700/50">
                             {entries.length === 0 ? (
                                 <div className="p-12 text-center flex flex-col items-center gap-4 text-slate-400">
-                                    <div className="text-6xl">📊</div>
+                                    <BarChart3 className="w-16 h-16 opacity-50" />
                                     <div>No data available yet. Start earning stars to appear here!</div>
                                 </div>
                             ) : (
@@ -137,8 +139,8 @@ export const LeaderboardPage: React.FC = () => {
                                             </div>
 
                                             <div className="col-span-3 text-right">
-                                                <span className="font-mono text-yellow-400 font-bold text-base md:text-lg">
-                                                    ⭐ {entry.net_value.toLocaleString()}
+                                                <span className="font-mono text-yellow-400 font-bold text-base md:text-lg flex items-center justify-end gap-2">
+                                                    <Star className="w-4 h-4 fill-yellow-400" /> {entry.net_value.toLocaleString()}
                                                 </span>
                                             </div>
                                         </div>

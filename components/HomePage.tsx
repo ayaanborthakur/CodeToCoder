@@ -1,34 +1,30 @@
 
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import type { Module } from '../types';
+import type { Module, PlaygroundFile } from '../types';
 
+import { 
+  BookOpen, 
+  Terminal, 
+  BrainCircuit, 
+  Star, 
+  ArrowRight, 
+  Zap, 
+  Trophy,
+  Flame,
+  Plus
+} from 'lucide-react';
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
   onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about') => void;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
-  playgroundFiles: any[];
-  mostRecentPlaygroundFile: any;
+  playgroundFiles: PlaygroundFile[];
+  mostRecentPlaygroundFile: PlaygroundFile | null;
   onPlaygroundResume: (fileId: string) => void;
   practiceCategories?: any;
 }
-
-import BookIcon from '../assets/icons/BookIcon.svg?react';
-import CodeIcon from '../assets/icons/CodeIcon.svg?react';
-import QuizIcon from '../assets/icons/QuizIcon.svg?react';
-import StarIcon from '../assets/icons/StarIcon.svg?react';
-import ArrowRightIcon from '../assets/icons/ArrowRightIcon.svg?react';
-import BoltIcon from '../assets/icons/BoltIcon.svg?react';
-import TrophyIcon from '../assets/icons/TrophyIcon.svg?react';
-
-// Inline icon for fire/streak
-const FireIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
-  </svg>
-);
 
 export const HomePage: React.FC<HomePageProps> = ({
   modules, // Destructure prop
@@ -85,21 +81,21 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick={() => onNavigate('classroom')}
             className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold"
           >
-            <BookIcon className="w-4 h-4" />
+            <BookOpen className="w-4 h-4" />
             Open Classroom
           </button>
           <button
             onClick={() => onNavigate('playground')}
             className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold"
           >
-            <CodeIcon className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             New File
           </button>
           <button
             onClick={() => onNavigate('practice')}
             className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-semibold"
           >
-            <QuizIcon className="w-4 h-4" />
+            <BrainCircuit className="w-4 h-4" />
             Take Quiz
           </button>
           <div className="flex-1" />
@@ -124,7 +120,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </p>
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
-                  <StarIcon className="w-4 h-4 text-yellow-500" />
+                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                   <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{completedLessons.size} Stars</span>
                 </div>
               </div>
@@ -163,9 +159,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="p-2 bg-white/20 rounded-lg">
-                          <BookIcon className="w-5 h-5 text-white" />
+                          <BookOpen className="w-5 h-5 text-white" />
                         </div>
-                        <ArrowRightIcon className="w-5 h-5 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="w-5 h-5 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
                       </div>
                       <h3 className="text-base font-bold text-white mb-1">
                         {recentLesson.status === 'start' ? 'Start Learning' : 'Continue Lesson'}
@@ -186,9 +182,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="p-2 bg-white/20 rounded-lg">
-                          <CodeIcon className="w-5 h-5 text-white" />
+                          <Terminal className="w-5 h-5 text-white" />
                         </div>
-                        <ArrowRightIcon className="w-5 h-5 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="w-5 h-5 text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all" />
                       </div>
                       <h3 className="text-base font-bold text-white mb-1">Continue Coding</h3>
                       <p className="text-white/90 text-sm font-medium truncate">{mostRecentPlaygroundFile.name}</p>
@@ -211,14 +207,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                   className="neon-glow-cyan bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <BookIcon className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    <BookOpen className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Classroom</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
                     AI-guided lessons
                   </p>
                   <div className="flex items-center text-xs font-bold text-cyan-600 dark:text-cyan-400">
-                    Go <ArrowRightIcon className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
 
@@ -228,14 +224,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                   className="neon-glow-purple bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <CodeIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <Terminal className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Playground</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
                     Free coding space
                   </p>
                   <div className="flex items-center text-xs font-bold text-purple-600 dark:text-purple-400">
-                    Go <ArrowRightIcon className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
 
@@ -245,14 +241,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                   className="neon-glow-green bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <QuizIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <BrainCircuit className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Practice</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
                     Quizzes & projects
                   </p>
                   <div className="flex items-center text-xs font-bold text-green-600 dark:text-green-400">
-                    Go <ArrowRightIcon className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
 
@@ -262,14 +258,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                   className="neon-glow-orange bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <TrophyIcon className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    <Trophy className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   </div>
                   <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">About</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
                     Our mission
                   </p>
                   <div className="flex items-center text-xs font-bold text-orange-600 dark:text-orange-400">
-                    Go <ArrowRightIcon className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
               </div>
@@ -284,7 +280,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                    <BookIcon className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">{completedLessons.size}</div>
@@ -293,7 +289,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                    <CodeIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <Terminal className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">{playgroundFiles.length}</div>
@@ -302,7 +298,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                    <FireIcon />
+                    <Flame className="w-4 h-4 text-orange-500" />
                   </div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">1</div>
@@ -318,14 +314,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               <div className="space-y-2">
                 <div className="p-2 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
                   <div className="flex items-center gap-2 mb-1">
-                    <BoltIcon className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                    <Zap className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
                     <span className="text-xs font-bold text-cyan-700 dark:text-cyan-300">New Feature</span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">AI-powered code hints now available!</p>
                 </div>
                 <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-2 mb-1">
-                    <QuizIcon className="w-3 h-3 text-green-600 dark:text-green-400" />
+                    <BrainCircuit className="w-3 h-3 text-green-600 dark:text-green-400" />
                     <span className="text-xs font-bold text-green-700 dark:text-green-300">New Content</span>
                   </div>
                   <p className="text-xs text-gray-600 dark:text-gray-400">5 new practice quizzes added</p>

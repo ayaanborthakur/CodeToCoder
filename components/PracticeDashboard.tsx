@@ -18,13 +18,14 @@ interface PracticeDashboardProps {
 
 }
 
-import QuizIcon from '../assets/icons/QuizIcon.svg?react';
-import ProblemIcon from '../assets/icons/ProblemIcon.svg?react';
-import ProjectIcon from '../assets/icons/ProjectIcon.svg?react';
-import BookIcon from '../assets/icons/BookIcon.svg?react';
-
-import SparklesIcon from '../assets/icons/SparklesIcon.svg?react';
-import StarFilled from '../assets/icons/StarIcon.svg?react';
+import { 
+    BrainCircuit, 
+    Terminal, 
+    Rocket, 
+    BookOpen, 
+    Sparkles, 
+    Star 
+} from 'lucide-react';
 
 const DifficultyBadge: React.FC<{ difficulty: Difficulty }> = ({ difficulty }) => {
     let colorClass = "";
@@ -142,7 +143,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <div className="p-1.5 bg-white/20 rounded-lg">
-                                        <SparklesIcon className="w-5 h-5 text-white" />
+                                        <Sparkles className="w-5 h-5 text-white" />
                                     </div>
                                     <h3 className="text-lg font-bold text-white">
                                         Create New Quiz
@@ -191,7 +192,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                 <div className="flex items-center gap-4">
                                     {isCompleted && (
                                         <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full border border-yellow-200 dark:border-yellow-700/50">
-                                            <StarFilled className="w-5 h-5 text-yellow-500" />
+                                            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                                         </div>
                                     )}
                                     <div className="p-2 text-gray-400 group-hover:text-cyan-500 transition-colors">
@@ -247,7 +248,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-lg">
-                                    <SparklesIcon className="w-6 h-6 text-white" />
+                                    <Sparkles className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-bold text-white">Generate Custom Quiz</h3>
@@ -273,7 +274,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <QuizIcon className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                                <BrainCircuit className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                             </div>
                             <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-lg">
                                 {quizCount} available
@@ -300,7 +301,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <ProblemIcon className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                                <Terminal className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                             </div>
                             <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-lg">
                                 {problemCount} available
@@ -327,7 +328,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     >
                         <div className="flex items-start justify-between mb-4">
                             <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <ProjectIcon className="w-7 h-7 text-orange-600 dark:text-orange-400" />
+                                <Rocket className="w-7 h-7 text-orange-600 dark:text-orange-400" />
                             </div>
                             <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-bold rounded-lg">
                                 {projectCount} available
@@ -353,7 +354,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
-                                <BookIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reference Material</h3>

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-import StarIcon from '../assets/icons/StarIcon.svg?react';
+import { Star } from 'lucide-react';
 
 interface Point {
     x: number;
@@ -52,7 +52,7 @@ export const FlyingStar: React.FC<FlyingStarProps> = ({ start, end, onComplete }
 
     return (
         <div style={style}>
-            <StarIcon className="w-16 h-16 text-yellow-400 drop-shadow-2xl" />
+            <Star className="w-16 h-16 text-yellow-400 drop-shadow-2xl fill-yellow-400" />
         </div>
     );
 };

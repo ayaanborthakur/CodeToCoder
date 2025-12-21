@@ -10,7 +10,7 @@ interface SettingsModalProps {
     setIsHardMode: (isHardMode: boolean) => void;
 }
 
-import CloseIcon from '../assets/icons/CloseIcon.svg?react';
+import { X } from 'lucide-react';
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, theme, setTheme, isHardMode, setIsHardMode }) => {
     if (!isOpen) return null;
@@ -26,7 +26,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, t
                     className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                     aria-label="Close settings"
                 >
-                    <CloseIcon className="w-6 h-6" />
+                    <X className="w-6 h-6" />
                 </button>
             </div>
 

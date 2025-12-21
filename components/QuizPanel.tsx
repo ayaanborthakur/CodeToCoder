@@ -12,8 +12,7 @@ interface QuizPanelProps {
     onToggleCollapse: () => void;
 }
 
-import CheckCircleIcon from '../assets/icons/CheckCircleIcon.svg?react';
-import XCircleIcon from '../assets/icons/XCircleIcon.svg?react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isCollapsed, onToggleCollapse }) => {
     const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -190,9 +189,9 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                         {submitted && (
                                             <span className="ml-auto">
                                                 {isCorrect ? (
-                                                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
                                                 ) : isWrong ? (
-                                                    <XCircleIcon className="w-4 h-4 text-red-500" />
+                                                    <XCircle className="w-4 h-4 text-red-500" />
                                                 ) : null}
                                             </span>
                                         )}
@@ -286,12 +285,12 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                                 <div className="flex-shrink-0 ml-2">
                                                     {isCorrect ? (
                                                         <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-bold text-sm bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
-                                                            <CheckCircleIcon className="w-5 h-5" />
+                                                            <CheckCircle2 className="w-5 h-5" />
                                                             <span>Correct</span>
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-bold text-sm bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-full">
-                                                            <XCircleIcon className="w-5 h-5" />
+                                                            <XCircle className="w-5 h-5" />
                                                             <span>Incorrect</span>
                                                         </div>
                                                     )}
@@ -357,10 +356,10 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
 
                                                         {/* Status Icons inside option */}
                                                         {submitted && isThisOptionCorrect && (
-                                                            <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                                            <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
                                                         )}
                                                         {submitted && isSelected && !isThisOptionCorrect && (
-                                                            <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                                            <XCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                                                         )}
                                                     </button>
                                                 );

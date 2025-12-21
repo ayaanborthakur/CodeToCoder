@@ -5,13 +5,11 @@ import { ContactModal } from './ContactModal';
 
 interface MissionPageProps {
     onStart: () => void;
-    onNavigate: (view: any) => void;
+    onNavigate: (view: string) => void;
 }
 
-import FooterLogo from '../assets/icons/FooterLogo.svg?react';
-import CheckIcon from '../assets/icons/CheckIcon.svg?react';
-import BoltIcon from '../assets/icons/BoltIcon.svg?react';
-import CommunityIcon from '../assets/icons/CommunityIcon.svg?react';
+import FooterLogo from '../assets/FooterLogo.svg?react';
+import { Check, Zap, Users } from 'lucide-react';
 
 export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate }) => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -91,7 +89,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 <div className="space-y-6">
                                     <div className="flex gap-4">
                                         <div className="mt-1 bg-green-100 dark:bg-green-900/30 p-2 rounded-lg h-fit text-green-600 dark:text-green-400">
-                                            <CheckIcon className="w-6 h-6" />
+                                            <Check className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">100% Free Education</h3>
@@ -100,7 +98,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                     </div>
                                     <div className="flex gap-4">
                                         <div className="mt-1 bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg h-fit text-cyan-600 dark:text-cyan-400">
-                                            <BoltIcon className="w-6 h-6" />
+                                            <Zap className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">AI-Powered Mentorship</h3>
@@ -109,7 +107,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                     </div>
                                     <div className="flex gap-4">
                                         <div className="mt-1 bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg h-fit text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                                            <CommunityIcon className="w-6 h-6" />
+                                            <Users className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">Community Impact</h3>
@@ -136,7 +134,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         <div className="grid md:grid-cols-3 gap-8">
                             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
                                 <div className="w-14 h-14 bg-cyan-100 dark:bg-cyan-900/30 rounded-xl flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-6">
-                                    <BoltIcon className="w-8 h-8" />
+                                    <Zap className="w-8 h-8" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Lightning Fast</h3>
                                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">

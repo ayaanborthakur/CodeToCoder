@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Lock } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useMatch } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
@@ -51,11 +52,7 @@ declare global {
     }
 }
 
-const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-    </svg>
-);
+
 
 const triggerConfetti = () => {
     if (typeof window !== 'undefined' && typeof window.confetti !== 'function') return;
@@ -1700,14 +1697,11 @@ const App: React.FC = () => {
                                 )}
 
                                 {isClassroomQuiz ? (
-                                    <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
-                                        <div className="p-6 rounded-full bg-gray-900 mb-4">
-                                            <LockIcon className="w-12 h-12 text-gray-500" />
+                                    <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center rounded-lg z-10">
+                                        <div className="bg-slate-900/90 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 shadow-xl border border-slate-700">
+                                            <Lock className="w-3 h-3 text-slate-400" />
+                                            <span>Locked</span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
-                                        <p className="text-sm text-center px-6 mt-2">
-                                            The AI assistant is disabled during classroom quizzes to test your knowledge.
-                                        </p>
                                     </div>
                                 ) : (
                                     <ChatPanel

@@ -20,10 +20,13 @@ interface ChatPanelProps {
     onOpenFlowchart?: () => void; // Callback to open flowchart builder
 }
 
-import SparklesIcon from '../assets/icons/SparklesIcon.svg?react';
-import PaperAirplaneIcon from '../assets/icons/PaperAirplaneIcon.svg?react';
-import XMarkIcon from '../assets/icons/XMarkIcon.svg?react';
-import NetworkIcon from '../assets/icons/NetworkIcon.svg?react';
+import { 
+    Sparkles, 
+    Send, 
+    X, 
+    Workflow // For flowchart
+} from 'lucide-react';
+
 
 const parseMarkdown = (content: string) => {
     if (typeof window !== 'undefined' && window.marked && window.marked.parse) {
@@ -130,14 +133,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                         className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-gray-700 dark:text-gray-200 hover:border-purple-500 dark:hover:border-purple-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Build flowchart and generate code"
                                     >
-                                        <NetworkIcon className="w-5 h-5" />
+                                        <Workflow className="w-5 h-5" />
                                     </button>
                                 )}
                                 <button
                                     onClick={() => setIsInputOpen(true)}
                                     className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm text-gray-700 dark:text-gray-200 font-medium hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all group"
                                 >
-                                    <SparklesIcon className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 transition-colors" />
+                                    <Sparkles className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 transition-colors" />
                                     <span className="text-sm">Ask a Question</span>
                                 </button>
                             </div>
@@ -158,7 +161,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                         className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
                                         aria-label="Cancel question"
                                     >
-                                        <XMarkIcon className="w-5 h-5" />
+                                        <X className="w-5 h-5" />
                                     </button>
                                 </div>
                                 <div className="flex justify-between items-center">
@@ -168,7 +171,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                         disabled={!input.trim() || isLoading}
                                         className="w-full sm:w-auto bg-cyan-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-cyan-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center gap-2"
                                     >
-                                        <PaperAirplaneIcon />
+                                        <Send className="w-4 h-4" />
                                         <span>{isLoading ? 'Sending...' : 'Send'}</span>
                                     </button>
                                 </div>

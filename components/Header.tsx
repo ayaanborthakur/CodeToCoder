@@ -13,21 +13,16 @@ interface HeaderProps {
   starBalance?: number;
 }
 import Logo from '../assets/logo.svg?react';
-import SunIcon from '../assets/icons/SunIcon.svg?react';
-import MoonIcon from '../assets/icons/MoonIcon.svg?react';
-import StarIcon from '../assets/icons/StarIcon.svg?react';
-import UserIcon from '../assets/icons/UserIcon.svg?react';
-import MenuIcon from '../assets/icons/MenuIcon.svg?react';
-import CloseIcon from '../assets/icons/CloseIcon.svg?react';
-import SearchIcon from '../assets/icons/SearchIcon.svg?react';
-
-// Simple inline icon for help button
-const HelpIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-  </svg>
-);
-
+import {
+  Sun,
+  Moon,
+  Star,
+  User,
+  Menu,
+  X,
+  Search,
+  HelpCircle
+} from 'lucide-react';
 
 
 export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, setTheme, starTargetRef, onOpenAuth, starBalance }) => {
@@ -78,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
           {/* Search Bar with Dropdown - Hidden on small screens */}
           <div className="hidden lg:flex items-center ml-4">
             <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search..."
@@ -149,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         <div className="flex items-center gap-2">
           {user && starBalance !== undefined && (
             <div ref={starTargetRef as React.RefObject<HTMLDivElement>} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-yellow-400/30">
-              <StarIcon className="w-4 h-4 text-yellow-500" />
+              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
               <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance.toLocaleString()}</span>
             </div>
           )}
@@ -161,7 +156,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             aria-label="Help & About"
             title="Help & About"
           >
-            <HelpIcon />
+            <HelpCircle className="w-5 h-5" />
           </button>
 
           <button
@@ -169,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
           {user ? (
@@ -187,14 +182,14 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
               onClick={onOpenAuth}
               className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold shadow-md hover:shadow-lg transition-all"
             >
-              <UserIcon className="w-4 h-4" />
+              <User className="w-4 h-4" />
               Sign In
             </button>
           )}
 
           <div className="md:hidden">
             <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg text-gray-500 border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
-              {isMobileMenuOpen ? <CloseIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -214,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                 onClick={() => { onOpenAuth(); setIsMobileMenuOpen(false); }}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold mt-2"
               >
-                <UserIcon className="w-4 h-4" />
+                <User className="w-4 h-4" />
                 Sign In
               </button>
             )}
