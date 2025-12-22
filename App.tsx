@@ -1636,8 +1636,8 @@ const App: React.FC = () => {
 
                                 <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
                                     <BottomPanel
-                                        lesson={currentLesson}
-                                        isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
+                                        lesson={currentView === 'classroom' ? currentLesson : (currentView === 'practice' ? practiceLessonLike : null)}
+                                        isCompleted={currentView === 'classroom' && currentLesson ? completedLessons.has(currentLesson.id) : (currentView === 'practice' && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
                                         terminalOutput={terminalOutput}
                                         isTerminalLoading={isTerminalLoading}
                                         isCollapsed={panelsCollapsed.bottom}

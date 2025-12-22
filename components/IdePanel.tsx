@@ -222,8 +222,8 @@ export const IdePanel: React.FC<IdePanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800">
-            <div className="h-12 px-2 sm:px-4 flex justify-between items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="h-12 px-2 sm:px-4 flex justify-between items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 flex-shrink-0 z-10">
                 <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
                     <button
                         onClick={onToggleCollapse}
@@ -387,8 +387,8 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                 )}
             </div>
             {!isCollapsed && (
-                <div className="flex-1 overflow-hidden p-2">
-                    <div className="h-full border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+                <div className="flex-1 overflow-hidden relative">
+                    <div className="absolute inset-0">
                         <Editor
                             height="100%"
                             defaultLanguage="python"

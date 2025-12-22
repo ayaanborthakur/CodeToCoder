@@ -76,7 +76,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 min-h-full flex flex-col">
         {/* Quick Actions Bar */}
-        <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b-2 border-gray-200 dark:border-gray-800">
+        <div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b border-gray-200 dark:border-gray-800">
           <button
             onClick={() => onNavigate('classroom')}
             className="flex items-center gap-2 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold"
@@ -109,7 +109,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Main Content */}
           <div className="space-y-6">
             {/* Welcome Header */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-5 border-2 border-gray-200 dark:border-gray-700 shadow-strong">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
@@ -127,7 +127,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Progress Bar */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Course Progress</span>
                 <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400">{completionPercentage}%</span>
@@ -204,7 +204,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Classroom Card */}
                 <button
                   onClick={() => onNavigate('classroom')}
-                  className="neon-glow-cyan bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="neon-glow-cyan bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <BookOpen className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
@@ -221,7 +221,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Playground Card */}
                 <button
                   onClick={() => onNavigate('playground')}
-                  className="neon-glow-purple bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="neon-glow-purple bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Terminal className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -238,7 +238,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Practice Card */}
                 <button
                   onClick={() => onNavigate('practice')}
-                  className="neon-glow-green bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="neon-glow-green bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <BrainCircuit className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -255,7 +255,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Mission Card */}
                 <button
                   onClick={() => onNavigate('mission')}
-                  className="neon-glow-orange bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="neon-glow-orange bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
                 >
                   <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Trophy className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -275,7 +275,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Stats Cards */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Your Stats</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -309,7 +309,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* What's New */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">What's New</h3>
               <div className="space-y-2">
                 <div className="p-2 bg-cyan-50 dark:bg-cyan-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
@@ -330,7 +330,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Tips */}
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-lg p-4 border-2 border-cyan-200 dark:border-cyan-800">
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-2xl p-4 border border-cyan-200 dark:border-cyan-800 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">💡 Quick Tips</h3>
               <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
                 {completedLessons.size === 0 && (

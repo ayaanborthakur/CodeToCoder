@@ -41,6 +41,8 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     // Local processing of files to handle renaming
     const [fileToRename, setFileToRename] = useState<PlaygroundFile | null>(null);
     const [newFileName, setNewFileName] = useState('');
+    const [isCreatingFile, setIsCreatingFile] = useState(false);
+    const [createFileName, setCreateFileName] = useState('');
     const [fileToDelete, setFileToDelete] = useState<PlaygroundFile | null>(null);
     const [isSharing, setIsSharing] = useState<string | null>(null);
 
@@ -59,20 +61,34 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     }, [fileToRename, newFileName, onRenameFile]);
 
     const handleCreateNew = useCallback(() => {
-        // Generate a simple default name
-        const baseName = "Untitled";
-        let name = `${baseName}.py`;
-        let counter = 1;
+        setCreateFileName('Untitled.py');
+        setIsCreatingFile(true);
+    }, []);
+
+    const confirmCreateNew = useCallback(() => {
+        if (!createFileName.trim()) return;
         
-        // Simple client-side check to avoid immediate duplicate names if possible
-        // though the real check should happen in onNewFile or backend
-        while (files.some(f => f.name === name)) {
-            name = `${baseName} ${counter}.py`;
-            counter++;
+        let name = createFileName.trim();
+        if (!name.endsWith('.py')) name += '.py';
+        
+        // Simple client-side duplicate check
+        if (files.some(f => f.name === name)) {
+             // If duplicate, append timestamp or counter (simplified logic here, ideally show error)
+             // For now, let's just let it proceed or user can rename.
+             // But to be safe, let's append a number if creating "Untitled.py" specifically
+             if (name === 'Untitled.py') {
+                 let counter = 1;
+                 while (files.some(f => f.name === name)) {
+                     name = `Untitled ${counter}.py`;
+                     counter++;
+                 }
+             }
         }
-        
+
         onNewFile(name);
-    }, [onNewFile, files]);
+        setIsCreatingFile(false);
+        setCreateFileName('');
+    }, [createFileName, files, onNewFile]);
 
     const lastActiveFile = useMemo(() =>
         files.find(f => f.id === lastActiveFileId),
@@ -143,6 +159,43 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     title="Delete File"
                     message={`Are you sure you want to delete "${fileToDelete.name}"? This cannot be undone.`}
                 />
+            )}
+
+            {isCreatingFile && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-2xl animate-scale-in border border-gray-200 dark:border-gray-700">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Create New File</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Enter a name for your Python script.</p>
+                        <input
+                            type="text"
+                            value={createFileName}
+                            onChange={(e) => setCreateFileName(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 outline-none mb-6"
+                            autoFocus
+                            placeholder="script.py"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    confirmCreateNew();
+                                }
+                            }}
+                        />
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsCreatingFile(false)}
+                                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmCreateNew}
+                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors font-semibold"
+                                disabled={!createFileName.trim()}
+                            >
+                                Create File
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {fileToRename && (

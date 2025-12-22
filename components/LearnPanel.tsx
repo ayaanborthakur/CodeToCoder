@@ -32,7 +32,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
     return (
         <div className="flex flex-col h-full w-full bg-gray-50 dark:bg-gray-900">
             {/* Header */}
-            <div className="h-16 px-6 flex justify-between items-center bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm z-10">
+            <div className="h-16 px-6 flex justify-between items-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-4">
                     <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-cyan-600 dark:text-cyan-400">
@@ -85,7 +85,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
 
                     {/* Goal Section */}
                     {lesson.goal && (
-                        <div className="mt-8 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl">
+                        <div className="mt-8 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-2xl">
                             <div className="flex items-start gap-3">
                                 <div className="p-1 rounded-lg bg-cyan-100 dark:bg-cyan-800">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-cyan-600 dark:text-cyan-400">

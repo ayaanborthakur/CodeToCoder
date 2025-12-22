@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
 
   return (
     <>
-      <header className="h-16 flex-shrink-0 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 relative z-50 transition-all duration-200">
+      <header className="h-16 flex-shrink-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 sm:px-6 relative z-50 transition-all duration-200">
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="no-hover flex items-center gap-2">
             <Logo className="h-8 w-auto" />

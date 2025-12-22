@@ -79,9 +79,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
     }
 
     return (
-        <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
             {/* Header */}
-            <div className={`h-12 px-4 flex items-center border-b border-gray-200 dark:border-gray-800 ${isCollapsed ? 'justify-end' : 'justify-between'} flex-shrink-0`}>
+            <div className={`h-12 px-4 flex items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 ${isCollapsed ? 'justify-end' : 'justify-between'} flex-shrink-0 z-10`}>
                 {!isCollapsed && (
                     <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">AI Guidance</h3>
                 )}

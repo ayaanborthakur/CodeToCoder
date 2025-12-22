@@ -39,7 +39,7 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({
     };
 
     return (
-        <div className="p-4 h-full font-mono text-sm overflow-auto bg-gray-900 text-gray-300 flex flex-col" onClick={() => isWaitingForInput && inputRef.current?.focus()}>
+        <div className="p-4 h-full font-mono text-sm overflow-auto bg-gray-900 text-gray-300 flex flex-col rounded-2xl border border-gray-800 shadow-inner" onClick={() => isWaitingForInput && inputRef.current?.focus()}>
             {/* Loading Indicator */}
             {isLoading && !output.startsWith('Evaluating') && !output.startsWith('Running') && (
                 <div className="flex items-center gap-2 text-gray-400 mb-2">
