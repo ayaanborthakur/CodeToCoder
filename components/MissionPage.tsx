@@ -9,7 +9,7 @@ interface MissionPageProps {
 }
 
 import FooterLogo from '../assets/FooterLogo.svg?react';
-import { Check, Zap, Users } from 'lucide-react';
+import { Check, Zap, Users, Shield, Wifi } from 'lucide-react';
 
 export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate }) => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -144,7 +144,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
 
                             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
                                 <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-6">
-                                    <div className="w-8 h-8">🛡️</div>
+                                    <Shield className="w-8 h-8" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Private & Secure</h3>
                                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
@@ -154,7 +154,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
 
                             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
                                 <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400 mb-6">
-                                    <div className="w-8 h-8">🌍</div>
+                                    <Wifi className="w-8 h-8" />
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Offline Capable</h3>
                                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
