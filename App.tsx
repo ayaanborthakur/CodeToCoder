@@ -1837,7 +1837,7 @@ const App: React.FC = () => {
                                 onDeleteFile={handlePlaygroundDelete}
                                 onRenameFile={handlePlaygroundRename}
                                 onImportFile={handleImportCode}
-                                lastActiveFile={mostRecentPlaygroundFile}
+                                lastActiveFileId={mostRecentPlaygroundFile?.id}
                                 onResume={handlePlaygroundResume}
                             />
                         } />

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PlaygroundFile } from '../types';
 import { toPng } from 'html-to-image';
 import { ConfirmationModal } from './ConfirmationModal';
-import { RenameModal } from './RenameModal';
+import { Play, Plus, Upload, FileText, Pencil, Trash2, Share2, Loader2 } from 'lucide-react';
 
 interface PlaygroundDashboardProps {
     files: PlaygroundFile[];
@@ -14,6 +14,19 @@ interface PlaygroundDashboardProps {
     lastActiveFileId?: string | null;
     onResume?: (fileId: string) => void;
 }
+
+// Helper function to format relative time
+const timeAgo = (timestamp: number): string => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+};
 
 export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     files,
