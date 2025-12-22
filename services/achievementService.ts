@@ -158,25 +158,36 @@ export const checkAndAwardBadges = (
     const earnedBadgeIds = currentAchievements?.earnedBadgeIds || (currentAchievements as any)?.earnedBadges || [];
     const newlyEarnedBadges: Badge[] = [];
 
-    // Update platinum lesson requirement if total lessons is known
-    // Update platinum lesson requirement if total lessons is known and reasonable
-    const lessonPlatinumBadge = BADGES.find(b => b.id === 'lesson_platinum');
-    if (lessonPlatinumBadge && stats.totalLessons) {
-        // Safety check: Don't lower the requirement below a reasonable threshold (e.g. 10)
-        // unless we are sure. This prevents premature awarding if data is incomplete.
-        if (stats.totalLessons > 10) {
-            lessonPlatinumBadge.requirement = stats.totalLessons;
-        } else {
-            console.warn('[BadgeService] Total lessons count seems low:', stats.totalLessons, 'Keeping default requirement');
-        }
+    // Determine the actual platinum requirement - use a LOCAL variable, NOT mutation of global BADGES!
+    // This is critical: mutating BADGES can cause the requirement to persist incorrectly across calls
+    let platinumRequirement = 999; // Default to very high
+    if (stats.totalLessons && stats.totalLessons > 10) {
+        platinumRequirement = stats.totalLessons;
     }
+    
+    console.log('[BadgeService] Badge check starting:', {
+        lessonsCompleted: stats.lessonsCompleted,
+        totalLessons: stats.totalLessons,
+        platinumRequirement,
+        existingBadges: earnedBadgeIds.length
+    });
 
     // Check each badge
     for (const badge of BADGES) {
         // Skip if already earned
         if (earnedBadgeIds.includes(badge.id)) continue;
+        
+        // Skip code2code_master - it has special logic handled separately below
+        if (badge.id === 'code2code_master') continue;
 
         let count = 0;
+        let requirement = badge.requirement;
+        
+        // Use dynamic local requirement for platinum lesson badge
+        if (badge.id === 'lesson_platinum') {
+            requirement = platinumRequirement;
+        }
+        
         switch (badge.type) {
             case 'lesson':
                 count = stats.lessonsCompleted;
@@ -193,7 +204,8 @@ export const checkAndAwardBadges = (
         }
 
         // Award badge if requirement is met
-        if (count >= badge.requirement) {
+        if (count >= requirement) {
+            console.log(`[BadgeService] Awarding badge: ${badge.id} (count: ${count} >= requirement: ${requirement})`);
             newlyEarnedBadges.push(badge);
             earnedBadgeIds.push(badge.id);
         }

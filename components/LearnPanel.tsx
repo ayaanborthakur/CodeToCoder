@@ -118,7 +118,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                         </button>
 
                         <button
-                            onClick={onNextLesson}
+                            onClick={handleContinue}
                             disabled={!hasNextLesson}
                             className={`group px-6 py-3 rounded-full font-bold text-lg transition-colors flex items-center gap-2 ${
                                 hasNextLesson
