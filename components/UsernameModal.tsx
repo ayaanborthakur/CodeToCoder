@@ -29,13 +29,15 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+    const [hasGeneratedDefault, setHasGeneratedDefault] = useState(false);
 
-    // Generate default username for new users
+    // Generate default username for new users - only once when modal first opens
     useEffect(() => {
-        if (isOpen && !currentUsername && !username) {
+        if (isOpen && !currentUsername && !hasGeneratedDefault) {
             setUsername(generateDefaultUsername());
+            setHasGeneratedDefault(true);
         }
-    }, [isOpen, currentUsername, username]);
+    }, [isOpen, currentUsername, hasGeneratedDefault]);
 
     // Debounced availability check
     useEffect(() => {

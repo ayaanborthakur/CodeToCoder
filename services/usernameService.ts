@@ -75,29 +75,31 @@ export const claimUsername = async (userId: string, username: string): Promise<v
 
     const normalizedUsername = username.trim().toLowerCase();
     const userRef = doc(db, USERS_COLLECTION, userId);
+    const leaderboardRef = doc(db, 'leaderboard', userId);
+
+    // Check if username is taken BEFORE the transaction (outside of transaction for simplicity)
+    const q = query(
+        collection(db, USERS_COLLECTION),
+        where('username', '==', normalizedUsername),
+        limit(1)
+    );
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty && querySnapshot.docs[0].id !== userId) {
+        throw new Error('Username is already taken');
+    }
 
     await runTransaction(db, async (transaction) => {
-        // Check if username is taken by someone else
-        const q = query(
-            collection(db, USERS_COLLECTION),
-            where('username', '==', normalizedUsername),
-            limit(1)
-        );
-        const querySnapshot = await getDocs(q);
+        // DO ALL READS FIRST
+        const leaderboardDoc = await transaction.get(leaderboardRef);
         
-        if (!querySnapshot.empty && querySnapshot.docs[0].id !== userId) {
-            throw new Error('Username is already taken');
-        }
-
-        // Update user document with username
+        // THEN DO ALL WRITES
         transaction.set(userRef, {
             username: normalizedUsername,
             lastActive: Date.now()
         }, { merge: true });
 
         // Update leaderboard document if it exists
-        const leaderboardRef = doc(db, 'leaderboard', userId);
-        const leaderboardDoc = await transaction.get(leaderboardRef);
         if (leaderboardDoc.exists()) {
             transaction.set(leaderboardRef, {
                 username: normalizedUsername
