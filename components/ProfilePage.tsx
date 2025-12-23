@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
 import { useProgress } from '../hooks/useProgress';
-import { ArrowLeft, HelpCircle, Lock, AlertTriangle, RotateCw } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Lock, AlertTriangle, RotateCw, Pencil } from 'lucide-react';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
 import { BADGES, getBadgeColor } from '../services/achievementService';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import { resetTutorial } from '../services/tutorialService';
 import { getUserSettings, updateUserSettings } from '../services/userSettingsService';
 import { ToggleSwitch } from './ToggleSwitch';
+import { UsernameModal } from './UsernameModal';
 import type { UserAchievements, Collectible } from '../types';
 
 import { ViewState } from './Header';
@@ -22,7 +23,7 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats }) => {
-    const { user, logout, deleteAccount } = useAuth();
+    const { user, logout, deleteAccount, refreshUser } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
     const [starBalance, setStarBalance] = useState(0);
@@ -32,6 +33,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
     const [isDeleting, setIsDeleting] = useState(false);
     const [isResetTutorialModalOpen, setIsResetTutorialModalOpen] = useState(false);
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
+    const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
 
     const handleDeleteAccount = async () => {
         if (deleteConfirmText !== 'DELETE') return;
@@ -116,7 +118,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                         {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="text-center md:text-left flex-1">
-                        <h1 className="text-3xl font-bold text-text-primary mb-2">{user.name}</h1>
+                        <h1 className="text-3xl font-bold text-text-primary mb-1">{user.name}</h1>
+                        {user.username && (
+                            <p className="text-cyan-600 dark:text-cyan-400 font-medium mb-1">@{user.username}</p>
+                        )}
                         <p className="text-text-secondary">{user.email}</p>
                         <div className="mt-4 flex flex-wrap gap-4 justify-center md:justify-start">
                             <div className="bg-background px-4 py-2 rounded-lg border border-border-default">
@@ -269,6 +274,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 isChecked={theme === 'dark'}
                                 onChange={(isChecked) => handleThemeChange(isChecked ? 'dark' : 'light')}
                             />
+                        </div>
+
+                        {/* Username Setting */}
+                        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-gray-200 dark:border-slate-800">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Username</h3>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-900 dark:text-white font-medium">
+                                        {user.username ? `@${user.username}` : 'No username set'}
+                                    </p>
+                                    <p className="text-slate-400 text-sm">Your unique username for the leaderboard</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsUsernameModalOpen(true)}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors border border-cyan-200 dark:border-cyan-800"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                    {user.username ? 'Change' : 'Set Username'}
+                                </button>
+                            </div>
                         </div>
 
                         {/* AI Assistance Setting */}
@@ -482,6 +507,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Username Modal */}
+            {user && (
+                <UsernameModal
+                    isOpen={isUsernameModalOpen}
+                    userId={user.id}
+                    currentUsername={user.username}
+                    isNewUser={false}
+                    onClose={() => setIsUsernameModalOpen(false)}
+                    onSuccess={async () => {
+                        setIsUsernameModalOpen(false);
+                        await refreshUser();
+                    }}
+                />
             )}
             <style>{`
         @keyframes scale-in {

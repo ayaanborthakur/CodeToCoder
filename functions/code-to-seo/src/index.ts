@@ -51,9 +51,9 @@ export const generateShareImage = onCall(
       // Generate new image with Puppeteer (Serverless)
       const browser = await puppeteer.launch({
         args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
+        defaultViewport: {width: 1200, height: 630},
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        headless: true,
       });
 
       const page = await browser.newPage();

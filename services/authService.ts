@@ -5,12 +5,11 @@ import {
   updateProfile,
   signInAnonymously,
   deleteUser,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, googleProvider, db } from './firebase';
 import { User } from '../types';
 
 const SESSION_KEY = 'codetocoder_session';
@@ -106,14 +105,38 @@ export const authService = {
     return null;
   },
 
-  // Helper to map Firebase user to our app's User type
+  // Helper to map Firebase user to our app's User type (now fetches username from Firestore)
   mapFirebaseUser(firebaseUser: FirebaseUser, fallbackName?: string): User {
+    // Note: This is synchronous for backward compatibility
+    // Username is fetched separately via refreshUserWithUsername
     return {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
       name: firebaseUser.displayName || fallbackName || 'User',
       joinedAt: firebaseUser.metadata.creationTime ? new Date(firebaseUser.metadata.creationTime).getTime() : Date.now(),
     };
+  },
+
+  // Async version that fetches username from Firestore
+  async mapFirebaseUserWithUsername(firebaseUser: FirebaseUser, fallbackName?: string): Promise<User> {
+    const baseUser = this.mapFirebaseUser(firebaseUser, fallbackName);
+    
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        return {
+          ...baseUser,
+          username: data.username || undefined,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to fetch username:', error);
+    }
+    
+    return baseUser;
   },
 
   // Helper to migrate guest data to new user account

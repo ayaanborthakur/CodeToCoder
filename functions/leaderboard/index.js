@@ -64,13 +64,22 @@ exports.updateLeaderboard = onSchedule({
       const userData = userDoc.data();
       const leaderboardEntryRef = leaderboardRef.doc(userDoc.id);
 
+      const username = userData.username || null;
+      
+      // Skip users without a username
+      if (!username) {
+        return;
+      }
+
       batch.set(leaderboardEntryRef, {
-        name: userData.name || "Anonymous",
+        username: username,
         avatar: userData.avatar || null,
-        net_value: userData.net_value,
+        net_value: userData.net_value || 0,
         rank: rank++,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+      
+      logger.debug(`Adding user to leaderboard: ${userDoc.id} -> @${username}`);
     });
 
     await batch.commit();

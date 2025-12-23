@@ -29,6 +29,7 @@ import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
+import { UsernameModal } from './components/UsernameModal';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -103,7 +104,7 @@ const App: React.FC = () => {
 
     const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
 
-    const { user, isLoading: isAuthLoading } = useAuth();
+    const { user, isLoading: isAuthLoading, refreshUser } = useAuth();
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
@@ -175,6 +176,7 @@ const App: React.FC = () => {
     const [playgroundEditorCode, setPlaygroundEditorCode] = useState<string>('');
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
 
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -364,6 +366,18 @@ const App: React.FC = () => {
             checkTutorial();
         }
     }, [user, isAuthLoading, isProgressLoaded]);
+
+    // 4. Check if user needs to set a username
+    useEffect(() => {
+        if (isAuthLoading || !user) return;
+        // Skip for anonymous/guest users
+        if (!user.email) return;
+        
+        // If user has no username, show the modal
+        if (!user.username) {
+            setIsUsernameModalOpen(true);
+        }
+    }, [user, isAuthLoading]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");
@@ -1731,6 +1745,18 @@ const App: React.FC = () => {
                 <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
             </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            {user && !user.username && user.email && (
+                <UsernameModal
+                    isOpen={isUsernameModalOpen}
+                    userId={user.id}
+                    isNewUser={true}
+                    onClose={() => setIsUsernameModalOpen(false)}
+                    onSuccess={async () => {
+                        setIsUsernameModalOpen(false);
+                        await refreshUser();
+                    }}
+                />
+            )}
             <div className="h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans relative overflow-hidden">
                 {flyingStar && (
                     <FlyingStar

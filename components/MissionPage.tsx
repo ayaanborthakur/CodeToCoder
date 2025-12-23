@@ -2,10 +2,11 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ContactModal } from './ContactModal';
+import { ViewState } from './Header';
 
 interface MissionPageProps {
     onStart: () => void;
-    onNavigate: (view: string) => void;
+    onNavigate: (view: ViewState) => void;
 }
 
 import FooterLogo from '../assets/FooterLogo.svg?react';

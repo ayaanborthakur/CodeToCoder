@@ -3,7 +3,7 @@ import { db } from './firebase';
 
 export interface LeaderboardEntry {
     userId: string;
-    name: string;
+    username: string; // Required username for display
     avatar?: string;
     net_value: number;
     rank: number;
@@ -28,7 +28,7 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
         // FALLBACK: If leaderboard is empty (scheduled function hasn't run yet),
         // query the users collection directly to ensure data is shown.
         if (snapshot.empty) {
-            console.log('Leaderboard empty, falling back to direct user query');
+            console.warn('Leaderboard empty, falling back to direct user query');
             const usersRef = collection(db, 'users');
             const userQuery = query(
                 usersRef,
@@ -43,10 +43,11 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
 
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.name) {
+                // Only include users with a username
+                if (data.username) {
                     entries.push({
                         userId: doc.id,
-                        name: data.name,
+                        username: data.username,
                         avatar: data.avatar,
                         net_value: data.net_value || 0,
                         rank: rank++
@@ -60,13 +61,16 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
 
         snapshot.forEach((doc) => {
             const data = doc.data();
-            entries.push({
-                userId: doc.id,
-                name: data.name,
-                avatar: data.avatar,
-                net_value: data.net_value || 0,
-                rank: data.rank // Use the pre-calculated rank
-            });
+            // Only include entries with a username
+            if (data.username) {
+                entries.push({
+                    userId: doc.id,
+                    username: data.username,
+                    avatar: data.avatar,
+                    net_value: data.net_value || 0,
+                    rank: data.rank // Use the pre-calculated rank
+                });
+            }
         });
 
         return entries;

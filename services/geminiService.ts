@@ -656,3 +656,50 @@ export const generateCodeFromFlowchart = async (flowchart: import('../types').Fl
         return null;
     }
 };
+
+/**
+ * Check if a username is safe (not profane/offensive)
+ * Uses AI to detect vulgar language, hate speech, and harmful content
+ */
+export const checkUsernameSafety = async (username: string): Promise<{ isSafe: boolean; reason?: string }> => {
+    const prompt = `
+    Analyze the username: "${username}".
+    Check if it contains:
+    1. Profanity or vulgar language.
+    2. Hate speech or racial slurs.
+    3. Sexually explicit references.
+    4. Harmful intent or offensive puns.
+    
+    If it is safe, return isSafe: true.
+    If it is NOT safe, return isSafe: false and a very brief reason (e.g., "Contains profanity").
+    `;
+
+    try {
+        const client = getAiClient();
+        return await retryOperation(async () => {
+            const response = await client.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            isSafe: { type: Type.BOOLEAN },
+                            reason: { type: Type.STRING }
+                        },
+                        required: ['isSafe']
+                    }
+                }
+            });
+
+            const text = response.text;
+            if (!text) return { isSafe: true }; // Default to safe on empty response
+            return JSON.parse(text.trim());
+        });
+    } catch (error) {
+        console.error("Error checking username safety:", error);
+        // Fallback: If AI fails, allow it (prevents blocking users due to AI issues)
+        return { isSafe: true }; 
+    }
+};

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { getLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
 import { useAuth } from '../contexts/AuthContext';
-import { Medal, Star, BarChart3, User, Trophy } from 'lucide-react';
+import { Medal, Star, BarChart3 } from 'lucide-react';
 
 export const LeaderboardPage: React.FC = () => {
     const { user } = useAuth();
@@ -34,13 +34,9 @@ export const LeaderboardPage: React.FC = () => {
         return <span className="text-slate-400 font-mono font-bold text-lg">#{rank}</span>;
     };
 
-    // Get display name with fallback
+    // Get display name - uses username only
     const getDisplayName = (entry: LeaderboardEntry) => {
-        if (entry.name && entry.name !== 'Anonymous' && entry.name.trim() !== '') {
-            return entry.name;
-        }
-        // Fallback to user ID prefix
-        return `User-${entry.userId.slice(0, 6)}`;
+        return `@${entry.username}`;
     };
 
     return (

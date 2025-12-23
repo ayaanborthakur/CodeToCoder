@@ -64,6 +64,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string; // Unique username for display/leaderboard
   avatar?: string;
   joinedAt: number;
   achievements?: UserAchievements;
