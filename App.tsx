@@ -353,8 +353,9 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isAuthLoading || !isProgressLoaded) return;
 
-        // Only show tutorial for logged-in users who haven't completed it
-        if (user) {
+        // Only show tutorial for logged-in users who have completed signup (have a username)
+        // This ensures the username modal completes before the tutorial starts
+        if (user && user.username) {
             const checkTutorial = async () => {
                 const tutorialCompleted = await hasTutorialCompleted(user.id);
                 if (!tutorialCompleted) {
@@ -369,17 +370,19 @@ const App: React.FC = () => {
         }
     }, [user, isAuthLoading, isProgressLoaded]);
 
-    // 4. Check if user needs to set a username
+    // 4. Check if user needs to set a username (but not on signup page which handles this inline)
     useEffect(() => {
         if (isAuthLoading || !user) return;
         // Skip for anonymous/guest users
         if (!user.email) return;
+        // Skip on signup page - it has its own inline username UI
+        if (location.pathname === '/signup') return;
         
         // If user has no username, show the modal
         if (!user.username) {
             setIsUsernameModalOpen(true);
         }
-    }, [user, isAuthLoading]);
+    }, [user, isAuthLoading, location.pathname]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");

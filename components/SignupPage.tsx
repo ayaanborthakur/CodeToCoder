@@ -41,13 +41,13 @@ export const SignupPage: React.FC = () => {
     // Effect to handle navigation based on auth state
     useEffect(() => {
         if (user) {
-            // If logged in but no username (and not in username step), go to username step
-            if (!user.username && step !== 'username') {
+            // If user already has a username, redirect to dashboard
+            // This handles returning users who sign in via Google
+            if (user.username) {
+                navigate('/dashboard');
+            } else if (step !== 'username') {
+                // If logged in but no username, go to username step
                 setStep('username');
-            } else if (user.username && (user as any).emailVerified) {
-                 // If everything is good, go to dashboard
-                 // navigate('/dashboard'); 
-                 // Note: we might want to show a success state first or just redirect
             }
         }
     }, [user, step, navigate]);
@@ -58,10 +58,21 @@ export const SignupPage: React.FC = () => {
         setError(null);
         try {
             await loginWithGoogle();
-            // AuthContext handles redirect usually, but here we might want to check for username
-            // The useEffect above will catch the user state change and redirect to username step if needed
+            // After Google sign-in succeeds, check if user already has a username (returning user)
+            // The useEffect will handle navigation - if user.username exists, it redirects to dashboard
+            // Otherwise, it advances to the username step
+            setStep('username');
         } catch (err: any) {
-            setError(err.message || "Failed to sign in with Google");
+            // Check for specific Firebase error codes
+            const errorCode = err?.code;
+            if (errorCode === 'auth/account-exists-with-different-credential' || 
+                errorCode === 'auth/email-already-in-use') {
+                // Account exists with different credential
+                setError("An account already exists with this email. Redirecting to login...");
+                setTimeout(() => navigate('/login'), 2000);
+            } else {
+                setError(err.message || "Failed to sign in with Google");
+            }
         } finally {
             setLoading(false);
         }
@@ -78,7 +89,15 @@ export const SignupPage: React.FC = () => {
             // Assuming register handles basic creation.
             setStep('verification');
         } catch (err: any) {
-            setError(err.message || "Failed to create account");
+            // Check for specific Firebase error codes
+            const errorCode = err?.code;
+            if (errorCode === 'auth/email-already-in-use') {
+                // Email already has an account - redirect to login
+                setError("An account with this email already exists. Redirecting to login...");
+                setTimeout(() => navigate('/login'), 2000);
+            } else {
+                setError(err.message || "Failed to create account");
+            }
         } finally {
             setLoading(false);
         }
@@ -219,11 +238,13 @@ export const SignupPage: React.FC = () => {
                         <p className="text-gray-500 dark:text-gray-400 mt-2">Master Python with AI</p>
                     </div>
 
-                    {/* Progress Steps (simplified) */}
+                    {/* Progress Steps - 2 steps: Choose method, then set username */}
                     <div className="flex gap-2 mb-10">
-                        {['method', 'credentials', 'verification', 'username'].map((s) => {
-                            const steps = ['method', 'credentials', 'verification', 'username'];
-                            const currentIndex = steps.indexOf(step);
+                        {['method', 'username'].map((s) => {
+                            const steps = ['method', 'username'];
+                            // Map credentials/verification to 'method' step for progress display
+                            const effectiveStep = (step === 'credentials' || step === 'verification') ? 'method' : step;
+                            const currentIndex = steps.indexOf(effectiveStep);
                             const stepIndex = steps.indexOf(s);
                             const isActive = stepIndex === currentIndex;
                             const isCompleted = stepIndex < currentIndex;
