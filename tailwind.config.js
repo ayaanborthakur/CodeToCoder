@@ -9,6 +9,15 @@ export default {
     darkMode: 'class',
     theme: {
         extend: {
+            borderRadius: {
+                DEFAULT: '6px',
+                sm: '4px',
+                md: '6px',
+                lg: '8px',
+                xl: '10px',
+                '2xl': '12px',
+                '3xl': '14px',
+            },
             colors: {
                 background: 'var(--background)',
                 surface: 'var(--surface)',
@@ -18,6 +27,7 @@ export default {
                 'border-default': 'var(--border-default)',
             },
             fontFamily: {
+                sans: ['"Outfit"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
                 mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
             },
             animation: {

@@ -3,6 +3,7 @@ import React from 'react';
 import * as ReactDOMClient from 'react-dom/client';
 import App from './App';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './contexts/AuthContext';
 
 const container = document.getElementById('root');
@@ -63,11 +64,13 @@ if (container && createRoot) {
     const root = createRoot(container);
     root.render(
       <React.StrictMode>
-        <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </AuthProvider>
+        <HelmetProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </AuthProvider>
+        </HelmetProvider>
       </React.StrictMode>
     );
   } catch (err) {

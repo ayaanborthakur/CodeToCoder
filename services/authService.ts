@@ -5,15 +5,14 @@ import {
   updateProfile,
   signInAnonymously,
   deleteUser,
-  signInWithRedirect,
-  getRedirectResult,
   signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, googleProvider, db } from './firebase';
 import { User } from '../types';
 
-const SESSION_KEY = 'codetocoder_session';
+const SESSION_KEY = 'code2coder_session';
 
 export const authService = {
   async login(email: string, password: string): Promise<User> {
@@ -85,10 +84,10 @@ export const authService = {
     const userId = firebaseUser.uid;
 
     // Delete all user data from localStorage
-    localStorage.removeItem(`codetocoder_progress_${userId}`);
-    localStorage.removeItem(`codetocoder_practice_progress_${userId}`);
-    localStorage.removeItem(`codetocoder_playground_files_${userId}`);
-    localStorage.removeItem(`codetocoder_custom_quizzes_${userId}`);
+    localStorage.removeItem(`code2coder_progress_${userId}`);
+    localStorage.removeItem(`code2coder_practice_progress_${userId}`);
+    localStorage.removeItem(`code2coder_playground_files_${userId}`);
+    localStorage.removeItem(`code2coder_custom_quizzes_${userId}`);
     localStorage.removeItem(SESSION_KEY);
 
     // Delete the user from Firebase Authentication
@@ -106,8 +105,10 @@ export const authService = {
     return null;
   },
 
-  // Helper to map Firebase user to our app's User type
+  // Helper to map Firebase user to our app's User type (now fetches username from Firestore)
   mapFirebaseUser(firebaseUser: FirebaseUser, fallbackName?: string): User {
+    // Note: This is synchronous for backward compatibility
+    // Username is fetched separately via refreshUserWithUsername
     return {
       id: firebaseUser.uid,
       email: firebaseUser.email || '',
@@ -116,14 +117,50 @@ export const authService = {
     };
   },
 
+  // Async version that fetches username from Firestore
+  async mapFirebaseUserWithUsername(firebaseUser: FirebaseUser, fallbackName?: string): Promise<User> {
+    const baseUser = this.mapFirebaseUser(firebaseUser, fallbackName);
+    
+    try {
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        // Check if joinedAt is missing (Migration for existing users)
+        if (!data.joinedAt) {
+          console.log('Migrating joinedAt for user:', firebaseUser.uid);
+          // If createdAt exists in Firestore, use it (migration).
+          // Otherwise, fall back to Auth metadata or Date.now()
+          const joinDate = data.createdAt || baseUser.joinedAt || Date.now();
+          
+          await setDoc(userRef, {
+            joinedAt: joinDate
+          }, { merge: true });
+        }
+
+        return {
+          ...baseUser,
+          username: data.username || undefined,
+          // Always return the value from Firestore if it exists (though we just set it if missing)
+          joinedAt: data.joinedAt || baseUser.joinedAt
+        };
+      }
+    } catch (error) {
+      console.error('Failed to fetch username:', error);
+    }
+    
+    return baseUser;
+  },
+
   // Helper to migrate guest data to new user account
   migrateGuestData(userId: string) {
-    const guestProgress = localStorage.getItem('codetocoder_progress');
-    const guestPractice = localStorage.getItem('codetocoder_practice_progress');
-    const guestFiles = localStorage.getItem('codetocoder_playground_files');
+    const guestProgress = localStorage.getItem('code2coder_progress');
+    const guestPractice = localStorage.getItem('code2coder_practice_progress');
+    const guestFiles = localStorage.getItem('code2coder_playground_files');
 
-    if (guestProgress) localStorage.setItem(`codetocoder_progress_${userId} `, guestProgress);
-    if (guestPractice) localStorage.setItem(`codetocoder_practice_progress_${userId} `, guestPractice);
-    if (guestFiles) localStorage.setItem(`codetocoder_playground_files_${userId} `, guestFiles);
+    if (guestProgress) localStorage.setItem(`code2coder_progress_${userId} `, guestProgress);
+    if (guestPractice) localStorage.setItem(`code2coder_practice_progress_${userId} `, guestPractice);
+    if (guestFiles) localStorage.setItem(`code2coder_playground_files_${userId} `, guestFiles);
   }
 };

@@ -27,15 +27,17 @@ interface IdePanelProps {
     onToggleAutocomplete?: () => void;
 }
 
-import PlayIcon from '../assets/icons/IdePlayIcon.svg?react';
-import SpinnerIcon from '../assets/icons/SpinnerIcon.svg?react';
-import HelpIcon from '../assets/icons/HelpIcon.svg?react';
-import ResetIcon from '../assets/icons/ResetIcon.svg?react';
-import ExportIcon from '../assets/icons/ExportIcon.svg?react';
-import ImportIcon from '../assets/icons/ImportIcon.svg?react';
-import BackIcon from '../assets/icons/BackIcon.svg?react';
-import CheckIcon from '../assets/icons/CheckIcon.svg?react';
-import SettingsIcon from '../assets/icons/SettingsIcon.svg?react';
+import { 
+    Play, 
+    Loader2, 
+    HelpCircle, 
+    RotateCw, 
+    Download, 
+    Upload, 
+    ArrowLeft, 
+    Check, 
+    Settings 
+} from 'lucide-react';
 
 const FileNameEditor: React.FC<{ name: string; onChange: (newName: string) => void; }> = ({ name, onChange }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -220,8 +222,8 @@ export const IdePanel: React.FC<IdePanelProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800">
-            <div className="h-12 px-2 sm:px-4 flex justify-between items-center bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="flex flex-col h-full w-full bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="h-12 px-2 sm:px-4 flex justify-between items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 flex-shrink-0 z-10">
                 <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
                     <button
                         onClick={onToggleCollapse}
@@ -238,7 +240,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                                     className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-cyan-600 transition-colors"
                                     title={backButtonLabel ? `Back to ${backButtonLabel}` : "Back"}
                                 >
-                                    <BackIcon className="w-5 h-5" />
+                                    <ArrowLeft className="w-5 h-5" />
                                     {backButtonLabel && <span className="text-xs font-medium hidden sm:inline">{backButtonLabel}</span>}
                                 </button>
                             )}
@@ -268,7 +270,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                         )}
                         {saveStatus && saveStatus === 'saved' && (
                             <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-gray-400 dark:text-gray-500 transition-opacity duration-500">
-                                <CheckIcon className="w-3 h-3" />
+                                <Check className="w-3 h-3" />
                                 Saved
                             </div>
                         )}
@@ -281,7 +283,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                                     disabled={isLoading}
                                     title="IDE Settings"
-                                    icon={<SettingsIcon className="w-4 h-4" />}
+                                    icon={<Settings className="w-4 h-4" />}
                                     label=""
                                     variant="secondary"
                                     className="hidden sm:flex"
@@ -320,7 +322,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             onClick={onGetHelp}
                             disabled={isLoading}
                             title="Ask AI for help"
-                            icon={<HelpIcon className="w-4 h-4" />}
+                            icon={<HelpCircle className="w-4 h-4" />}
                             label="Help"
                             variant="secondary"
                             className="hidden sm:flex"
@@ -329,7 +331,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             onClick={onGetHelp}
                             disabled={isLoading}
                             title="Ask AI for help"
-                            icon={<HelpIcon className="w-4 h-4" />}
+                            icon={<HelpCircle className="w-4 h-4" />}
                             label=""
                             variant="secondary"
                             className="sm:hidden px-2"
@@ -340,7 +342,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                                 onClick={onExportCode}
                                 disabled={isLoading}
                                 title="Export code"
-                                icon={<ExportIcon className="w-4 h-4" />}
+                                icon={<Download className="w-4 h-4" />}
                                 label=""
                                 className="hidden sm:flex"
                             />
@@ -351,7 +353,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                                 onClick={onImportCode}
                                 disabled={isLoading}
                                 title="Import code"
-                                icon={<ImportIcon className="w-4 h-4" />}
+                                icon={<Upload className="w-4 h-4" />}
                                 label=""
                                 className="hidden sm:flex"
                             />
@@ -361,7 +363,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             onClick={onResetCode}
                             disabled={isLoading}
                             title={`${resetButtonLabel} code`}
-                            icon={<ResetIcon className="w-4 h-4" />}
+                            icon={<RotateCw className="w-4 h-4" />}
                             label={resetButtonLabel}
                             className="hidden sm:flex"
                         />
@@ -369,7 +371,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             onClick={onResetCode}
                             disabled={isLoading}
                             title={`${resetButtonLabel} code`}
-                            icon={<ResetIcon className="w-4 h-4" />}
+                            icon={<RotateCw className="w-4 h-4" />}
                             label=""
                             className="sm:hidden px-2"
                         />
@@ -377,7 +379,7 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                         <IconButton
                             onClick={onRunCode}
                             disabled={isLoading}
-                            icon={isLoading ? <SpinnerIcon className="animate-spin h-4 w-4 text-white" /> : <PlayIcon className="w-5 h-5" />}
+                            icon={isLoading ? <Loader2 className="animate-spin h-4 w-4 text-white" /> : <Play className="w-5 h-5" />}
                             label={isLoading ? '...' : 'Run'}
                             variant="primary"
                         />
@@ -385,8 +387,8 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                 )}
             </div>
             {!isCollapsed && (
-                <div className="flex-1 overflow-hidden p-2">
-                    <div className="h-full border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+                <div className="flex-1 overflow-hidden relative">
+                    <div className="absolute inset-0">
                         <Editor
                             height="100%"
                             defaultLanguage="python"

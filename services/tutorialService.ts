@@ -1,7 +1,7 @@
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
-const TUTORIAL_STORAGE_KEY = 'codetocoder_tutorial_completed';
+const TUTORIAL_STORAGE_KEY = 'code2coder_tutorial_completed';
 
 export interface TutorialStep {
     id: string;
@@ -18,7 +18,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // Home Screen
     {
         id: 'home-welcome',
-        title: 'Welcome to CodeToCoder! 🎉',
+        title: 'Welcome to Code2Coder! 🎉',
         description: 'This is your home screen where you can continue your learning journey, view your recent activity, and see your progress. Let\'s take a quick tour!',
         route: '/dashboard',
         position: 'center',
@@ -284,7 +284,7 @@ export const resetTutorial = async (userId?: string): Promise<void> => {
     }
 };
 
-export const TUTORIAL_PROGRESS_KEY = 'codetocoder_tutorial_step';
+export const TUTORIAL_PROGRESS_KEY = 'code2coder_tutorial_step';
 
 export const saveTutorialProgress = (stepIndex: number) => {
     localStorage.setItem(TUTORIAL_PROGRESS_KEY, stepIndex.toString());

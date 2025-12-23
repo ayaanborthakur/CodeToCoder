@@ -4,8 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 import type { UserAchievements, Badge } from '../types';
 
-const BASE_PROGRESS_KEY = 'codetocoder_progress';
-const BASE_PRACTICE_KEY = 'codetocoder_practice_progress';
+const BASE_PROGRESS_KEY = 'code2coder_progress';
+const BASE_PRACTICE_KEY = 'code2coder_practice_progress';
 
 export const useProgress = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -149,17 +149,14 @@ export const useProgress = () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
                     const { contentService } = await import('../services/contentService');
-                    const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const modules = await contentService.getAllModules();
                     const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
                     console.log('[useProgress] Total lessons calculated:', totalLessons);
 
-                    // Award stars for lesson completion (only if not already rewarded)
+                    // Update daily challenges and rewarded set (only if not already rewarded)
                     if (user && !rewardedLessons.has(lessonId)) {
-                        const starReward = calculateStarReward('lesson', undefined);
-                        addStars(user.id, starReward, `Completed lesson`);
-
                         // Update daily challenges
                         updateChallengeProgress(user.id, 'lesson');
 
@@ -277,15 +274,12 @@ export const useProgress = () => {
                     const { contentService } = await import('../services/contentService');
                     const modules = await contentService.getAllModules();
                     
-                    const { calculateStarReward, addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
 
                     const totalLessons = modules.reduce((sum: number, module: any) => sum + module.lessons.length, 0);
 
-                    // Award stars for practice completion (only if not already rewarded)
+                    // Update daily challenges and rewarded set (only if not already rewarded)
                     if (user && !rewardedPracticeItems.has(itemId)) {
-                        const starReward = calculateStarReward('practice', undefined);
-                        addStars(user.id, starReward, `Completed practice problem`);
-
                         // Update daily challenges
                         updateChallengeProgress(user.id, 'practice');
 

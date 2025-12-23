@@ -6,7 +6,7 @@ interface ModuleCompletionBannerProps {
   onClose: () => void;
 }
 
-import CheckIcon from '../assets/icons/CheckCircleIcon.svg?react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const ModuleCompletionBanner: React.FC<ModuleCompletionBannerProps> = ({ moduleTitle, onClose }) => {
   useEffect(() => {
@@ -22,7 +22,7 @@ export const ModuleCompletionBanner: React.FC<ModuleCompletionBannerProps> = ({ 
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 text-green-500 dark:text-green-400 mt-0.5">
-          <CheckIcon className="w-6 h-6" />
+          <CheckCircle2 className="w-6 h-6" />
         </div>
         <div>
           <h3 className="font-bold text-cyan-600 dark:text-cyan-400">Module Complete!</h3>

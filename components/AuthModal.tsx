@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,6 +11,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, register, loginAnonymously, loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
 
   const [email, setEmail] = useState('');
@@ -67,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <div className="relative z-10">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center tracking-tight">
-            {mode === 'login' ? 'Welcome Back' : 'Join CodeToCoder'}
+            {mode === 'login' ? 'Welcome Back' : 'Join Code2Coder'}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center mb-8">
             {mode === 'login' ? 'Sign in to continue your coding journey' : 'Start your coding adventure today'}
@@ -75,9 +78,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
           {error && (
             <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-xl text-sm font-medium flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
               {error}
             </div>
           )}
@@ -86,7 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all flex items-center justify-center gap-3 group"
+              className="w-full py-2.5 px-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium rounded-xl transition-all flex items-center justify-center gap-3 group hover:shadow-md transform hover:-translate-y-0.5 active:translate-y-0 hover:border-gray-400 dark:hover:border-gray-600"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -149,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Processing...
                   </span>
                 ) : (
@@ -163,7 +164,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
               <button
-                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
+                onClick={() => { 
+                    if (mode === 'login') {
+                        navigate('/signup');
+                        onClose();
+                    } else {
+                        setMode('login'); 
+                        setError(null); 
+                    }
+                }}
                 className="ml-2 font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors"
               >
                 {mode === 'login' ? 'Sign Up' : 'Sign In'}

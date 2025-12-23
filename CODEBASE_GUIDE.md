@@ -1,4 +1,4 @@
-# CodeToCoder: The Comprehensive Codebase Guide
+# Code2Coder: The Comprehensive Codebase Guide
 
 **Version:** 2.0
 **Last Updated:** December 6, 2025
@@ -7,7 +7,7 @@
 
 ## 1. Introduction & Architecture
 
-**CodeToCoder** is a sophisticated, client-side educational platform designed to teach Python programming through interactive lessons, AI tutoring, and gamification.
+**Code2Coder** is a sophisticated, client-side educational platform designed to teach Python programming through interactive lessons, AI tutoring, and gamification.
 
 ### Core Philosophy
 
@@ -75,7 +75,7 @@ Configures the CSS utility framework.
 A static JSON file containing project metadata.
 
 - **Usage**: Used by the build system or external tools to identify the project name and description.
-- **Content**: "CodeToCoder: Learn Python with AI V2".
+- **Content**: "Code2Coder: Learn Python with AI V2".
 
 ### 2.6. Type Definitions (`*.d.ts`)
 
@@ -143,7 +143,7 @@ Manages the user's learning journey.
   - Tracks completed practice items.
   - Tracks earned badges.
 - **Persistence Strategy**:
-  - **Guest**: Saves to `localStorage` (`codetocoder_progress`).
+  - **Guest**: Saves to `localStorage` (`code2coder_progress`).
   - **User**: Syncs with Firestore (`users/{uid}/progress`).
 - **Migration**: Handles merging guest progress into a user account upon sign-up.
 
@@ -426,4 +426,4 @@ Understanding the types is key to understanding the data flow.
 
 ---
 
-This guide provides a deep dive into the CodeToCoder ecosystem. By understanding these layers—from the root configuration to the complex service logic—developers can effectively maintain and expand the platform.
+This guide provides a deep dive into the Code2Coder ecosystem. By understanding these layers—from the root configuration to the complex service logic—developers can effectively maintain and expand the platform.

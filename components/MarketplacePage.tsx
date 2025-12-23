@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
+
 import { useAuth } from '../contexts/AuthContext';
 import { CollectionPage } from './CollectionPage';
 import {
@@ -128,6 +130,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
 
     return (
         <div className="h-full w-full overflow-y-auto bg-background text-text-primary relative">
+            <Helmet>
+                <title>Star Market</title>
+            </Helmet>
             {/* Pack Opening Animation */}
             {openingPackId && (
                 <PackOpeningModal
@@ -251,9 +256,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
 
                     <div className="text-center mb-10">
                         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4 tracking-tight">
-                            Star Market
+                            {activeTab === 'market' ? 'Star Market' : 'My Collection'}
                         </h1>
-                        <p className="text-text-secondary text-lg max-w-2xl mx-auto">Unlock rewards, collect rare items, and dominate challenges.</p>
+                        <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+                            {activeTab === 'market' 
+                                ? 'Unlock rewards, collect rare items, and dominate challenges.' 
+                                : 'Discover and collect unique programming treasures'}
+                        </p>
                     </div>
 
                     {/* Tab Toggle */}

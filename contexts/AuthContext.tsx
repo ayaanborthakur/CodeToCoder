@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { User } from '../types';
@@ -13,6 +13,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,14 +21,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentFirebaseUser, setCurrentFirebaseUser] = useState<FirebaseUser | null>(null);
+
+  // Refresh user data (including username) from Firestore
+  const refreshUser = useCallback(async () => {
+    if (currentFirebaseUser) {
+      const updatedUser = await authService.mapFirebaseUserWithUsername(currentFirebaseUser);
+      setUser(updatedUser);
+    }
+  }, [currentFirebaseUser]);
 
   useEffect(() => {
     let redirectHandled = false;
     let authStateReceived = false;
-    let currentFirebaseUser: FirebaseUser | null = null;
+    let firebaseUser: FirebaseUser | null = null;
     let authStateTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const maybeFinishLoading = () => {
+    const maybeFinishLoading = async () => {
       // Only finish loading when both redirect AND auth state have been processed
       if (redirectHandled && authStateReceived) {
         // Clear any pending timeout
@@ -35,9 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           clearTimeout(authStateTimeoutId);
           authStateTimeoutId = null;
         }
-        if (currentFirebaseUser) {
-          setUser(authService.mapFirebaseUser(currentFirebaseUser));
+        if (firebaseUser) {
+          setCurrentFirebaseUser(firebaseUser);
+          // Fetch user with username from Firestore
+          const userWithUsername = await authService.mapFirebaseUserWithUsername(firebaseUser);
+          setUser(userWithUsername);
         } else {
+          setCurrentFirebaseUser(null);
           setUser(null);
         }
         setIsLoading(false);
@@ -50,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authStateTimeoutId = setTimeout(() => {
       if (!authStateReceived) {
         console.warn('[AuthContext] onAuthStateChanged timeout - checking currentUser directly');
-        currentFirebaseUser = auth.currentUser;
+        firebaseUser = auth.currentUser;
         authStateReceived = true;
         maybeFinishLoading();
       }
@@ -58,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Handle the redirect result FIRST (for Google Sign In)
     authService.handleRedirectResult()
-      .then((redirectUser) => {
+      .then(async (redirectUser) => {
         if (redirectUser) {
           // If we got a user from redirect, we can set it immediately
           setUser(redirectUser);
@@ -82,34 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
     // Subscribe to Firebase auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      currentFirebaseUser = firebaseUser;
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      firebaseUser = fbUser;
       authStateReceived = true;
       maybeFinishLoading();
     });
-    
-    // Handle the redirect result FIRST (for Google Sign In) - kept for legacy/cleanup
-    authService.handleRedirectResult()
-      .then((redirectUser) => {
-        if (redirectUser) {
-          setUser(redirectUser);
-          setIsLoading(false);
-          redirectHandled = true;
-          authStateReceived = true;
-          if (authStateTimeoutId) {
-            clearTimeout(authStateTimeoutId);
-            authStateTimeoutId = null;
-          }
-        } else {
-          redirectHandled = true;
-          maybeFinishLoading();
-        }
-      })
-      .catch(error => {
-        console.error("[AuthContext] Auth redirect error:", error);
-        redirectHandled = true;
-        maybeFinishLoading();
-      });
 
     return () => {
       unsubscribe();
@@ -171,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, loginWithGoogle, logout, deleteAccount }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, loginWithGoogle, logout, deleteAccount, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

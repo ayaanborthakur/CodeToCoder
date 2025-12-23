@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { PlaygroundFile, ChatMessage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
-const BASE_FILES_KEY = 'codetocoder_playground_files';
-const OLD_CODE_KEY = 'codetocoder_playground_code';
+const BASE_FILES_KEY = 'code2coder_playground_files';
+const OLD_CODE_KEY = 'code2coder_playground_code';
 
 const DEFAULT_PLAYGROUND_CHAT: ChatMessage[] = [
     { role: 'model', content: "Welcome to the Playground! I'm here to help you experiment with Python code. Ask me anything!" }

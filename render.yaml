@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: codetocoder
+    name: code2coder
     env: static
     buildCommand: npm run build
     staticPublishPath: ./dist

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Lock as LockIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getOwnedCollectibles, sellCollectible } from '../services/marketplaceService';
 import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW, COLLECTIBLE_SELL_RATES } from '../data/collectiblesData';
@@ -203,12 +204,14 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         </button>
                     )}
 
-                    <div className="text-center mb-8">
-                        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
-                            My Collection
-                        </h1>
-                        <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>
-                    </div>
+                    {!isEmbedded && (
+                        <div className="text-center mb-8">
+                            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
+                                My Collection
+                            </h1>
+                            <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>
+                        </div>
+                    )}
 
                     {/* Stats Overview */}
                     <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default p-6 mb-8">
@@ -279,9 +282,9 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                         setSellAmount(1);
                                     }
                                 }}
-                                className={`relative bg-surface rounded-xl p-4 border-2 transition-all duration-300 ${isOwned
-                                    ? `${RARITY_BORDER_COLORS[collectible.rarity]} ${RARITY_GLOW[collectible.rarity]} cursor-pointer hover:scale-105 hover:-translate-y-1`
-                                    : 'border-border-default opacity-40 grayscale'
+                                className={`relative rounded-xl p-4 transition-all duration-300 ${isOwned
+                                    ? `${RARITY_BORDER_COLORS[collectible.rarity]} ${RARITY_GLOW[collectible.rarity]} bg-surface border-2 cursor-pointer hover:scale-105 hover:-translate-y-1`
+                                    : 'border-2 border-dashed border-border-default/50 bg-surface/30 opacity-70 hover:opacity-100 hover:bg-surface/50'
                                     }`}
                             >
                                 {isOwned && (
@@ -294,24 +297,21 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                         )}
                                     </>
                                 )}
-                                <div className="relative z-10">
-                                    <div className="text-5xl mb-2 text-center">
-                                        {isOwned ? collectible.image : '❓'}
+                                <div className="relative z-10 flex flex-col items-center">
+                                    <div className="text-5xl mb-2 text-center h-[48px] flex items-center justify-center">
+                                        {isOwned ? (
+                                            collectible.image
+                                        ) : (
+                                            <LockIcon className="w-8 h-8 text-text-secondary/50" />
+                                        )}
                                     </div>
-                                    <div className={`text-xs font-bold uppercase text-center mb-1 ${isOwned ? RARITY_COLORS[collectible.rarity] : 'text-text-secondary'}`}>
+                                    <div className={`text-xs font-bold uppercase text-center mb-1 ${isOwned ? RARITY_COLORS[collectible.rarity] : 'text-text-disabled'}`}>
                                         {collectible.rarity}
                                     </div>
-                                    <div className={`text-sm font-bold text-center ${isOwned ? 'text-text-primary' : 'text-text-secondary'}`}>
-                                        {isOwned ? collectible.name : '???'}
+                                    <div className={`text-sm font-bold text-center ${isOwned ? 'text-text-primary' : 'text-text-disabled'}`}>
+                                        {isOwned ? collectible.name : 'LOCKED'}
                                     </div>
                                 </div>
-                                {!isOwned && (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-12 h-12 text-border-default">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                                        </svg>
-                                    </div>
-                                )}
                             </div>
                         );
                     })}

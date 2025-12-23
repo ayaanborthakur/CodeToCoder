@@ -2,6 +2,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Module } from '../types';
+import { 
+  ChevronDown, 
+  Check, 
+  Lock, 
+  Flag, 
+  CircleCheck, // For module complete
+} from 'lucide-react';
 
 interface NavigationPanelProps {
   modules: Module[];
@@ -9,13 +16,6 @@ interface NavigationPanelProps {
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
 }
-
-import ChevronDownIcon from '../assets/icons/ChevronDownIcon.svg?react';
-import CheckIcon from '../assets/icons/CheckIcon.svg?react';
-import LockIcon from '../assets/icons/LockIcon.svg?react';
-import FlagIcon from '../assets/icons/FlagIcon.svg?react';
-import ModuleCompleteIcon from '../assets/icons/ModuleCompleteIcon.svg?react';
-
 
 export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, currentLessonId, onSelectLesson, completedLessons }) => {
   const [openModuleId, setOpenModuleId] = useState<string | null>(modules[0]?.id || null);
@@ -51,9 +51,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
           return (
             <div
               key={module.id}
-              className={`rounded-xl transition-all duration-300 overflow-hidden border ${isOpen
+              className={`rounded-xl transition-colors duration-200 overflow-hidden border ${isOpen
                 ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 shadow-sm'
-                : 'bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-white/5'
+                : 'bg-transparent border-transparent hover:bg-gray-50 dark:hover:bg-white/5'
                 } ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
             >
               <button
@@ -69,12 +69,12 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                   <div className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
                     {isModuleComplete ? (
                       <span className="text-green-500 flex items-center gap-1">
-                        <ModuleCompleteIcon className="w-4 h-4" />
+                        <CircleCheck className="w-4 h-4" />
                         Completed
                       </span>
                     ) : isLocked ? (
                       <span className="text-gray-400 flex items-center gap-1">
-                        <LockIcon className="w-3 h-3" />
+                        <Lock className="w-3 h-3" />
                         Locked
                       </span>
                     ) : (
@@ -83,13 +83,13 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                   </div>
                 </div>
                 {isLocked ? (
-                  <LockIcon className="w-4 h-4 text-gray-400" />
+                  <Lock className="w-4 h-4 text-gray-400" />
                 ) : (
-                  <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
                 )}
               </button>
 
-              <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`transition-[max-height,opacity] duration-300 ease-in-out ${isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <ul className="px-3 pb-3 space-y-1">
                   {module.lessons.map((lesson, lessonIndex) => {
                     const isCompleted = completedLessons.has(lesson.id);
@@ -105,9 +105,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                             e.preventDefault();
                             onSelectLesson(module.id, lesson.id);
                           }}
-                          className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-all text-sm group ${isCurrent
-                            ? 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-200'
+                          className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-colors duration-200 text-sm group border-l-4 ${isCurrent
+                            ? 'bg-cyan-50/50 dark:bg-cyan-500/10 border-cyan-500 text-cyan-900 dark:text-cyan-100 font-medium'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:bg-cyan-50/30 dark:hover:bg-cyan-500/5 hover:text-cyan-800 dark:hover:text-cyan-200'
                             }`}
                         >
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors flex-shrink-0 ${isCompleted
@@ -119,9 +119,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                                 : 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 group-hover:border-gray-400 dark:group-hover:border-gray-500'
                             }`}>
                             {isCompleted ? (
-                              <CheckIcon className="w-3 h-3" strokeWidth={3} />
+                              <Check className="w-3 h-3" strokeWidth={3} />
                             ) : isFinalLesson ? (
-                              <FlagIcon className="w-3 h-3" />
+                              <Flag className="w-3 h-3" />
                             ) : (
                               <span className="text-[10px] font-medium leading-none">{lessonIndex + 1}</span>
                             )}

@@ -43,6 +43,7 @@ const ensureUserDocument = async (userId: string): Promise<void> => {
             // Create minimal user document
             await setDoc(userRef, {
                 createdAt: Date.now(),
+                joinedAt: Date.now(), // For leaderboard "Member Since"
                 lastActive: Date.now()
             }, { merge: true });
         } else {
@@ -455,7 +456,7 @@ export const deleteReferenceMaterial = async (userId: string, materialId: string
 // PROFILE PICTURE MANAGEMENT
 // ============================================================================
 
-const PROFILE_PICTURE_KEY = 'codetocoder_profile_picture';
+const PROFILE_PICTURE_KEY = 'code2coder_profile_picture';
 const SUPPORTED_FORMATS = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 

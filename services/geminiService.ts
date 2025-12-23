@@ -16,12 +16,12 @@ const getAiClient = (): GoogleGenAI => {
 };
 
 // FIX: Updated model to the latest stable version.
-const model = 'gemini-2.5-flash-lite';
+const model = 'gemini-2.5-pro';
 
 // Rate Limiting: Hard cap of 6 requests per minute.
 // 60 seconds / 6 requests = 10 seconds per request.
 const MIN_REQUEST_DELAY = 10000;
-const RATE_LIMIT_KEY = 'codetocoder_next_allowed_req_time';
+const RATE_LIMIT_KEY = 'code2coder_next_allowed_req_time';
 
 let requestQueue: Promise<any> = Promise.resolve();
 
@@ -98,7 +98,7 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
 
         // Updated System Instruction: Tutor Mode (No Direct Answers)
         systemInstruction = isHardMode
-            ? `You are CodeToCoder AI, a strict code reviewer. The user is in HARD MODE.
+            ? `You are Code2Coder AI, a strict code reviewer. The user is in HARD MODE.
            - CRITICAL: Do NOT give direct answers or complete code solutions.
            - Do NOT explain concepts in detail unless specifically asked.
            - Only provide small, cryptic hints or point out the general area of the mistake.
@@ -113,7 +113,7 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
            ---
            ${commonMistakesContext}
            ${codeContext}`
-            : `You are CodeToCoder AI, a supportive Socratic Tutor for Python beginners. 
+            : `You are Code2Coder AI, a supportive Socratic Tutor for Python beginners. 
            
            YOUR GOAL: Guide the user to the solution, but NEVER provide the full code answer directly.
            
@@ -138,7 +138,7 @@ export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | n
            ${codeContext}`;
     } else {
         // Playground Mode
-        systemInstruction = `You are CodeToCoder AI, an expert Python assistant in Playground Mode.
+        systemInstruction = `You are Code2Coder AI, an expert Python assistant in Playground Mode.
       The user is experimenting with Python code freely.
       - Answer questions about Python syntax, libraries, and best practices.
       - Help debug code snippets provided by the user.
@@ -654,5 +654,52 @@ export const generateCodeFromFlowchart = async (flowchart: import('../types').Fl
     } catch (error) {
         console.error("Error generating code from flowchart:", error);
         return null;
+    }
+};
+
+/**
+ * Check if a username is safe (not profane/offensive)
+ * Uses AI to detect vulgar language, hate speech, and harmful content
+ */
+export const checkUsernameSafety = async (username: string): Promise<{ isSafe: boolean; reason?: string }> => {
+    const prompt = `
+    Analyze the username: "${username}".
+    Check if it contains:
+    1. Profanity or vulgar language.
+    2. Hate speech or racial slurs.
+    3. Sexually explicit references.
+    4. Harmful intent or offensive puns.
+    
+    If it is safe, return isSafe: true.
+    If it is NOT safe, return isSafe: false and a very brief reason (e.g., "Contains profanity").
+    `;
+
+    try {
+        const client = getAiClient();
+        return await retryOperation(async () => {
+            const response = await client.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            isSafe: { type: Type.BOOLEAN },
+                            reason: { type: Type.STRING }
+                        },
+                        required: ['isSafe']
+                    }
+                }
+            });
+
+            const text = response.text;
+            if (!text) return { isSafe: true }; // Default to safe on empty response
+            return JSON.parse(text.trim());
+        });
+    } catch (error) {
+        console.error("Error checking username safety:", error);
+        // Fallback: If AI fails, allow it (prevents blocking users due to AI issues)
+        return { isSafe: true }; 
     }
 };

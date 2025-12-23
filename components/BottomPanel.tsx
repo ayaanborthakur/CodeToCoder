@@ -22,15 +22,13 @@ interface BottomPanelProps {
     showReference?: boolean;
 }
 
-import CheckIcon from '../assets/icons/CheckCircleSolidIcon.svg?react';
-
-import BookIcon from '../assets/icons/BookIcon.svg?react';
+import { CheckCircle2, BookOpen } from 'lucide-react';
 
 import { TerminalPanel } from './TerminalPanel';
 
 const LessonCompletedBanner: React.FC = () => (
     <div className="bg-green-500/10 border border-green-500/30 text-green-700 dark:bg-green-600/20 dark:border-green-500/50 dark:text-green-300 px-4 py-2 rounded-lg mb-4 flex items-center gap-3">
-        <CheckIcon className="w-5 h-5" />
+        <CheckCircle2 className="w-5 h-5" />
         <p className="font-semibold text-sm">Lesson Completed! Great work.</p>
     </div>
 );
@@ -110,7 +108,7 @@ export const BottomPanel: React.FC<BottomPanelProps & {
                                 label="Reference"
                                 activeTab={activeTab}
                                 onClick={onTabChange}
-                                icon={<BookIcon className="w-4 h-4" />}
+                                icon={<BookOpen className="w-4 h-4" />}
                             />
                         )}
                     </div>

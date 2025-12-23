@@ -14,6 +14,9 @@ body {
   padding: 0;
   overflow: hidden;
   /* App handles scrolling internally */
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button {
@@ -75,15 +78,12 @@ button:not(.no-hover):not([disabled]):hover::before {
 }
 
 button:not(.no-hover):not([disabled]):hover {
-  transform: translateY(-3px) scale(1.02);
-  /* Box-shadow glow on container, not filter on text - reduced intensity */
-  box-shadow: 0 0 3px var(--btn-glow-color),
-    0 0 6px var(--btn-glow-color),
-    0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 button:not(.no-hover):not([disabled]):active {
-  transform: translateY(0px) scale(0.98);
+  transform: translateY(0px) scale(0.99);
   transition: transform 0.1s ease;
 }
 
@@ -227,11 +227,8 @@ a:not(.no-hover):hover {
 .nav-tab:hover {
   background-color: rgba(6, 182, 212, 0.15) !important;
   color: #0891b2 !important;
-  transform: translateY(-3px) scale(1.05);
-  /* Box-shadow glow - reduced intensity */
-  box-shadow: 0 0 3px var(--btn-glow-color),
-    0 0 6px var(--btn-glow-color),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .nav-tab:active {
@@ -313,11 +310,8 @@ a:not(.no-hover):hover {
 .back-btn:hover {
   background-color: rgba(6, 182, 212, 0.2);
   border-color: rgba(6, 182, 212, 0.5);
-  transform: translateY(-3px) scale(1.05);
-  /* Box-shadow glow - reduced intensity */
-  box-shadow: 0 0 3px var(--btn-glow-color),
-    0 0 6px var(--btn-glow-color),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   color: #06b6d4;
 }
 
@@ -708,12 +702,12 @@ pre[class*="language-"] {
 
 /* Levitate Hover Effect */
 .hover-levitate {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .hover-levitate:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.2);
 }
 
 /* Combined Neon + Levitate for cards */
@@ -722,7 +716,7 @@ pre[class*="language-"] {
 .neon-glow-green,
 .neon-glow-blue,
 .neon-glow-orange {
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .neon-glow-cyan:hover,
@@ -730,5 +724,47 @@ pre[class*="language-"] {
 .neon-glow-green:hover,
 .neon-glow-blue:hover,
 .neon-glow-orange:hover {
-  transform: translateY(-6px);
+  transform: translateY(-3px);
+}
+
+/* Dense Layout Utilities */
+.card-sharp {
+  border-radius: 8px !important;
+  border-width: 2px !important;
+}
+
+.card-sharper {
+  border-radius: 4px !important;
+  border-width: 2px !important;
+}
+
+.shadow-strong {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1), 0 4px 10px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .shadow-strong {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Denser padding utility */
+.p-dense {
+  padding: 0.75rem !important;
+}
+
+/* Tighter gap utility */
+.gap-tight {
+  gap: 0.5rem !important;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.7);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
 }

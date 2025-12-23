@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Lock } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useMatch } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
@@ -17,6 +18,7 @@ import { PlaygroundDashboard } from './components/PlaygroundDashboard';
 import { PracticeDashboard } from './components/PracticeDashboard';
 import { ReferencePanel } from './components/ReferencePanel';
 import { FlowchartBuilder } from './components/FlowchartBuilder';
+import { Helmet } from 'react-helmet-async';
 
 import { Header, ViewState } from './components/Header';
 import { FlyingStar } from './components/FlyingStar';
@@ -27,6 +29,8 @@ import { BadgeNotification } from './components/BadgeNotification';
 import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
+import { UsernameModal } from './components/UsernameModal';
+import { SignupPage } from './components/SignupPage';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -41,7 +45,7 @@ import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
-
+import { getMarketplaceData, recalculateNetWorth } from './services/marketplaceService';
 
 
 declare global {
@@ -50,11 +54,7 @@ declare global {
     }
 }
 
-const LockIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-    </svg>
-);
+
 
 const triggerConfetti = () => {
     if (typeof window !== 'undefined' && typeof window.confetti !== 'function') return;
@@ -105,7 +105,7 @@ const App: React.FC = () => {
 
     const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
 
-    const { user, isLoading: isAuthLoading } = useAuth();
+    const { user, isLoading: isAuthLoading, refreshUser } = useAuth();
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
@@ -128,6 +128,7 @@ const App: React.FC = () => {
         const path = location.pathname;
         if (path === '/') return 'mission';
         if (path === '/dashboard') return 'home';
+        if (path === '/signup') return 'signup';
         if (path.startsWith('/classroom')) return 'classroom';
         if (path.startsWith('/playground')) return 'playground';
         if (path.startsWith('/practice')) return 'practice';
@@ -142,8 +143,11 @@ const App: React.FC = () => {
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
-    const [starBalance, setStarBalance] = useState<number>(0);
-    const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
+    const [starBalance, setStarBalance] = useState(0);
+    const [netWorth, setNetWorth] = useState<number | undefined>(undefined);
+    const [starNotification, setStarNotification] = useState<{ amount: number; reason: string } | null>(null);
+
+
 
 
     // Initialize Pyodide & Check Environment
@@ -159,7 +163,7 @@ const App: React.FC = () => {
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [code, setCode] = useState<string>('');
     const loadedCodeRef = useRef<string | null>(null);
-    const [terminalOutput, setTerminalOutput] = useState<string>('> Welcome to the CodeToCoder Terminal!\nClick "Run Code" to see your output here.');
+    const [terminalOutput, setTerminalOutput] = useState<string>('> Welcome to the Code2Coder Terminal!\nClick "Run Code" to see your output here.');
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
         { role: 'model', content: "Hello! I'm your AI assistant. I'm here to help you learn Python. What's your first question?" }
     ]);
@@ -175,6 +179,7 @@ const App: React.FC = () => {
     const [playgroundEditorCode, setPlaygroundEditorCode] = useState<string>('');
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
 
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -271,7 +276,7 @@ const App: React.FC = () => {
     });
 
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
-        return user ? `codetocoder_autosave_${type}_${id}_${user.id} ` : `codetocoder_autosave_${type}_${id} `;
+        return user ? `code2coder_autosave_${type}_${id}_${user.id} ` : `code2coder_autosave_${type}_${id} `;
     }, [user]);
 
     // Reset/Reload state when user context changes (Login/Logout)
@@ -299,15 +304,15 @@ const App: React.FC = () => {
     const loadStarBalance = useCallback(async () => {
         if (!user) {
             setStarBalance(0);
+            setNetWorth(undefined); // Clear net worth for guests
             return;
         }
-        const { getMarketplaceData, getStarsData, saveStarsData } = await import('./services/marketplaceService');
         const data = await getMarketplaceData(user.id);
         setStarBalance(data.stars.balance);
 
-        // Background sync: Ensure net_value is up-to-date on root document for leaderboard
-        const stars = await getStarsData(user.id);
-        await saveStarsData(user.id, stars);
+        // Recalculate net worth on load
+        const net = await recalculateNetWorth(user.id);
+        setNetWorth(net);
     }, [user]);
 
     // Load star balance
@@ -349,8 +354,9 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isAuthLoading || !isProgressLoaded) return;
 
-        // Only show tutorial for logged-in users who haven't completed it
-        if (user) {
+        // Only show tutorial for logged-in users who have completed signup (have a username)
+        // This ensures the username modal completes before the tutorial starts
+        if (user && user.username) {
             const checkTutorial = async () => {
                 const tutorialCompleted = await hasTutorialCompleted(user.id);
                 if (!tutorialCompleted) {
@@ -364,6 +370,20 @@ const App: React.FC = () => {
             checkTutorial();
         }
     }, [user, isAuthLoading, isProgressLoaded]);
+
+    // 4. Check if user needs to set a username (but not on signup page which handles this inline)
+    useEffect(() => {
+        if (isAuthLoading || !user) return;
+        // Skip for anonymous/guest users
+        if (!user.email) return;
+        // Skip on signup page - it has its own inline username UI
+        if (location.pathname === '/signup') return;
+        
+        // If user has no username, show the modal
+        if (!user.username) {
+            setIsUsernameModalOpen(true);
+        }
+    }, [user, isAuthLoading, location.pathname]);
 
     const handleOpenAuth = useCallback(() => {
         console.log("Opening Auth Modal");
@@ -535,7 +555,7 @@ const App: React.FC = () => {
                 const issues = await lintCodeWithAI(activeCode);
                 if (isTerminalLoadingRef.current) return;
                 setLintIssues(issues);
-            } catch (error) { /* Silently fail in background */ }
+            } catch { /* Silently fail in background */ }
         }, 15000);
 
         return () => clearTimeout(handler);
@@ -685,7 +705,7 @@ const App: React.FC = () => {
             let savedCode: string | null = null;
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    const autosaveKey = user ? `codetocoder_autosave_lesson_${lessonId}_${user.id} ` : `codetocoder_autosave_lesson_${lessonId} `;
+                    const autosaveKey = user ? `code2coder_autosave_lesson_${lessonId}_${user.id} ` : `code2coder_autosave_lesson_${lessonId} `;
                     savedCode = window.localStorage.getItem(autosaveKey);
                 }
             } catch (e) {
@@ -715,13 +735,13 @@ const App: React.FC = () => {
     // Update Document Title
     useEffect(() => {
         if (currentView === 'playground' && activePlaygroundFile) {
-            document.title = `${activePlaygroundFile.name} - CodeToCoder`;
+            document.title = `${activePlaygroundFile.name} - Code2Coder`;
         } else if (currentView === 'classroom' && currentLesson) {
-            document.title = `${currentLesson.title} - CodeToCoder`;
+            document.title = `${currentLesson.title} - Code2Coder`;
         } else if (currentView === 'practice' && activePracticeItem) {
-            document.title = `${activePracticeItem.title} - CodeToCoder`;
+            document.title = `${activePracticeItem.title} - Code2Coder`;
         } else {
-            document.title = 'CodeToCoder - Learn Python with AI';
+            document.title = 'Code2Coder - Learn Python with AI';
         }
     }, [currentView, activePlaygroundFile, currentLesson, activePracticeItem]);
 
@@ -922,7 +942,7 @@ const App: React.FC = () => {
             }
 
             // 3. Check Success (Simple check based on stderr for now, can be enhanced)
-            const success = true; // pyodideService wraps errors, but we can assume success if no 'Error:' string or similar, but simplified for now
+            // pyodideService wraps errors, but we can assume success if no 'Error:' string or similar, but simplified for now
             // Actually result.success is available if we use standard runPythonCode wrapper, 
             // but we might need to adjust logic since we stream output now.
             // But wait, runPythonCode DOES return a final object too.
@@ -1056,7 +1076,7 @@ const App: React.FC = () => {
                     }
                 });
             }
-        } catch (error) {
+        } catch {
             updateFile(activePlaygroundFileId, { terminalOutput: "An error occurred while running the playground code." });
         } finally {
             setIsTerminalLoading(false);
@@ -1340,6 +1360,11 @@ const App: React.FC = () => {
         if (showReloadOption) {
             return (
                 <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
+                    <Helmet>
+                        <title>Code2Coder - Learn Python Online with AI Coding Tutor</title>
+                        <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
+                        <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
+                    </Helmet>
                     <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
                     <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
                     <button
@@ -1382,7 +1407,6 @@ const App: React.FC = () => {
 
     const activeSetCode = (isClassroom || isPractice) ? setCode : setPlaygroundEditorCode;
     const activeRunCode = (isClassroom || isPractice) ? handleRunCode : handleRunPlaygroundCode;
-    const activeTerminalOutput = (isClassroom || isPractice) ? terminalOutput : activePlaygroundFile?.terminalOutput ?? '';
     const activeChatHistory = (isClassroom || isPractice) ? chatHistory : activePlaygroundFile?.chatHistory ?? [];
     const activeLesson = isClassroom ? currentLesson : null;
 
@@ -1632,8 +1656,8 @@ const App: React.FC = () => {
 
                                 <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
                                     <BottomPanel
-                                        lesson={currentLesson}
-                                        isCompleted={currentLesson ? completedLessons.has(currentLesson.id) : false}
+                                        lesson={currentView === 'classroom' ? currentLesson : (currentView === 'practice' ? practiceLessonLike : null)}
+                                        isCompleted={currentView === 'classroom' && currentLesson ? completedLessons.has(currentLesson.id) : (currentView === 'practice' && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
                                         terminalOutput={terminalOutput}
                                         isTerminalLoading={isTerminalLoading}
                                         isCollapsed={panelsCollapsed.bottom}
@@ -1693,14 +1717,11 @@ const App: React.FC = () => {
                                 )}
 
                                 {isClassroomQuiz ? (
-                                    <div className="h-full w-full bg-black flex flex-col items-center justify-center text-gray-500 border-l border-gray-800">
-                                        <div className="p-6 rounded-full bg-gray-900 mb-4">
-                                            <LockIcon className="w-12 h-12 text-gray-500" />
+                                    <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center rounded-lg z-10">
+                                        <div className="bg-slate-900/90 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 shadow-xl border border-slate-700">
+                                            <Lock className="w-3 h-3 text-slate-400" />
+                                            <span>Locked</span>
                                         </div>
-                                        <h3 className="text-lg font-bold text-gray-400">AI Locked</h3>
-                                        <p className="text-sm text-center px-6 mt-2">
-                                            The AI assistant is disabled during classroom quizzes to test your knowledge.
-                                        </p>
                                     </div>
                                 ) : (
                                     <ChatPanel
@@ -1724,7 +1745,24 @@ const App: React.FC = () => {
 
     return (
         <>
+            <Helmet titleTemplate="Code2Coder | %s" defaultTitle="Code2Coder: Learn Python with AI">
+                <title>Code2Coder: Learn Python with AI</title>
+                <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
+                <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
+            </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            {user && !user.username && user.email && (
+                <UsernameModal
+                    isOpen={isUsernameModalOpen}
+                    userId={user.id}
+                    isNewUser={true}
+                    onClose={() => setIsUsernameModalOpen(false)}
+                    onSuccess={async () => {
+                        setIsUsernameModalOpen(false);
+                        await refreshUser();
+                    }}
+                />
+            )}
             <div className="h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans relative overflow-hidden">
                 {flyingStar && (
                     <FlyingStar
@@ -1737,16 +1775,18 @@ const App: React.FC = () => {
                     />
                 )}
 
-                <Header
-                    currentView={currentView}
-                    onNavigate={handleNavigate}
-                    theme={theme}
-                    setTheme={handleThemeChange}
+                {currentView !== 'signup' && (
+                    <Header
+                        currentView={currentView}
+                        onNavigate={handleNavigate}
+                        theme={theme}
+                        setTheme={handleThemeChange}
 
-                    starTargetRef={starTargetRef}
-                    onOpenAuth={handleOpenAuth}
-                    starBalance={starBalance}
-                />
+                        starTargetRef={starTargetRef}
+                        onOpenAuth={handleOpenAuth}
+                        starBalance={starBalance}
+                    />
+                )}
 
                 {/* Badge Notifications */}
                 {newlyEarnedBadges.length > 0 && (
@@ -1800,6 +1840,7 @@ const App: React.FC = () => {
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
                                     onPlaygroundResume={handlePlaygroundResume}
+                                    netWorth={netWorth}
                                 />
                             </div>
                         } />
@@ -1813,10 +1854,13 @@ const App: React.FC = () => {
                                 onNavigate={handleNavigate}
                                 theme={theme}
                                 setTheme={handleThemeChange}
+                                netWorth={netWorth}
                             />
                         } />
 
                         <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />} />
+
+                        <Route path="/signup" element={<SignupPage />} />
 
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
 
@@ -1831,7 +1875,7 @@ const App: React.FC = () => {
                                 onDeleteFile={handlePlaygroundDelete}
                                 onRenameFile={handlePlaygroundRename}
                                 onImportFile={handleImportCode}
-                                lastActiveFile={mostRecentPlaygroundFile}
+                                lastActiveFileId={mostRecentPlaygroundFile?.id}
                                 onResume={handlePlaygroundResume}
                             />
                         } />
