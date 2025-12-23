@@ -45,7 +45,7 @@ import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
-
+import { getMarketplaceData, recalculateNetWorth } from './services/marketplaceService';
 
 
 declare global {
@@ -143,8 +143,9 @@ const App: React.FC = () => {
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
-    const [starBalance, setStarBalance] = useState<number>(0);
-    const [starNotification, setStarNotification] = useState<{ amount: number, reason: string } | null>(null);
+    const [starBalance, setStarBalance] = useState(0);
+    const [netWorth, setNetWorth] = useState<number | undefined>(undefined);
+    const [starNotification, setStarNotification] = useState<{ amount: number; reason: string } | null>(null);
 
 
 
@@ -303,15 +304,15 @@ const App: React.FC = () => {
     const loadStarBalance = useCallback(async () => {
         if (!user) {
             setStarBalance(0);
+            setNetWorth(undefined); // Clear net worth for guests
             return;
         }
-        const { getMarketplaceData, getStarsData, saveStarsData } = await import('./services/marketplaceService');
         const data = await getMarketplaceData(user.id);
         setStarBalance(data.stars.balance);
 
-        // Background sync: Ensure net_value is up-to-date on root document for leaderboard
-        const stars = await getStarsData(user.id);
-        await saveStarsData(user.id, stars);
+        // Recalculate net worth on load
+        const net = await recalculateNetWorth(user.id);
+        setNetWorth(net);
     }, [user]);
 
     // Load star balance
@@ -1839,6 +1840,7 @@ const App: React.FC = () => {
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
                                     onPlaygroundResume={handlePlaygroundResume}
+                                    netWorth={netWorth}
                                 />
                             </div>
                         } />
@@ -1852,6 +1854,7 @@ const App: React.FC = () => {
                                 onNavigate={handleNavigate}
                                 theme={theme}
                                 setTheme={handleThemeChange}
+                                netWorth={netWorth}
                             />
                         } />
 

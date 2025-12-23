@@ -43,6 +43,7 @@ const ensureUserDocument = async (userId: string): Promise<void> => {
             // Create minimal user document
             await setDoc(userRef, {
                 createdAt: Date.now(),
+                joinedAt: Date.now(), // For leaderboard "Member Since"
                 lastActive: Date.now()
             }, { merge: true });
         } else {

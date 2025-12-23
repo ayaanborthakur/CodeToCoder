@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from './firebase';
 import { User } from '../types';
 
@@ -127,9 +127,23 @@ export const authService = {
       
       if (userDoc.exists()) {
         const data = userDoc.data();
+        // Check if joinedAt is missing (Migration for existing users)
+        if (!data.joinedAt) {
+          console.log('Migrating joinedAt for user:', firebaseUser.uid);
+          // If createdAt exists in Firestore, use it (migration).
+          // Otherwise, fall back to Auth metadata or Date.now()
+          const joinDate = data.createdAt || baseUser.joinedAt || Date.now();
+          
+          await setDoc(userRef, {
+            joinedAt: joinDate
+          }, { merge: true });
+        }
+
         return {
           ...baseUser,
           username: data.username || undefined,
+          // Always return the value from Firestore if it exists (though we just set it if missing)
+          joinedAt: data.joinedAt || baseUser.joinedAt
         };
       }
     } catch (error) {

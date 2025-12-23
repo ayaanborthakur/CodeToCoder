@@ -76,6 +76,7 @@ exports.updateLeaderboard = onSchedule({
         avatar: userData.avatar || null,
         net_value: userData.net_value || 0,
         rank: rank++,
+        createdAt: userData.createdAt || null,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       

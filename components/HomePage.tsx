@@ -17,13 +17,14 @@ import {
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
-  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about') => void;
+  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
   playgroundFiles: PlaygroundFile[];
   mostRecentPlaygroundFile: PlaygroundFile | null;
   onPlaygroundResume: (fileId: string) => void;
   practiceCategories?: any;
+  netWorth?: number;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -34,6 +35,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   playgroundFiles,
   mostRecentPlaygroundFile,
   onPlaygroundResume,
+  netWorth,
 }) => {
 
   // Find the most recent lesson worked on
@@ -57,16 +59,19 @@ export const HomePage: React.FC<HomePageProps> = ({
     }
 
     // If no completed lessons, return first lesson
-    return {
-      module: modules[0],
-      lesson: modules[0].lessons[0],
-      status: 'start' as const
-    };
+    if (modules.length > 0 && modules[0].lessons.length > 0) {
+      return {
+        module: modules[0],
+        lesson: modules[0].lessons[0],
+        status: 'start' as const
+      };
+    }
+    return null;
   };
 
   const recentLesson = getMostRecentLesson();
   const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
-  const completionPercentage = Math.round((completedLessons.size / totalLessons) * 100);
+  const completionPercentage = totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0;
 
   return (
     <div className="h-full w-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-y-auto">
@@ -204,7 +209,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Classroom Card */}
                 <button
                   onClick={() => onNavigate('classroom')}
-                  className="neon-glow-cyan bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md"
                 >
                   <div className="w-10 h-10 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <BookOpen className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
@@ -221,7 +226,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Playground Card */}
                 <button
                   onClick={() => onNavigate('playground')}
-                  className="neon-glow-purple bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md"
                 >
                   <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Terminal className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -238,7 +243,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Practice Card */}
                 <button
                   onClick={() => onNavigate('practice')}
-                  className="neon-glow-green bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md"
                 >
                   <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <BrainCircuit className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -255,7 +260,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {/* Mission Card */}
                 <button
                   onClick={() => onNavigate('mission')}
-                  className="neon-glow-orange bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group"
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md"
                 >
                   <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Trophy className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -277,7 +282,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* Stats Cards */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Your Stats</h3>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                     <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -294,6 +299,17 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">{playgroundFiles.length}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Files Created</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-cyan-100 dark:border-cyan-900/30">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
+                    </div>
+                    <div className="text-xs text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-tighter">Net Worth</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -355,4 +371,3 @@ export const HomePage: React.FC<HomePageProps> = ({
     </div>
   );
 };
-

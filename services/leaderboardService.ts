@@ -7,6 +7,7 @@ export interface LeaderboardEntry {
     avatar?: string;
     net_value: number;
     rank: number;
+    joinedAt?: number;
 }
 
 /**
@@ -50,7 +51,8 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
                         username: data.username,
                         avatar: data.avatar,
                         net_value: data.net_value || 0,
-                        rank: rank++
+                        rank: rank++,
+                        joinedAt: data.joinedAt || data.createdAt
                     });
                 }
             });
@@ -68,7 +70,8 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
                     username: data.username,
                     avatar: data.avatar,
                     net_value: data.net_value || 0,
-                    rank: data.rank // Use the pre-calculated rank
+                    rank: data.rank, // Use the pre-calculated rank
+                    joinedAt: data.joinedAt || data.createdAt
                 });
             }
         });

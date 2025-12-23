@@ -56,6 +56,63 @@ import { COLLECTIBLES, COLLECTIBLE_SELL_RATES } from '../data/collectiblesData';
 const CURRENT_MARKETPLACE_VERSION = 3; // Incremented for new structure
 
 /**
+ * Calculate the total value of owned collectibles by counting each rarity
+ * and multiplying by the worth of that rarity
+ * @param ownedCollectibleIds - Array of collectible IDs owned by the user
+ * @returns Object with total value and breakdown by rarity
+ */
+const calculateCollectiblesValue = (ownedCollectibleIds: string[]): { totalValue: number, breakdown: Record<string, { count: number, value: number }> } => {
+    // Count collectibles by rarity
+    const rarityCounts: Record<string, number> = {
+        common: 0,
+        uncommon: 0,
+        rare: 0,
+        epic: 0,
+        legendary: 0,
+        mythic: 0,
+        divine: 0
+    };
+    
+    // Count each collectible by its rarity
+    for (const id of ownedCollectibleIds) {
+        const collectible = COLLECTIBLES.find(c => c.id === id);
+        if (collectible && collectible.rarity in rarityCounts) {
+            rarityCounts[collectible.rarity]++;
+        }
+    }
+    
+    // Calculate value for each rarity: count * worth per rarity
+    let totalValue = 0;
+    const breakdown: Record<string, { count: number, value: number }> = {};
+    
+    for (const [rarity, count] of Object.entries(rarityCounts)) {
+        const worthPerItem = COLLECTIBLE_SELL_RATES[rarity as keyof typeof COLLECTIBLE_SELL_RATES] || 0;
+        const value = count * worthPerItem;
+        breakdown[rarity] = { count, value };
+        totalValue += value;
+    }
+    
+    return { totalValue, breakdown };
+};
+
+/**
+ * Update net_value on the user's root document for leaderboard
+ * Net Worth = Current Star Balance + Value of All Collectibles Owned
+ */
+const updateNetValue = async (userId: string, starsBalance: number, ownedCollectibleIds: string[]): Promise<void> => {
+    const { totalValue: collectiblesValue } = calculateCollectiblesValue(ownedCollectibleIds);
+    const netWorth = starsBalance + collectiblesValue;
+    
+    console.log(`[Net Worth] Updating for user ${userId}: Stars Balance = ${starsBalance}, Collectibles Value = ${collectiblesValue}, Net Worth = ${netWorth}`);
+    
+    const userRef = userPaths.root(userId);
+    await setDoc(userRef, {
+        net_value: netWorth,
+        lastActive: Date.now()
+    }, { merge: true });
+};
+
+/**
  * Ensure root user document exists
  * This is required before creating subcollections in Firestore
  */
@@ -146,13 +203,15 @@ export const saveStarsData = async (userId: string, data: StarsData): Promise<vo
         data.lastUpdated = Date.now();
         await setDoc(starsRef, data);
 
-        // Update net_value on root user document for leaderboard
-        // We use totalEarned as the metric for net_value to represent "all-time score"
-        const userRef = userPaths.root(userId);
-        await setDoc(userRef, {
-            net_value: data.totalEarned,
-            lastActive: Date.now()
-        }, { merge: true });
+        // Fetch collection data to calculate net worth
+        // Net Worth = Current Star Balance + Value of All Collectibles Owned
+        const collectionRef = userPaths.collection(userId);
+        const collectionSnap = await getDoc(collectionRef);
+        const ownedCollectibleIds = collectionSnap.exists() 
+            ? (collectionSnap.data() as CollectionData).collectibles.ownedCollectibleIds 
+            : [];
+        
+        await updateNetValue(userId, data.balance, ownedCollectibleIds);
 
     } catch (error) {
         console.error('Error saving stars data:', error);
@@ -305,8 +364,64 @@ export const saveCollectionData = async (userId: string, data: CollectionData): 
 
         const collectionRef = userPaths.collection(userId);
         await setDoc(collectionRef, data);
+
+        // Update net_value when collectibles change
+        // Net Worth = Current Star Balance + Value of All Collectibles Owned
+        const starsRef = userPaths.stars(userId);
+        const starsSnap = await getDoc(starsRef);
+        const starsBalance = starsSnap.exists() 
+            ? (starsSnap.data() as StarsData).balance 
+            : 0;
+        
+        await updateNetValue(userId, starsBalance, data.collectibles.ownedCollectibleIds);
     } catch (error) {
         console.error('Error saving collection data:', error);
+    }
+};
+
+// ============================================================================
+// NET WORTH CALCULATION
+// ============================================================================
+
+/**
+ * Recalculate and update net worth for a user
+ * Call this on login or when you need to ensure net worth is up-to-date
+ * Net Worth = Current Star Balance + Value of All Collectibles Owned
+ */
+export const recalculateNetWorth = async (userId: string): Promise<number> => {
+    if (!userId) return 0;
+    
+    try {
+        // Get current stars balance
+        const starsData = await getStarsData(userId);
+        
+        // Get owned collectibles
+        const collectionData = await getCollectionData(userId);
+        const ownedCollectibleIds = collectionData.collectibles.ownedCollectibleIds || [];
+        
+        // Calculate collectibles value by rarity
+        const { totalValue: collectiblesValue, breakdown } = calculateCollectiblesValue(ownedCollectibleIds);
+        
+        // Net Worth = Balance + Collectibles Value
+        const netWorth = starsData.balance + collectiblesValue;
+        
+        console.log(`[Net Worth] Recalculating for user ${userId}:`);
+        console.log(`  - Stars Balance: ${starsData.balance}`);
+        console.log(`  - Collectibles Value: ${collectiblesValue}`);
+        console.log(`  - Breakdown:`, breakdown);
+        console.log(`  - Net Worth: ${netWorth}`);
+        
+        // Update the user document
+        const userRef = userPaths.root(userId);
+        await setDoc(userRef, {
+            net_value: netWorth,
+            lastActive: Date.now()
+        }, { merge: true });
+        
+        return netWorth;
+    } catch (error) {
+        console.error('[Net Worth] Error recalculating:', error);
+        return 0;
     }
 };
 
