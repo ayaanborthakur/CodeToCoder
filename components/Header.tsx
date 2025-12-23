@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         <div className="flex items-center gap-3">
           <button onClick={() => onNavigate('home')} className="no-hover flex items-center gap-2">
             <Logo className="h-8 w-auto" />
-            <span className="font-bold text-xl text-gray-800 dark:text-white hidden sm:inline tracking-tight">CodeToCoder</span>
+            <span className="font-bold text-xl text-gray-800 dark:text-white hidden sm:inline tracking-tight">Code2Coder</span>
           </button>
 
           {/* Search Bar with Dropdown - Hidden on small screens */}

@@ -126,8 +126,8 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
 
             if (navigator.share) {
                 await navigator.share({
-                    title: `CodeToCoder: ${file.name}`,
-                    text: `Check out my python code "${file.name}" on CodeToCoder! 🐍`,
+                    title: `Code2Coder: ${file.name}`,
+                    text: `Check out my python code "${file.name}" on Code2Coder! 🐍`,
                     files: [imageFile],
                 });
             } else {
@@ -394,7 +394,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                 </h1>
                                 <p className="text-slate-400 text-sm flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                    CodeToCoder Playground
+                                    Code2Coder Playground
                                 </p>
                             </div>
                         </div>
@@ -416,9 +416,9 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                         <div className="mt-6 pt-4 border-t border-slate-700 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <div className="text-xs text-slate-500">Generated with</div>
-                                <div className="text-sm font-bold text-cyan-400">CodeToCoder</div>
+                                <div className="text-sm font-bold text-cyan-400">Code2Coder</div>
                             </div>
-                            <div className="text-xs text-slate-600">code2coder.com</div>
+                            <div className="text-xs text-slate-600">code2coder.org</div>
                         </div>
                     </div>
                 )}

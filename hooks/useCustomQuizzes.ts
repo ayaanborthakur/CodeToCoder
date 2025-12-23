@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { PracticeItem } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
-const BASE_QUIZ_KEY = 'codetocoder_custom_quizzes';
+const BASE_QUIZ_KEY = 'code2coder_custom_quizzes';
 
 export const useCustomQuizzes = () => {
     const { user, isLoading: isAuthLoading } = useAuth();

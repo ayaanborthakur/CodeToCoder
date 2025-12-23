@@ -30,6 +30,7 @@ import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { UsernameModal } from './components/UsernameModal';
+import { SignupPage } from './components/SignupPage';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -127,6 +128,7 @@ const App: React.FC = () => {
         const path = location.pathname;
         if (path === '/') return 'mission';
         if (path === '/dashboard') return 'home';
+        if (path === '/signup') return 'signup';
         if (path.startsWith('/classroom')) return 'classroom';
         if (path.startsWith('/playground')) return 'playground';
         if (path.startsWith('/practice')) return 'practice';
@@ -160,7 +162,7 @@ const App: React.FC = () => {
     const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
     const [code, setCode] = useState<string>('');
     const loadedCodeRef = useRef<string | null>(null);
-    const [terminalOutput, setTerminalOutput] = useState<string>('> Welcome to the CodeToCoder Terminal!\nClick "Run Code" to see your output here.');
+    const [terminalOutput, setTerminalOutput] = useState<string>('> Welcome to the Code2Coder Terminal!\nClick "Run Code" to see your output here.');
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
         { role: 'model', content: "Hello! I'm your AI assistant. I'm here to help you learn Python. What's your first question?" }
     ]);
@@ -273,7 +275,7 @@ const App: React.FC = () => {
     });
 
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
-        return user ? `codetocoder_autosave_${type}_${id}_${user.id} ` : `codetocoder_autosave_${type}_${id} `;
+        return user ? `code2coder_autosave_${type}_${id}_${user.id} ` : `code2coder_autosave_${type}_${id} `;
     }, [user]);
 
     // Reset/Reload state when user context changes (Login/Logout)
@@ -699,7 +701,7 @@ const App: React.FC = () => {
             let savedCode: string | null = null;
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    const autosaveKey = user ? `codetocoder_autosave_lesson_${lessonId}_${user.id} ` : `codetocoder_autosave_lesson_${lessonId} `;
+                    const autosaveKey = user ? `code2coder_autosave_lesson_${lessonId}_${user.id} ` : `code2coder_autosave_lesson_${lessonId} `;
                     savedCode = window.localStorage.getItem(autosaveKey);
                 }
             } catch (e) {
@@ -729,13 +731,13 @@ const App: React.FC = () => {
     // Update Document Title
     useEffect(() => {
         if (currentView === 'playground' && activePlaygroundFile) {
-            document.title = `${activePlaygroundFile.name} - CodeToCoder`;
+            document.title = `${activePlaygroundFile.name} - Code2Coder`;
         } else if (currentView === 'classroom' && currentLesson) {
-            document.title = `${currentLesson.title} - CodeToCoder`;
+            document.title = `${currentLesson.title} - Code2Coder`;
         } else if (currentView === 'practice' && activePracticeItem) {
-            document.title = `${activePracticeItem.title} - CodeToCoder`;
+            document.title = `${activePracticeItem.title} - Code2Coder`;
         } else {
-            document.title = 'CodeToCoder - Learn Python with AI';
+            document.title = 'Code2Coder - Learn Python with AI';
         }
     }, [currentView, activePlaygroundFile, currentLesson, activePracticeItem]);
 
@@ -1355,7 +1357,7 @@ const App: React.FC = () => {
             return (
                 <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
                     <Helmet>
-                        <title>CodeToCoder - Learn Python Online with AI Coding Tutor</title>
+                        <title>Code2Coder - Learn Python Online with AI Coding Tutor</title>
                         <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
                         <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
                     </Helmet>
@@ -1739,8 +1741,8 @@ const App: React.FC = () => {
 
     return (
         <>
-            <Helmet titleTemplate="CodeToCoder | %s" defaultTitle="CodeToCoder: Learn Python with AI">
-                <title>CodeToCoder: Learn Python with AI</title>
+            <Helmet titleTemplate="Code2Coder | %s" defaultTitle="Code2Coder: Learn Python with AI">
+                <title>Code2Coder: Learn Python with AI</title>
                 <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
                 <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
             </Helmet>
@@ -1769,16 +1771,18 @@ const App: React.FC = () => {
                     />
                 )}
 
-                <Header
-                    currentView={currentView}
-                    onNavigate={handleNavigate}
-                    theme={theme}
-                    setTheme={handleThemeChange}
+                {currentView !== 'signup' && (
+                    <Header
+                        currentView={currentView}
+                        onNavigate={handleNavigate}
+                        theme={theme}
+                        setTheme={handleThemeChange}
 
-                    starTargetRef={starTargetRef}
-                    onOpenAuth={handleOpenAuth}
-                    starBalance={starBalance}
-                />
+                        starTargetRef={starTargetRef}
+                        onOpenAuth={handleOpenAuth}
+                        starBalance={starBalance}
+                    />
+                )}
 
                 {/* Badge Notifications */}
                 {newlyEarnedBadges.length > 0 && (
@@ -1849,6 +1853,8 @@ const App: React.FC = () => {
                         } />
 
                         <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />} />
+
+                        <Route path="/signup" element={<SignupPage />} />
 
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
 

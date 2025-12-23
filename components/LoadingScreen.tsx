@@ -44,7 +44,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
 
       {/* Loading Text */}
       <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-6 tracking-tight">
-        CodeToCoder
+        Code2Coder
       </h2>
 
       {/* Status Indicators */}

@@ -126,7 +126,7 @@ export const generateShareImage = onCall(
           <body>
             <div class="header">
               <div class="logo"></div>
-              <div class="brand">CodeToCoder</div>
+              <div class="brand">Code2Coder</div>
             </div>
             <div class="code-container">
               <div class="file-name">${escapeHtml(fileName || "Untitled.py")}</div>

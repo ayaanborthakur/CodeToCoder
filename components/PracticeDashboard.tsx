@@ -96,7 +96,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
         return (
             <div className="p-4 max-w-5xl mx-auto h-full overflow-y-auto w-full">
             <Helmet>
-              <title>Practice {typeLabel} - CodeToCoder</title>
+              <title>Practice {typeLabel} - Code2Coder</title>
               <meta name="description" content={`Practice your Python skills with interactive ${typeLabel.toLowerCase()}. Get instant feedback and track your progress.`} />
             </Helmet>
                 <GenerateQuizModal

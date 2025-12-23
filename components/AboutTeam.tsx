@@ -43,7 +43,7 @@ export const AboutTeam: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </button>
                     <div className="flex-1 text-center md:text-left">
                         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Meet the Team</h1>
-                        <p className="text-lg text-gray-500 dark:text-gray-400">The brilliant minds behind CodeToCoder.</p>
+                        <p className="text-lg text-gray-500 dark:text-gray-400">The brilliant minds behind Code2Coder.</p>
                     </div>
                 </div>
 

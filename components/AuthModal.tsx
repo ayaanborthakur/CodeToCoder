@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, register, loginAnonymously, loginWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
 
   const [email, setEmail] = useState('');
@@ -68,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <div className="relative z-10">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center tracking-tight">
-            {mode === 'login' ? 'Welcome Back' : 'Join CodeToCoder'}
+            {mode === 'login' ? 'Welcome Back' : 'Join Code2Coder'}
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center mb-8">
             {mode === 'login' ? 'Sign in to continue your coding journey' : 'Start your coding adventure today'}
@@ -162,7 +164,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
               <button
-                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
+                onClick={() => { 
+                    if (mode === 'login') {
+                        navigate('/signup');
+                        onClose();
+                    } else {
+                        setMode('login'); 
+                        setError(null); 
+                    }
+                }}
                 className="ml-2 font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors"
               >
                 {mode === 'login' ? 'Sign Up' : 'Sign In'}

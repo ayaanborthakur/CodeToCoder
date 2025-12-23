@@ -75,13 +75,13 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                     <div className="grid md:grid-cols-2 gap-16 items-center mb-20">
                         <div>
                             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                                Why CodeToCoder?
+                                Why Code2Coder?
                             </h2>
                             <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
                                 In today's digital age, programming skills are a gateway to economic empowerment. However, quality education often comes with a high price tag.
                             </p>
                             <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                                **CodeToCoder** was built to dismantle these barriers. We provide a free, high-quality, AI-powered learning environment designed to guide you from your first line of code to building real-world applications. Our focus isn't just on syntax, but on community growth and individual potential.
+                                **Code2Coder** was built to dismantle these barriers. We provide a free, high-quality, AI-powered learning environment designed to guide you from your first line of code to building real-world applications. Our focus isn't just on syntax, but on community growth and individual potential.
                             </p>
                         </div>
                         <div className="relative">
@@ -159,7 +159,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Offline Capable</h3>
                                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                                    Once loaded, CodeToCoder works even with spotty internet. We believe access to education shouldn't be limited by bandwidth.
+                                    Once loaded, Code2Coder works even with spotty internet. We believe access to education shouldn't be limited by bandwidth.
                                 </p>
                             </div>
                         </div>
@@ -202,7 +202,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                     <div className="col-span-1 md:col-span-2 space-y-4">
                         <div className="flex items-center gap-3">
                             <FooterLogo className="h-10 w-auto" />
-                            <span className="font-bold text-2xl text-gray-800 dark:text-white tracking-tight">CodeToCoder</span>
+                            <span className="font-bold text-2xl text-gray-800 dark:text-white tracking-tight">Code2Coder</span>
                         </div>
                         <p className="text-gray-500 dark:text-gray-400 max-w-sm">
                             Empowering the future, one line of code at a time.
@@ -231,7 +231,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                 </div>
 
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-8 text-center">
-                    <p className="text-gray-400 dark:text-gray-500 text-sm">{new Date().getFullYear()} CodeToCoder</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm">{new Date().getFullYear()} Code2Coder</p>
                 </div>
             </footer>
 

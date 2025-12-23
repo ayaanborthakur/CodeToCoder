@@ -4,8 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 import type { UserAchievements, Badge } from '../types';
 
-const BASE_PROGRESS_KEY = 'codetocoder_progress';
-const BASE_PRACTICE_KEY = 'codetocoder_practice_progress';
+const BASE_PROGRESS_KEY = 'code2coder_progress';
+const BASE_PRACTICE_KEY = 'code2coder_practice_progress';
 
 export const useProgress = () => {
     const { user, isLoading: isAuthLoading } = useAuth();

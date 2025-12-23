@@ -7,7 +7,7 @@ echo "Building Docker image with BASE_URL='$BASE_URL'..."
 
 docker build \
   --build-arg BASE_URL="$BASE_URL" \
-  -t codetocoder \
+  -t code2coder \
   .
 
-echo "Build complete! Run 'docker run -p 8080:80 codetocoder' to test."
+echo "Build complete! Run 'docker run -p 8080:80 code2coder' to test."

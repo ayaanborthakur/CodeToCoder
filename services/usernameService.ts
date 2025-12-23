@@ -37,7 +37,7 @@ export const validateUsername = (username: string): { valid: boolean; error?: st
     }
 
     // Reserved usernames
-    const reserved = ['admin', 'administrator', 'moderator', 'mod', 'system', 'codetocoder', 'support', 'help', 'guest', 'anonymous', 'user', 'null', 'undefined'];
+    const reserved = ['admin', 'administrator', 'moderator', 'mod', 'system', 'code2coder', 'support', 'help', 'guest', 'anonymous', 'user', 'null', 'undefined'];
     if (reserved.includes(trimmed)) {
         return { valid: false, error: 'This username is reserved' };
     }

@@ -12,7 +12,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from './firebase';
 import { User } from '../types';
 
-const SESSION_KEY = 'codetocoder_session';
+const SESSION_KEY = 'code2coder_session';
 
 export const authService = {
   async login(email: string, password: string): Promise<User> {
@@ -84,10 +84,10 @@ export const authService = {
     const userId = firebaseUser.uid;
 
     // Delete all user data from localStorage
-    localStorage.removeItem(`codetocoder_progress_${userId}`);
-    localStorage.removeItem(`codetocoder_practice_progress_${userId}`);
-    localStorage.removeItem(`codetocoder_playground_files_${userId}`);
-    localStorage.removeItem(`codetocoder_custom_quizzes_${userId}`);
+    localStorage.removeItem(`code2coder_progress_${userId}`);
+    localStorage.removeItem(`code2coder_practice_progress_${userId}`);
+    localStorage.removeItem(`code2coder_playground_files_${userId}`);
+    localStorage.removeItem(`code2coder_custom_quizzes_${userId}`);
     localStorage.removeItem(SESSION_KEY);
 
     // Delete the user from Firebase Authentication
@@ -141,12 +141,12 @@ export const authService = {
 
   // Helper to migrate guest data to new user account
   migrateGuestData(userId: string) {
-    const guestProgress = localStorage.getItem('codetocoder_progress');
-    const guestPractice = localStorage.getItem('codetocoder_practice_progress');
-    const guestFiles = localStorage.getItem('codetocoder_playground_files');
+    const guestProgress = localStorage.getItem('code2coder_progress');
+    const guestPractice = localStorage.getItem('code2coder_practice_progress');
+    const guestFiles = localStorage.getItem('code2coder_playground_files');
 
-    if (guestProgress) localStorage.setItem(`codetocoder_progress_${userId} `, guestProgress);
-    if (guestPractice) localStorage.setItem(`codetocoder_practice_progress_${userId} `, guestPractice);
-    if (guestFiles) localStorage.setItem(`codetocoder_playground_files_${userId} `, guestFiles);
+    if (guestProgress) localStorage.setItem(`code2coder_progress_${userId} `, guestProgress);
+    if (guestPractice) localStorage.setItem(`code2coder_practice_progress_${userId} `, guestPractice);
+    if (guestFiles) localStorage.setItem(`code2coder_playground_files_${userId} `, guestFiles);
   }
 };

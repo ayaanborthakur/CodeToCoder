@@ -1,5 +1,5 @@
 {
-  "name": "CodeToCoder: Learn Python with AI",
+  "name": "Code2Coder: Learn Python with AI",
   "description": "An interactive web application designed to teach Python programming to beginners. It features a structured lesson plan, an integrated code editor (IDE), a simulated terminal, and an AI-powered chatbot to provide guidance and answer questions.",
   "requestFramePermissions": []
 }
