@@ -1,5 +1,6 @@
 import { doc, getDoc, runTransaction, query, collection, where, getDocs, limit } from 'firebase/firestore';
 import { db } from './firebase';
+import { checkUsernameSafety } from './geminiService';
 
 /**
  * Username Service
@@ -71,6 +72,12 @@ export const claimUsername = async (userId: string, username: string): Promise<v
     const validation = validateUsername(username);
     if (!validation.valid) {
         throw new Error(validation.error || 'Invalid username');
+    }
+
+    // Check for profanity/offensive content using AI
+    const safetyCheck = await checkUsernameSafety(username);
+    if (!safetyCheck.isSafe) {
+        throw new Error(safetyCheck.reason || 'This username contains inappropriate content');
     }
 
     const normalizedUsername = username.trim().toLowerCase();
