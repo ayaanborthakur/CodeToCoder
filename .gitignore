@@ -25,3 +25,7 @@ dist-ssr
 *.sw?
 .env
 .env.*
+
+functions/node_modules  
+.vscode
+.agent
