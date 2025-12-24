@@ -301,7 +301,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <div className="text-xs text-gray-500 dark:text-gray-400">Files Created</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-cyan-100 dark:border-cyan-900/30">
+                <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                     <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
@@ -309,7 +309,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
                       {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
                     </div>
-                    <div className="text-xs text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-tighter">Net Worth</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Net Worth</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
