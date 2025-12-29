@@ -1839,6 +1839,7 @@ const App: React.FC = () => {
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
                                     onPlaygroundResume={handlePlaygroundResume}
                                     netWorth={netWorth}
+                                    starBalance={starBalance}
                                 />
                             </div>
                         } />
@@ -1853,10 +1854,11 @@ const App: React.FC = () => {
                                 theme={theme}
                                 setTheme={handleThemeChange}
                                 netWorth={netWorth}
+                                starBalance={starBalance}
                             />
                         } />
 
-                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />} />
+                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} starBalance={starBalance} />} />
 
                         <Route path="/signup" element={<SignupPage />} />
 

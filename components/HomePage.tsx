@@ -25,6 +25,7 @@ interface HomePageProps {
   onPlaygroundResume: (fileId: string) => void;
   practiceCategories?: any;
   netWorth?: number;
+  starBalance?: number;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -36,6 +37,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   mostRecentPlaygroundFile,
   onPlaygroundResume,
   netWorth,
+  starBalance,
 }) => {
 
   // Find the most recent lesson worked on
@@ -126,7 +128,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{completedLessons.size} Stars</span>
+                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance !== undefined ? starBalance.toLocaleString() : completedLessons.size} Stars</span>
                 </div>
               </div>
             </div>
