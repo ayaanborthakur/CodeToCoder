@@ -231,10 +231,9 @@ export const hasTutorialCompleted = async (userId?: string): Promise<boolean> =>
             // Fall back to localStorage check
             return localStatus === 'true';
         }
-    } else {
-        // For guest users, check generic key
-        return localStorage.getItem(TUTORIAL_STORAGE_KEY) === 'true';
     }
+
+    return false;
 };
 
 /**
@@ -255,9 +254,6 @@ export const markTutorialCompleted = async (userId?: string): Promise<void> => {
         } catch (error) {
             console.error('Failed to save tutorial completion to Firestore:', error);
         }
-    } else {
-        // Guest user - only save to localStorage
-        localStorage.setItem(TUTORIAL_STORAGE_KEY, 'true');
     }
 };
 
@@ -279,8 +275,6 @@ export const resetTutorial = async (userId?: string): Promise<void> => {
         } catch (error) {
             console.error('Failed to reset tutorial in Firestore:', error);
         }
-    } else {
-        localStorage.removeItem(TUTORIAL_STORAGE_KEY);
     }
 };
 

@@ -3,7 +3,6 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
-  signInAnonymously,
   deleteUser,
   signInWithPopup,
   User as FirebaseUser
@@ -63,12 +62,6 @@ export const authService = {
     return this.mapFirebaseUser(firebaseUser, name);
   },
 
-  async loginAnonymously(): Promise<User> {
-    const userCredential = await signInAnonymously(auth);
-    const firebaseUser = userCredential.user;
-
-    return this.mapFirebaseUser(firebaseUser, 'Guest');
-  },
 
   async logout(): Promise<void> {
     await signOut(auth);
@@ -153,14 +146,4 @@ export const authService = {
     return baseUser;
   },
 
-  // Helper to migrate guest data to new user account
-  migrateGuestData(userId: string) {
-    const guestProgress = localStorage.getItem('code2coder_progress');
-    const guestPractice = localStorage.getItem('code2coder_practice_progress');
-    const guestFiles = localStorage.getItem('code2coder_playground_files');
-
-    if (guestProgress) localStorage.setItem(`code2coder_progress_${userId} `, guestProgress);
-    if (guestPractice) localStorage.setItem(`code2coder_practice_progress_${userId} `, guestPractice);
-    if (guestFiles) localStorage.setItem(`code2coder_playground_files_${userId} `, guestFiles);
-  }
 };

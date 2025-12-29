@@ -9,7 +9,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
-  loginAnonymously: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
@@ -120,21 +119,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const newUser = await authService.register(email, password, name);
-    // Migrate guest data to this new user automatically
-    authService.migrateGuestData(newUser.id);
+    await authService.register(email, password, name);
     // Log analytics event
     const { logSignUp } = await import('../services/analyticsService');
     logSignUp('email');
   };
 
-  const loginAnonymously = async () => {
-    await authService.loginAnonymously();
-    // Log analytics event
-    const { logSignUp, logLogin } = await import('../services/analyticsService');
-    logSignUp('anonymous');
-    logLogin('anonymous');
-  };
 
   const loginWithGoogle = async () => {
     await authService.loginWithGoogle();
@@ -162,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, loginAnonymously, loginWithGoogle, logout, deleteAccount, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginWithGoogle, logout, deleteAccount, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

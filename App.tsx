@@ -304,7 +304,6 @@ const App: React.FC = () => {
     const loadStarBalance = useCallback(async () => {
         if (!user) {
             setStarBalance(0);
-            setNetWorth(undefined); // Clear net worth for guests
             return;
         }
         const data = await getMarketplaceData(user.id);
@@ -374,8 +373,7 @@ const App: React.FC = () => {
     // 4. Check if user needs to set a username (but not on signup page which handles this inline)
     useEffect(() => {
         if (isAuthLoading || !user) return;
-        // Skip for anonymous/guest users
-        if (!user.email) return;
+        
         // Skip on signup page - it has its own inline username UI
         if (location.pathname === '/signup') return;
         
