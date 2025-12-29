@@ -100,15 +100,12 @@ export const useProgress = () => {
                         }
                     }
                 } else {
-                    console.log('[useProgress] Guest mode: loading from localStorage');
-                    // Guest mode: use localStorage only
-                    if (typeof window !== 'undefined' && window.localStorage) {
-                        const savedProgress = window.localStorage.getItem(getProgressKey());
-                        const savedPractice = window.localStorage.getItem(getPracticeKey());
-
-                        setCompletedLessons(savedProgress ? new Set(JSON.parse(savedProgress) as string[]) : new Set());
-                        setCompletedPracticeItems(savedPractice ? new Set(JSON.parse(savedPractice) as string[]) : new Set());
-                    }
+                    console.log('[useProgress] No user logged in, resetting progress');
+                    setCompletedLessons(new Set());
+                    setCompletedPracticeItems(new Set());
+                    setRewardedLessons(new Set());
+                    setRewardedPracticeItems(new Set());
+                    setAchievements(undefined);
                 }
             } catch (error) {
                 console.error("[useProgress] Failed to load progress", error);

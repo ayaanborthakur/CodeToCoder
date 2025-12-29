@@ -4,7 +4,6 @@ import type { PlaygroundFile, ChatMessage } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
 const BASE_FILES_KEY = 'code2coder_playground_files';
-const OLD_CODE_KEY = 'code2coder_playground_code';
 
 const DEFAULT_PLAYGROUND_CHAT: ChatMessage[] = [
     { role: 'model', content: "Welcome to the Playground! I'm here to help you experiment with Python code. Ask me anything!" }
@@ -76,33 +75,8 @@ export const usePlaygroundFiles = () => {
                         }
                     }
                 } else {
-                    // Guest mode: use localStorage only
-                    if (typeof window !== 'undefined' && window.localStorage) {
-                        const key = getFilesKey();
-                        const savedFiles = window.localStorage.getItem(key);
-
-                        if (savedFiles) {
-                            setFiles(JSON.parse(savedFiles) as PlaygroundFile[]);
-                        } else {
-                            // Migration logic only for guest mode
-                            const oldCode = window.localStorage.getItem(OLD_CODE_KEY);
-                            if (oldCode) {
-                                const migratedFile: PlaygroundFile = {
-                                    id: `file_${Date.now()}`,
-                                    name: 'My Playground.py',
-                                    content: oldCode,
-                                    terminalOutput: '> Playground Terminal Ready.',
-                                    chatHistory: DEFAULT_PLAYGROUND_CHAT,
-                                    lastModified: Date.now()
-                                };
-                                saveFilesToStorage([migratedFile]);
-                                window.localStorage.removeItem(OLD_CODE_KEY);
-                                setFiles([migratedFile]);
-                            } else {
-                                setFiles([]);
-                            }
-                        }
-                    }
+                    // Not logged in: no files
+                    setFiles([]);
                 }
             } catch (error) {
                 console.error("Failed to load playground files", error);

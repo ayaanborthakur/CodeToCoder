@@ -301,9 +301,9 @@ export const RARITY_GLOW = {
     uncommon: 'shadow-green-500/30',
     rare: 'shadow-blue-500/40',
     epic: 'shadow-purple-500/50',
-    legendary: 'shadow-yellow-500/60 animate-pulse',
-    mythic: 'shadow-red-500/70 animate-pulse',
-    divine: 'shadow-cyan-400/80 animate-pulse'
+    legendary: 'shadow-yellow-500/60 ',
+    mythic: 'shadow-red-500/70 ',
+    divine: 'shadow-cyan-400/80 '
 };
 
 // Collectible sell rates by rarity

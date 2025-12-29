@@ -10,7 +10,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { login, register, loginAnonymously, loginWithGoogle } = useAuth();
+  const { login, register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
 
@@ -180,26 +180,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-            <button
-              onClick={async () => {
-                setError(null);
-                setIsLoading(true);
-                try {
-                  await loginAnonymously();
-                  onClose();
-                } catch (err: any) {
-                  setError(err.message || "Failed to continue as guest");
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="w-full py-2.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 font-medium transition-colors"
-            >
-              Skip for now & continue as guest
-            </button>
-          </div>
         </div>
       </div>
       <style>{`

@@ -21,9 +21,10 @@ import { PackOpeningModal } from './PackOpeningModal';
 interface MarketplacePageProps {
     onNavigate: (view: ViewState) => void;
     onOpenAuth: () => void;
+    starBalance?: number;
 }
 
-export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, onOpenAuth }) => {
+export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, onOpenAuth, starBalance }) => {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<'market' | 'collection'>('market');
     const [stars, setStars] = useState<UserStars | null>(null);
@@ -54,6 +55,19 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
     useEffect(() => {
         loadData();
     }, [user]);
+
+    // Add starUpdate listener to keep balance in sync immediately
+    useEffect(() => {
+        const handleStarUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (customEvent.detail && typeof customEvent.detail.balance === 'number') {
+                setStars(prev => prev ? { ...prev, balance: customEvent.detail.balance } : null);
+            }
+        };
+
+        window.addEventListener('starUpdate', handleStarUpdate);
+        return () => window.removeEventListener('starUpdate', handleStarUpdate);
+    }, []);
 
     const handlePurchasePack = async (packId: string) => {
         if (!user) return;
@@ -301,7 +315,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                     <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                     <div className="text-5xl font-black text-text-primary font-mono flex items-center gap-4 justify-center">
                                         <span className="text-4xl animate-pulse text-yellow-500">★</span>
-                                        <span className="text-text-primary">{stars.balance.toLocaleString()}</span>
+                                        <span className="text-text-primary">{(starBalance ?? stars?.balance ?? 0).toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>

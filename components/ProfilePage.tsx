@@ -34,9 +34,10 @@ interface ProfilePageProps {
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
     netWorth?: number;
+    starBalance?: number;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats, netWorth }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats, netWorth, starBalance: propStarBalance }) => {
     const { user, logout, deleteAccount } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
@@ -48,6 +49,25 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [activityFeed, setActivityFeed] = useState<ActivityItem[]>([]);
+
+    // Sync starBalance from prop if provided
+    useEffect(() => {
+        if (propStarBalance !== undefined) {
+            setStarBalance(propStarBalance);
+        }
+    }, [propStarBalance]);
+
+    // Handle starUpdate events for immediate sync
+    useEffect(() => {
+        const handleStarUpdate = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            if (customEvent.detail && typeof customEvent.detail.balance === 'number') {
+                setStarBalance(customEvent.detail.balance);
+            }
+        };
+        window.addEventListener('starUpdate', handleStarUpdate);
+        return () => window.removeEventListener('starUpdate', handleStarUpdate);
+    }, []);
     
     const { files: playgroundFiles } = usePlaygroundFiles();
 
