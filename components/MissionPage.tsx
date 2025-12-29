@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ContactModal } from './ContactModal';
+import { AnimatedCodeBlock } from './AnimatedCodeBlock';
 import { ViewState } from './Header';
 
 interface MissionPageProps {
@@ -312,6 +313,11 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         >
                             Discover Our Mission
                         </button>
+                    </div>
+
+                    {/* Animated Code Demo */}
+                    <div className="mb-12 hidden md:block">
+                        <AnimatedCodeBlock />
                     </div>
 
                     {/* Stats row */}

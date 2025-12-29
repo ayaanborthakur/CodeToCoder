@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { CollapseIcon } from './CollapseIcon';
+import { TypewriterText } from './TypewriterText';
 
 declare let marked: { parse: (markdown: string) => string } | undefined;
 
@@ -38,12 +39,26 @@ const parseMarkdown = (content: string) => {
 export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart }) => {
     const [isInputOpen, setIsInputOpen] = useState(false);
     const [input, setInput] = useState('');
+    const [lastAnimatedIndex, setLastAnimatedIndex] = useState(-1);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const prevMessagesLengthRef = useRef(messages.length);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    // Track when new AI message arrives for typewriter effect
+    useEffect(() => {
+        if (messages.length > prevMessagesLengthRef.current) {
+            const lastMessage = messages[messages.length - 1];
+            if (lastMessage.role === 'model') {
+                // New AI message added, trigger typewriter for this index
+                setLastAnimatedIndex(messages.length - 1);
+            }
+        }
+        prevMessagesLengthRef.current = messages.length;
+    }, [messages.length]);
 
     useEffect(() => {
         if (!isCollapsed) {
@@ -78,6 +93,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
         }
     }
 
+    const renderMarkdownContent = (content: string) => (
+        <div dangerouslySetInnerHTML={{ __html: parseMarkdown(content) }} />
+    );
+
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
             {/* Header */}
@@ -107,7 +126,21 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                     </div>
                                 ) : (
                                     <div className="prose prose-sm max-w-none dark:prose-invert text-gray-600 dark:text-gray-300 leading-relaxed prose-code:text-cyan-600 dark:prose-code:text-cyan-400 prose-code:bg-white dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-medium prose-code:before:content-none prose-code:after:content-none">
-                                        <div dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.content) }} />
+                                        {index === lastAnimatedIndex ? (
+                                            <TypewriterText
+                                                content={msg.content}
+                                                speed={120}
+                                                onComplete={() => {
+                                                    // Re-highlight code blocks after typewriter completes
+                                                    if (typeof window !== 'undefined' && window.Prism) {
+                                                        setTimeout(() => window.Prism.highlightAll(), 0);
+                                                    }
+                                                }}
+                                                renderContent={renderMarkdownContent}
+                                            />
+                                        ) : (
+                                            renderMarkdownContent(msg.content)
+                                        )}
                                     </div>
                                 )}
                             </div>

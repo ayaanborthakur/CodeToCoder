@@ -153,7 +153,10 @@ export const getStarsData = async (userId: string): Promise<StarsData> => {
             totalSpent: 0,
             lastUpdated: Date.now(),
             transactionHistory: [],
-            dailyPrizeClaimed: 0
+            dailyPrizeClaimed: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: ''
         };
     }
 
@@ -172,7 +175,10 @@ export const getStarsData = async (userId: string): Promise<StarsData> => {
             totalSpent: 0,
             lastUpdated: Date.now(),
             transactionHistory: [],
-            dailyPrizeClaimed: 0
+            dailyPrizeClaimed: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: ''
         };
         await setDoc(starsRef, initialData);
         return initialData;
@@ -184,7 +190,10 @@ export const getStarsData = async (userId: string): Promise<StarsData> => {
             totalSpent: 0,
             lastUpdated: Date.now(),
             transactionHistory: [],
-            dailyPrizeClaimed: 0
+            dailyPrizeClaimed: 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: ''
         };
     }
 };
@@ -471,7 +480,10 @@ export const saveMarketplaceData = async (userId: string, data: MarketplaceData)
         totalSpent: data.stars.totalSpent,
         lastUpdated: data.stars.lastUpdated,
         transactionHistory: data.transactionHistory,
-        dailyPrizeClaimed: data.dailyPrizeClaimed
+        dailyPrizeClaimed: data.dailyPrizeClaimed,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActiveDate: ''
     };
 
     const collectionData: CollectionData = {

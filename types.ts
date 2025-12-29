@@ -186,6 +186,10 @@ export interface StarsData {
   lastUpdated: number;
   transactionHistory: StarTransaction[];
   dailyPrizeClaimed: number;
+  // Streak tracking
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: string; // YYYY-MM-DD format for easy comparison
 }
 
 export interface DailyChallengesData {
