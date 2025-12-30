@@ -163,7 +163,7 @@ export const PACKS_DATA: PackData[] = [
         id: 'designer_pack',
         name: 'Designer Pack',
         tier: 'designer',
-        cost: 250,
+        cost: 350,
         description: 'Premium single item - guaranteed Legendary+ collectible',
         icon: '✨',
         dropRates: {
