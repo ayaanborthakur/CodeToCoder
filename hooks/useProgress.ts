@@ -146,7 +146,7 @@ export const useProgress = () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
                     const { contentService } = await import('../services/contentService');
-                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
 
                     const modules = await contentService.getAllModules();
                     const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
@@ -165,13 +165,41 @@ export const useProgress = () => {
                         });
                     }
 
-                    // Count practice items by type
+                    // Count quizzes from completed lessons (lessons with type === 'quiz')
+                    let quizzesCompleted = 0;
+                    let modulesCompleted = 0;
+                    for (const module of modules) {
+                        const quizLessons = module.lessons.filter(l => l.type === 'quiz');
+                        const completedQuizzes = quizLessons.filter(l => newSet.has(l.id));
+                        quizzesCompleted += completedQuizzes.length;
+                        
+                        // Check if entire module is completed
+                        const allCompleted = module.lessons.every(l => newSet.has(l.id));
+                        if (allCompleted) modulesCompleted++;
+                    }
+
+                    // Get streak and star data
+                    let currentStreak = 0;
+                    let longestStreak = 0;
+                    let totalStarsEarned = 0;
+                    if (user) {
+                        const marketData = await getMarketplaceData(user.id);
+                        totalStarsEarned = marketData.stars.totalEarned || 0;
+                        // Streak data stored in stars subcollection
+                        currentStreak = (marketData as any).currentStreak || 0;
+                        longestStreak = (marketData as any).longestStreak || 0;
+                    }
+
                     const result = checkAndAwardBadges(achievements, {
                         lessonsCompleted: newSet.size,
                         practiceCompleted: completedPracticeItems.size,
-                        quizzesCompleted: 0,
-                        projectsCompleted: 0,
-                        totalLessons
+                        quizzesCompleted,
+                        projectsCompleted: 0, // Will be counted from practice items
+                        totalLessons,
+                        currentStreak,
+                        longestStreak,
+                        totalStarsEarned,
+                        modulesCompleted
                     });
 
                     if (result.newBadges.length > 0) {
@@ -266,12 +294,10 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    // Use ContentService to get the accurate lesson count (GCS or local fallback)
-                    // Use ContentService to get the accurate lesson count
                     const { contentService } = await import('../services/contentService');
                     const modules = await contentService.getAllModules();
                     
-                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
 
                     const totalLessons = modules.reduce((sum: number, module: any) => sum + module.lessons.length, 0);
 
@@ -288,12 +314,44 @@ export const useProgress = () => {
                         });
                     }
 
+                    // Count quizzes and modules from completed lessons
+                    let quizzesCompleted = 0;
+                    let modulesCompleted = 0;
+                    for (const module of modules) {
+                        const quizLessons = module.lessons.filter((l: any) => l.type === 'quiz');
+                        const completedQuizzes = quizLessons.filter((l: any) => completedLessons.has(l.id));
+                        quizzesCompleted += completedQuizzes.length;
+                        
+                        const allCompleted = module.lessons.every((l: any) => completedLessons.has(l.id));
+                        if (allCompleted) modulesCompleted++;
+                    }
+
+                    // Count projects from practice items
+                    const practiceItems = await contentService.getPracticeItems();
+                    const completedProjectItems = practiceItems.filter(p => p.type === 'project' && newSet.has(p.id));
+                    const projectsCompleted = completedProjectItems.length;
+
+                    // Get streak and star data
+                    let currentStreak = 0;
+                    let longestStreak = 0;
+                    let totalStarsEarned = 0;
+                    if (user) {
+                        const marketData = await getMarketplaceData(user.id);
+                        totalStarsEarned = marketData.stars.totalEarned || 0;
+                        currentStreak = (marketData as any).currentStreak || 0;
+                        longestStreak = (marketData as any).longestStreak || 0;
+                    }
+
                     const result = checkAndAwardBadges(achievements, {
                         lessonsCompleted: completedLessons.size,
                         practiceCompleted: newSet.size,
-                        quizzesCompleted: 0,
-                        projectsCompleted: 0,
-                        totalLessons
+                        quizzesCompleted,
+                        projectsCompleted,
+                        totalLessons,
+                        currentStreak,
+                        longestStreak,
+                        totalStarsEarned,
+                        modulesCompleted
                     });
 
                     if (result.newBadges.length > 0) {

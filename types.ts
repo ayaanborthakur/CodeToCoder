@@ -74,7 +74,7 @@ export interface User {
 
 
 // Badge System Types
-export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project';
+export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project' | 'streak' | 'collection' | 'special';
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface Badge {
@@ -84,6 +84,7 @@ export interface Badge {
   type: BadgeType;
   tier: BadgeTier;
   requirement: number;
+  icon?: string; // Emoji or icon identifier
 }
 
 export interface UserAchievements {
