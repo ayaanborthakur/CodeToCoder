@@ -262,3 +262,26 @@ export interface FlowchartData {
     label?: string; // For conditional branches: "True", "False"
   }>;
 }
+
+// User Activity & Analytics Types
+export interface UserActivity {
+  id: string;
+  userId: string;
+  type: 'lesson' | 'quiz' | 'practice' | 'project';
+  itemId: string;
+  itemTitle: string;
+  timestamp: number;
+  durationSeconds: number;
+  attempts?: number; // Number of run/check attempts
+  score?: number; // 0-100 for quizzes/projects
+  completed: boolean;
+  metadata?: Record<string, any>; // Flexible field for "nothing left out" (code, errors, etc.)
+}
+
+export interface DailyActivitySummary {
+  date: string; // YYYY-MM-DD
+  lessonsCompleted: number;
+  practiceCompleted: number;
+  timeSpentSeconds: number;
+  starsEarned: number;
+}

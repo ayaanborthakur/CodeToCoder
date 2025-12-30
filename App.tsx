@@ -197,7 +197,6 @@ const App: React.FC = () => {
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
 
 
-    // Playground autocomplete preference
     const [isPlaygroundAutocompleteEnabled, setIsPlaygroundAutocompleteEnabled] = useState(() => {
         if (typeof window !== 'undefined' && window.localStorage) {
             const saved = window.localStorage.getItem('playgroundAutocomplete');
@@ -208,6 +207,9 @@ const App: React.FC = () => {
 
     const [isWaitingForInput, setIsWaitingForInput] = useState(false);
     const [inputPromiseResolve, setInputPromiseResolve] = useState<((val: string) => void) | null>(null);
+    
+    // Analytics: Track attempts/runs per session
+    const [sessionRunCount, setSessionRunCount] = useState(0);
 
     const handleInputSubmit = useCallback((value: string) => {
         // Optimistically update output to show what user typed
@@ -730,6 +732,7 @@ const App: React.FC = () => {
 
             setCurrentModuleId(moduleId);
             setCurrentLessonId(lessonId);
+            setSessionRunCount(0); // Reset run count for new lesson
         }
     }, [user, modules]);
 
@@ -951,6 +954,9 @@ const App: React.FC = () => {
 
     const handleRunCode = useCallback(async () => {
         if (isTerminalLoading) return;
+
+        // Track attempt/run
+        setSessionRunCount(prev => prev + 1);
 
         const contextItem = currentView === 'practice' ? activePracticeItem : currentLesson;
         if (!contextItem && currentView !== 'practice') return;
@@ -1636,8 +1642,8 @@ const App: React.FC = () => {
                                 isCompleted={completedLessons.has(activeLesson.id)}
                                 onPreviousLesson={handlePreviousLessonNav}
                                 onNextLesson={handleNextLessonNav}
-                                hasPreviousLesson={navigationState.hasPrevious}
                                 hasNextLesson={navigationState.hasNext}
+                                runCount={sessionRunCount}
                             />
                         ) : isQuizMode && activeContentItem ? (
                             <div className="h-full flex flex-col">
@@ -1661,8 +1667,10 @@ const App: React.FC = () => {
                                 <QuizPanel
                                     questions={activeContentItem.quizQuestions || []}
                                     onComplete={handleQuizComplete}
-                                    isCollapsed={false}
-                                    onToggleCollapse={() => { }}
+                                    isCollapsed={panelsCollapsed.ide}
+                                    onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, ide: !prev.ide }))}
+                                    id={activeContentItem.id}
+                                    title={activeContentItem.title}
                                 />
                             </div>
                         ) : (

@@ -16,6 +16,8 @@ import {
   Plus
 } from 'lucide-react';
 
+import { AnalyticsDashboard } from './AnalyticsDashboard';
+
 interface HomePageProps {
   modules: Module[]; // Dynamic data
   onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
@@ -46,6 +48,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   dailyChallenges = [],
   onClaimChallengeReward,
 }) => {
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'analytics'>('overview');
+
 
   // Find the most recent lesson worked on
   const getMostRecentLesson = () => {
@@ -118,7 +122,38 @@ export const HomePage: React.FC<HomePageProps> = ({
           </span>
         </div>
 
-        {/* Main 2-Column Layout */}
+        {/* Tabs */}
+        <div className="flex gap-6 mb-6 border-b border-gray-200 dark:border-gray-800">
+            <button 
+                onClick={() => setActiveTab('overview')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'overview' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Overview
+                {activeTab === 'overview' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('analytics')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'analytics' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Analytics
+                {activeTab === 'analytics' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+        </div>
+
+        {activeTab === 'overview' ? (
+        /* Main 2-Column Layout */
         <div className="grid lg:grid-cols-[1fr_320px] gap-6 flex-1">
           {/* Main Content */}
           <div className="space-y-6">
@@ -386,6 +421,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
         </div>
+        ) : (
+            <AnalyticsDashboard />
+        )}
       </div>
     </div>
   );
