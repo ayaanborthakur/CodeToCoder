@@ -14,7 +14,7 @@ export interface Lesson {
   objective: string;
   goal: string;
   expectedOutput?: string; // Exact output required for lesson completion (optional for quizzes/random lessons)
-  type?: 'coding' | 'quiz' | 'learn';
+  type?: 'learn' | 'practice' | 'project' | 'quiz';
   quizQuestions?: QuizQuestion[];
   commonMistakes?: string;
 }
@@ -23,6 +23,7 @@ export interface Module {
   id: string;
   title: string;
   lessons: Lesson[];
+  isCheckpoint?: boolean;
 }
 
 export interface ChatMessage {
@@ -186,6 +187,10 @@ export interface StarsData {
   lastUpdated: number;
   transactionHistory: StarTransaction[];
   dailyPrizeClaimed: number;
+  // Streak tracking
+  currentStreak: number;
+  longestStreak: number;
+  lastActiveDate: string; // YYYY-MM-DD format for easy comparison
 }
 
 export interface DailyChallengesData {

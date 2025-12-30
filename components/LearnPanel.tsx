@@ -24,7 +24,11 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
     hasNextLesson = false
 }) => {
     const handleContinue = () => {
-        onComplete();
+        if (onNextLesson) {
+            onNextLesson();
+        } else {
+            onComplete();
+        }
         // Scroll to top for next lesson
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };

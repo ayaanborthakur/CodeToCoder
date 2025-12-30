@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import type { Lesson } from '../types';
+import { PRO_MODEL } from './geminiService';
 
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 
@@ -68,7 +69,7 @@ Rules:
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
         const result = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: PRO_MODEL,
             contents: prompt,
             config: { temperature: 0 }
         });
@@ -140,7 +141,7 @@ Be generous! If the code produces the correct output using a reasonable approach
 Respond with ONLY "VALID" or "INVALID" followed by a brief technical reason.`;
 
         const result = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-exp',
+            model: PRO_MODEL,
             contents: prompt,
             config: { temperature: 0 }
         });

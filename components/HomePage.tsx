@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import type { Module, PlaygroundFile } from '../types';
+import type { Module, PlaygroundFile, DailyChallenge } from '../types';
+import { DailyChallengesWidget } from './DailyChallengesWidget';
 
 import { 
   BookOpen, 
@@ -26,6 +27,9 @@ interface HomePageProps {
   practiceCategories?: any;
   netWorth?: number;
   starBalance?: number;
+  currentStreak?: number;
+  dailyChallenges?: DailyChallenge[];
+  onClaimChallengeReward?: (challengeId: string) => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -38,6 +42,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   onPlaygroundResume,
   netWorth,
   starBalance,
+  currentStreak = 0,
+  dailyChallenges = [],
+  onClaimChallengeReward,
 }) => {
 
   // Find the most recent lesson worked on
@@ -315,16 +322,26 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                    <Flame className="w-4 h-4 text-orange-500" />
+                  <div className={`p-2 rounded-lg ${currentStreak >= 7 ? 'bg-orange-200 dark:bg-orange-800/50' : 'bg-orange-100 dark:bg-orange-900/30'}`}>
+                    <Flame className={`w-4 h-4 ${currentStreak >= 7 ? 'text-orange-600 animate-pulse' : 'text-orange-500'}`} />
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">1</div>
+                    <div className={`text-lg font-bold ${currentStreak >= 7 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-white'}`}>
+                      {currentStreak}
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Day Streak</div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Daily Challenges */}
+            {dailyChallenges.length > 0 && (
+              <DailyChallengesWidget
+                challenges={dailyChallenges}
+                onClaimReward={onClaimChallengeReward || (() => {})}
+              />
+            )}
 
             {/* What's New */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">

@@ -45,7 +45,9 @@ import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
-import { getMarketplaceData, recalculateNetWorth } from './services/marketplaceService';
+import { getMarketplaceData, recalculateNetWorth, getDailyChallenges, claimChallengeReward } from './services/marketplaceService';
+import { getStreakInfo } from './services/streakService';
+import type { DailyChallenge } from './types';
 
 
 declare global {
@@ -145,6 +147,8 @@ const App: React.FC = () => {
 
     const [starBalance, setStarBalance] = useState(0);
     const [netWorth, setNetWorth] = useState<number | undefined>(undefined);
+    const [currentStreak, setCurrentStreak] = useState(0);
+    const [dailyChallenges, setDailyChallenges] = useState<DailyChallenge[]>([]);
     const [starNotification, setStarNotification] = useState<{ amount: number; reason: string } | null>(null);
 
 
@@ -304,10 +308,19 @@ const App: React.FC = () => {
     const loadStarBalance = useCallback(async () => {
         if (!user) {
             setStarBalance(0);
+            setCurrentStreak(0);
             return;
         }
         const data = await getMarketplaceData(user.id);
         setStarBalance(data.stars.balance);
+
+        // Load streak info
+        const streakInfo = await getStreakInfo(user.id);
+        setCurrentStreak(streakInfo.currentStreak);
+
+        // Load daily challenges
+        const challenges = await getDailyChallenges(user.id);
+        setDailyChallenges(challenges);
 
         // Recalculate net worth on load
         const net = await recalculateNetWorth(user.id);
@@ -793,6 +806,21 @@ const App: React.FC = () => {
         });
     }, [currentView, navigate]);
 
+    const handleClaimChallengeReward = useCallback(async (challengeId: string) => {
+        if (!user) return;
+        try {
+            await claimChallengeReward(user.id, challengeId);
+            // Refresh challenges and star balance
+            const [challenges] = await Promise.all([
+                getDailyChallenges(user.id),
+                loadStarBalance()
+            ]);
+            setDailyChallenges(challenges);
+        } catch (error) {
+            console.error('Failed to claim challenge reward:', error);
+        }
+    }, [user, loadStarBalance]);
+
     const handleSelectLesson = useCallback((moduleId: string, lessonId: string) => {
         if (!user) {
             handleOpenAuth();
@@ -846,9 +874,31 @@ const App: React.FC = () => {
 
     const handleNextLessonNav = useCallback(() => {
         if (navigationState.hasNext && navigationState.nextId && currentModuleId) {
+            // For text-based lessons, mark as completed immediately when clicking Next
+            if (currentLesson && (currentLesson.type === 'learn' || !currentLesson.type)) {
+                if (!completedLessons.has(currentLesson.id)) {
+                    markLessonAsCompleted(currentLesson.id);
+                    if (user) {
+                        import('./services/starService').then(({ awardStarsForActivity }) => {
+                            awardStarsForActivity(user.id, 'lesson', currentLesson.id).then(result => {
+                                if (result.awarded) {
+                                    setStarNotification({
+                                        amount: result.amount,
+                                        reason: `Completed ${currentLesson.title}`
+                                    });
+                                }
+                            });
+                        });
+                    }
+                    // Log analytics event
+                    import('./services/analyticsService').then(({ logLessonComplete }) => {
+                        logLessonComplete(currentLesson.id, currentLesson.title);
+                    });
+                }
+            }
             changeLesson(currentModuleId, navigationState.nextId);
         }
-    }, [navigationState, currentModuleId, changeLesson]);
+    }, [navigationState, currentModuleId, changeLesson, currentLesson, completedLessons, markLessonAsCompleted, user]);
 
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
@@ -1840,6 +1890,9 @@ const App: React.FC = () => {
                                     onPlaygroundResume={handlePlaygroundResume}
                                     netWorth={netWorth}
                                     starBalance={starBalance}
+                                    currentStreak={currentStreak}
+                                    dailyChallenges={dailyChallenges}
+                                    onClaimChallengeReward={handleClaimChallengeReward}
                                 />
                             </div>
                         } />

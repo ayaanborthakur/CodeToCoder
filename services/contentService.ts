@@ -13,6 +13,7 @@ interface ContentManifest {
     id: string;
     title: string;
     lessons: string[];
+    isCheckpoint?: boolean;
   }[];
   practice: {
       id: string;
@@ -102,7 +103,8 @@ class ContentService {
       const fullModule: Module = {
           id: moduleMeta.id,
           title: moduleMeta.title,
-          lessons: lessons
+          lessons: lessons,
+          isCheckpoint: moduleMeta.isCheckpoint
       };
       
       this.moduleCache.set(moduleId, fullModule);
