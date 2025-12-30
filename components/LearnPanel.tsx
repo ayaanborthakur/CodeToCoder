@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import type { Lesson } from '../types';
 
 interface LearnPanelProps {
@@ -82,7 +83,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                         prose-td:p-3 prose-td:border prose-td:border-gray-200 dark:prose-td:border-gray-700
                         prose-blockquote:border-l-4 prose-blockquote:border-cyan-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400
                     ">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                             {lesson.content}
                         </ReactMarkdown>
                     </div>
