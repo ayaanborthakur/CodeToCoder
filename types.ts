@@ -23,6 +23,7 @@ export interface Module {
   id: string;
   title: string;
   lessons: Lesson[];
+  isCheckpoint?: boolean;
 }
 
 export interface ChatMessage {
