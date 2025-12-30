@@ -15,8 +15,12 @@ const getAiClient = (): GoogleGenAI => {
     return new GoogleGenAI({ apiKey });
 };
 
-// FIX: Updated model to the latest stable version.
-const model = 'gemini-2.5-pro';
+// Core models used in the application
+export const PRO_MODEL = 'gemini-2.5-pro';
+export const LITE_MODEL = 'gemini-2.5-flash-lite';
+
+// FIX: Default model to Pro if needed, but we'll use specific constants below
+const model = PRO_MODEL;
 
 // Rate Limiting: Hard cap of 6 requests per minute.
 // 60 seconds / 6 requests = 10 seconds per request.
@@ -231,7 +235,7 @@ export const getFeedback = async (code: string, output: string, objective?: stri
         const client = getAiClient();
         return await retryOperation(async () => {
             const response = await client.models.generateContent({
-                model,
+                model: LITE_MODEL,
                 contents: prompt,
             });
             return response.text || null;
@@ -299,7 +303,7 @@ ${code}
             }
 
             const response = await client.models.generateContent({
-                model,
+                model: LITE_MODEL,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
@@ -391,7 +395,7 @@ export const generateReference = async (query: string, difficulty: 'Easy' | 'Med
         const client = getAiClient();
         return await retryOperation(async () => {
             const response = await client.models.generateContent({
-                model,
+                model: LITE_MODEL,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
@@ -458,7 +462,7 @@ export const generatePracticeQuiz = async (topic: string, difficulty: Difficulty
         const client = getAiClient();
         return await retryOperation(async () => {
             const response = await client.models.generateContent({
-                model,
+                model: LITE_MODEL,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
@@ -600,7 +604,7 @@ export const generateCodeFromFlowchart = async (flowchart: import('../types').Fl
         const client = getAiClient();
         return await retryOperation(async () => {
             const response = await client.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: PRO_MODEL,
                 contents: prompt,
             });
 
@@ -678,7 +682,7 @@ export const checkUsernameSafety = async (username: string): Promise<{ isSafe: b
         const client = getAiClient();
         return await retryOperation(async () => {
             const response = await client.models.generateContent({
-                model,
+                model: LITE_MODEL,
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
