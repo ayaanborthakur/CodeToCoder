@@ -6,6 +6,26 @@ export default {
         "./components/**/*.{js,ts,jsx,tsx}",
         "./App.tsx",
     ],
+    safelist: [
+        // AnimatedCodeBlock syntax highlighting classes
+        'text-purple-500',
+        'text-purple-400',
+        'text-green-500',
+        'text-green-400',
+        'text-green-600',
+        'text-gray-400',
+        'text-gray-500',
+        'text-orange-500',
+        'text-orange-400',
+        'text-cyan-600',
+        'text-cyan-400',
+        'italic',
+        'dark:text-purple-400',
+        'dark:text-green-400',
+        'dark:text-gray-500',
+        'dark:text-orange-400',
+        'dark:text-cyan-400',
+    ],
     darkMode: 'class',
     theme: {
         extend: {
