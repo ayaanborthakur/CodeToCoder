@@ -264,6 +264,15 @@ export interface FlowchartData {
 }
 
 // User Activity & Analytics Types
+export interface SkillRatings {
+  logic: number;
+  syntax: number;
+  algorithms: number;
+  debugging: number;
+  efficiency: number;
+  creativity: number;
+}
+
 export interface UserActivity {
   id: string;
   userId: string;
@@ -275,6 +284,7 @@ export interface UserActivity {
   attempts?: number; // Number of run/check attempts
   score?: number; // 0-100 for quizzes/projects
   completed: boolean;
+  skillRatings?: SkillRatings; // AI-assigned proficiency scores (0-100)
   metadata?: Record<string, any>; // Flexible field for "nothing left out" (code, errors, etc.)
 }
 

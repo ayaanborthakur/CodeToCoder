@@ -156,7 +156,7 @@ const App: React.FC = () => {
 
     // Initialize Pyodide & Check Environment
     useEffect(() => {
-        console.log("[Environment] Cross-Origin Isolated:", window.crossOriginIsolated);
+        console.warn("[Environment] Cross-Origin Isolated:", window.crossOriginIsolated);
         import('./services/pyodideService').then(({ initializePyodide }) => {
             initializePyodide().catch(console.error);
         });
@@ -210,6 +210,7 @@ const App: React.FC = () => {
     
     // Analytics: Track attempts/runs per session
     const [sessionRunCount, setSessionRunCount] = useState(0);
+    const [lessonStartTime, setLessonStartTime] = useState(Date.now());
 
     const handleInputSubmit = useCallback((value: string) => {
         // Optimistically update output to show what user typed
@@ -400,14 +401,14 @@ const App: React.FC = () => {
     }, [user, isAuthLoading, location.pathname]);
 
     const handleOpenAuth = useCallback(() => {
-        console.log("Opening Auth Modal");
+        console.warn("Opening Auth Modal");
         setIsAuthModalOpen(true);
     }, []);
 
     const prevCompletedLessons = prevCompletedLessonsRef.current;
     const prevCompletedPractice = prevCompletedPracticeRef.current;
 
-    const activePlaygroundFile = useMemo(() =>
+    const activePlaygroundFile = useMemo(() => 
         playgroundFiles.find(f => f.id === activePlaygroundFileId),
         [playgroundFiles, activePlaygroundFileId]
     );
@@ -500,8 +501,8 @@ const App: React.FC = () => {
     const activeCode = currentView === 'playground' ? playgroundEditorCode : code;
 
     const handleCodeGenerated = useCallback((generatedCode: string | null) => {
-        console.log('📝 handleCodeGenerated called with:', generatedCode);
-        console.log('📝 Type of generatedCode:', typeof generatedCode);
+        console.warn('📝 handleCodeGenerated called with:', generatedCode);
+        console.warn('📝 Type of generatedCode:', typeof generatedCode);
         
         // Check if code generation was successful
         if (!generatedCode || typeof generatedCode !== 'string') {
@@ -510,35 +511,35 @@ const App: React.FC = () => {
             return;
         }
 
-        console.log('✅ Code is valid, updating editor...');
-        console.log('📍 Current view:', currentView);
+        console.warn('✅ Code is valid, updating editor...');
+        console.warn('📍 Current view:', currentView);
 
         if (currentView === 'playground') {
             // ALWAYS update the editor state if we are in playground mode
-            console.log('🎮 Updating playground editor code');
+            console.warn('🎮 Updating playground editor code');
             setPlaygroundEditorCode(generatedCode);
             
             // Only update file persistence if we have an active file
             if (activePlaygroundFile) {
-                console.log('💾 Updating file:', activePlaygroundFile.name);
+                console.warn('💾 Updating file:', (activePlaygroundFile as any).name);
                 updateFile(activePlaygroundFile.id, { content: generatedCode });
             }
         } else {
             // Update classroom/practice code
-            console.log('📚 Updating classroom/practice code');
+            console.warn('📚 Updating classroom/practice code');
             setCode(generatedCode);
         }
         // Close flowchart mode after generating code
-        console.log('🔒 Closing flowchart mode');
+        console.warn('🔒 Closing flowchart mode');
         setIsFlowchartMode(false);
     }, [currentView, activePlaygroundFile, updateFile]);
 
     // Handle flowchart generation - receives FlowchartData, calls AI, then updates code
     const handleFlowchartGenerate = useCallback(async (flowchartData: FlowchartData) => {
-        console.log('🎨 handleFlowchartGenerate called with flowchart data');
+        console.warn('🎨 handleFlowchartGenerate called with flowchart data');
         try {
             const generatedCode = await generateCodeFromFlowchart(flowchartData);
-            console.log('🎯 AI returned code:', generatedCode);
+            console.warn('🎯 AI returned code:', generatedCode);
             handleCodeGenerated(generatedCode);
         } catch (error) {
             console.error('💥 Error generating code:', error);
@@ -737,6 +738,7 @@ const App: React.FC = () => {
             setChatHistory([
                 { role: 'model', content: `Hello! I'm your AI assistant for "${lesson.title}". How can I help you with this topic?` }
             ]);
+            setLessonStartTime(Date.now());
         }
     }, [user, modules]);
 
@@ -1032,20 +1034,20 @@ const App: React.FC = () => {
                             // Import validation service
                             const { validateLessonCompletion } = await import('./services/lessonValidationService');
 
-                            console.log('[App] Validating lesson:', contextItem.id);
-                            console.log('[App] Code length:', code.length);
-                            console.log('[App] Output:', result.output.trim());
+                            const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
 
                             // Perform validation
                             const validation = await validateLessonCompletion(
                                 code,
                                 result.output,
-                                contextItem
+                                contextItem,
+                                durationSeconds,
+                                sessionRunCount
                             );
 
                             if (validation.passed) {
                                 // Both output and methodology are correct
-                                console.log('[App] Validation passed! Marking complete...');
+                                console.warn('[App] Validation passed! Marking complete...');
                                 triggerConfetti(); // Visual feedback
                                 await markLessonAsCompleted(contextItem.id);
 
@@ -1061,35 +1063,58 @@ const App: React.FC = () => {
                                         });
                                     });
                                 }
-
-                                // Small delay to allow state to update before moving?
-                                // await new Promise(r => setTimeout(r, 100));
-                                advanceToNextLesson();
                             } else {
-                                // Validation failed - log reason but don't show to user
-                                console.log('[Lesson Validation Failed]', validation.reason);
-                                // Code ran successfully but didn't meet requirements
-                                // User sees the output but lesson doesn't complete
+                                console.warn('[Lesson Validation Failed]', validation.reason);
                             }
                         } else {
-                            // This shouldn't happen in classroom view, but handle gracefully
+                            // This shouldn't happen in classroom view (usually only for quiz/lesson), but handle gracefully
                             markLessonAsCompleted(contextItem.id);
-                            if (user) {
-                                import('./services/starService').then(({ awardStarsForActivity }) => {
-                                    awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
-                                        if (result.awarded) {
-                                            setStarNotification({
-                                                amount: result.amount,
-                                                reason: `Completed ${contextItem.title}`
-                                            });
-                                        }
-                                    });
-                                });
-                            }
-                            advanceToNextLesson();
                         }
+
+                        // Consolidated Logging for Personal Analytics (runs for every successful run/advance)
+                        if (currentView !== 'practice' && user) {
+                            try {
+                                const { logUserActivity } = await import('./services/analyticsDataService');
+                                const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
+                                
+                                console.warn('[App] Logging activity for analytics...');
+                                await logUserActivity(user.id, {
+                                    type: 'lesson',
+                                    itemId: contextItem.id,
+                                    itemTitle: contextItem.title,
+                                    timestamp: Date.now(),
+                                    durationSeconds,
+                                    completed: true,
+                                    score: 100,
+                                    attempts: sessionRunCount,
+                                    skillRatings: validation.skillRatings
+                                });
+                            } catch (err) {
+                                console.error('[App] Failed to log analytics:', err);
+                            }
+                        }
+
+                        setLessonStartTime(Date.now());
+                        advanceToNextLesson();
                     } else {
                         // Already completed, just advance
+                        // Log activity anyway since they redid it
+                        if (user) {
+                             import('./services/analyticsDataService').then(({ logUserActivity }) => {
+                                const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
+                                logUserActivity(user.id, {
+                                    type: 'lesson',
+                                    itemId: contextItem.id,
+                                    itemTitle: contextItem.title,
+                                    timestamp: Date.now(),
+                                    durationSeconds,
+                                    completed: true,
+                                    score: 100,
+                                    attempts: sessionRunCount
+                                });
+                            });
+                        }
+                        setLessonStartTime(Date.now());
                         advanceToNextLesson();
                     }
                 }
@@ -1100,7 +1125,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
+    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -1233,7 +1258,7 @@ const App: React.FC = () => {
         setLintIssues([]);
         setSaveStatus('saved');
         setIsResetModalOpen(false);
-    }, [currentLesson, markLessonAsIncomplete, currentView, activePlaygroundFileId, updateFile, activePracticeItem, user, getStorageKey]);
+    }, [currentLesson, markLessonAsIncomplete, currentView, activePlaygroundFileId, updateFile, activePracticeItem, getStorageKey]);
 
     const handlePlaygroundNew = useCallback((name: string) => {
         if (!user) {

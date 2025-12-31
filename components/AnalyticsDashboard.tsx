@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { 
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+    XAxis, YAxis, Tooltip, ResponsiveContainer, 
     PieChart, Pie, Cell, AreaChart, Area, CartesianGrid,
-    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis 
+    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
-import { Clock, BookOpen, Target, Calendar, Award, Activity } from 'lucide-react';
+import { Clock, BookOpen, Target, Calendar, Award, Activity, RefreshCw, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getDailyActivityStats, getCategoryStats, getRecentActivity, getProductivityByHour, getAccuracyStats, getSkillRadarData, getActivityHeatmap } from '../services/analyticsDataService';
 import { getDueReviews } from '../services/learningService';
 import { ReviewHistory } from './ReviewHistory';
+import { onSnapshot } from 'firebase/firestore';
+import { userPaths } from '../services/firestorePathHelper';
 import type { DailyActivitySummary, UserActivity, ReviewItem } from '../types';
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981'];
 
+type TimeRange = '7d' | '14d' | '30d' | '90d' | 'all';
+
 export const AnalyticsDashboard: React.FC = () => {
     const { user } = useAuth();
-    const [timeRange, setTimeRange] = useState<'7d' | '14d' | '30d' | '90d' | 'all'>('14d');
+    const [timeRange, setTimeRange] = useState<TimeRange>('14d');
     const [dailyStats, setDailyStats] = useState<DailyActivitySummary[]>([]);
     const [categoryStats, setCategoryStats] = useState<{name: string, value: number}[]>([]);
     const [recentActivity, setRecentActivity] = useState<UserActivity[]>([]);
@@ -26,45 +30,57 @@ export const AnalyticsDashboard: React.FC = () => {
     const [dueReviews, setDueReviews] = useState<ReviewItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const loadData = async () => {
-            if (!user) return;
-            setIsLoading(true);
-            try {
-                // Determine days based on range
-                let days = 14;
-                if (timeRange === '7d') days = 7;
-                if (timeRange === '30d') days = 30;
-                if (timeRange === '90d') days = 90;
-                if (timeRange === 'all') days = 365; // Approximate 'all time' to 1 year for daily view
+    const loadData = async (isSilent = false) => {
+        if (!user) return;
+        if (!isSilent) setIsLoading(true);
+        try {
+            // Determine days based on range
+            let days = 14;
+            if (timeRange === '7d') days = 7;
+            if (timeRange === '30d') days = 30;
+            if (timeRange === '90d') days = 90;
+            if (timeRange === 'all') days = 365;
 
-                const [daily, category, recent, hours, accuracy, radar, heatmap, reviews] = await Promise.all([
-                    getDailyActivityStats(user.id, days),
-                    getCategoryStats(user.id),
-                    getRecentActivity(user.id, 5),
-                    getProductivityByHour(user.id),
-                    getAccuracyStats(user.id),
-                    getSkillRadarData(user.id),
-                    getActivityHeatmap(user.id),
-                    getDueReviews(user.id)
-                ]);
-                
-                setDailyStats(daily);
-                setCategoryStats(category);
-                setRecentActivity(recent);
-                setHourStats(hours);
-                setAccuracyStats(accuracy);
-                setRadarData(radar);
-                setHeatmapData(heatmap);
-                setDueReviews(reviews);
-            } catch (error) {
-                console.error("Failed to load analytics:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        
+            const [daily, category, recent, hours, accuracy, radar, heatmap, reviews] = await Promise.all([
+                getDailyActivityStats(user.id, days),
+                getCategoryStats(user.id),
+                getRecentActivity(user.id, 5),
+                getProductivityByHour(user.id),
+                getAccuracyStats(user.id),
+                getSkillRadarData(user.id),
+                getActivityHeatmap(user.id),
+                getDueReviews(user.id)
+            ]);
+            
+            setDailyStats(daily);
+            setCategoryStats(category);
+            setRecentActivity(recent);
+            setHourStats(hours);
+            setAccuracyStats(accuracy);
+            setRadarData(radar);
+            setHeatmapData(heatmap);
+            setDueReviews(reviews);
+        } catch (error) {
+            console.error("Failed to load analytics:", error);
+        } finally {
+            if (!isSilent) setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         loadData();
+
+        if (!user) return;
+
+        // 🟢 Real-time listener for "Instant Updates"
+        const activityRef = userPaths.activity(user.id);
+        const unsubscribe = onSnapshot(activityRef, () => {
+             loadData(true);
+        }, (error) => {
+            console.error("Real-time listener failed:", error);
+        });
+
+        return () => unsubscribe();
     }, [user, timeRange]);
 
     if (isLoading) {
@@ -75,7 +91,6 @@ export const AnalyticsDashboard: React.FC = () => {
         );
     }
 
-    // Calculate totals
     const totalTimeMinutes = Math.round(dailyStats.reduce((acc, curr) => acc + curr.timeSpentSeconds, 0) / 60);
 
     return (
@@ -83,28 +98,39 @@ export const AnalyticsDashboard: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-                        <Activity className="w-6 h-6 text-cyan-500" />
-                        Personal Analytics
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-400">Track your coding journey and improvements</p>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <TrendingUp className="w-8 h-8 text-blue-400" />
+                    Personal Analytics
+                  </h1>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1">Track your progress and learning habits</p>
                 </div>
                 
-                {/* Time Range Selector */}
-                <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-lg flex text-sm">
-                    {(['7d', '14d', '30d', '90d', 'all'] as const).map((range) => (
-                        <button
-                            key={range}
-                            onClick={() => setTimeRange(range)}
-                            className={`px-3 py-1.5 rounded-md transition-all ${
-                                timeRange === range 
-                                    ? 'bg-white dark:bg-gray-700 text-cyan-600 dark:text-cyan-400 shadow-sm font-medium' 
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                            }`}
-                        >
-                            {range === 'all' ? 'All Time' : range.toUpperCase()}
-                        </button>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => loadData()}
+                    disabled={isLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    title="Refresh statistics"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                  
+                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
+                    {(['7d', '14d', '30d'] as TimeRange[]).map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setTimeRange(range)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          timeRange === range
+                            ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {range === '7d' ? 'Week' : range === '14d' ? '2 Weeks' : 'Month'}
+                      </button>
                     ))}
+                  </div>
                 </div>
             </div>
 
@@ -140,7 +166,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
             {/* Main Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Activity Heatmap - Full Width on Mobile, 2 cols on Desktop */}
+                {/* Activity Heatmap */}
                 <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-green-500" />
@@ -148,13 +174,11 @@ export const AnalyticsDashboard: React.FC = () => {
                     </h3>
                     <div className="w-full overflow-x-auto pb-2">
                          <div className="flex gap-1 min-w-[700px]">
-                            {/* Simple visualization of heatmap data as a grid */}
                             {Array.from({ length: 53 }).map((_, weekIndex) => (
                                 <div key={weekIndex} className="flex flex-col gap-1">
                                     {Array.from({ length: 7 }).map((_, dayIndex) => {
                                         const dataIndex = weekIndex * 7 + dayIndex;
                                         const dayData = heatmapData[dataIndex];
-                                        // Level 0 = gray, 1-4 = shades of green
                                         const colorClass = !dayData || dayData.level === 0 
                                             ? 'bg-gray-100 dark:bg-gray-700' 
                                             : dayData.level === 1 ? 'bg-green-200 dark:bg-green-900/40'
@@ -214,18 +238,11 @@ export const AnalyticsDashboard: React.FC = () => {
 
             {/* Quick Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                 {/* Existing Cards... */}
-                 
-                 {/* Replaced or appended cards - let's replace some less useful ones or add rows */}
-                 {/* Row 1 */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <Clock className="w-5 h-5 text-blue-500" />
                         </div>
-                        <span className="text-xs font-bold text-green-500 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                            Last 14 Days
-                        </span>
                     </div>
                     <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">
                         {totalTimeMinutes}m
@@ -268,12 +285,10 @@ export const AnalyticsDashboard: React.FC = () => {
                     </div>
                     <p className="text-gray-500 text-sm">Perfect Scores</p>
                 </div>
-
             </div>
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Learning Velocity Chart */}
                 <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-cyan-500" />
@@ -281,11 +296,21 @@ export const AnalyticsDashboard: React.FC = () => {
                     </h3>
                     <div className="h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={dailyStats}>
+                            <AreaChart data={dailyStats}>
+                                <defs>
+                                    <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                                    </linearGradient>
+                                    <linearGradient id="colorPractice" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
                                 <XAxis 
                                     dataKey="date" 
-                                    tickFormatter={(val) => val.slice(8)} // Show day only
+                                    tickFormatter={(val) => val.slice(8)} 
                                     stroke="#9CA3AF" 
                                     fontSize={12}
                                 />
@@ -298,14 +323,29 @@ export const AnalyticsDashboard: React.FC = () => {
                                         color: '#F3F4F6' 
                                     }} 
                                 />
-                                <Bar dataKey="lessonsCompleted" name="Lessons" stackId="a" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="practiceCompleted" name="Practice" stackId="a" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                            </BarChart>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="lessonsCompleted" 
+                                    name="Lessons" 
+                                    stroke="#06b6d4" 
+                                    fillOpacity={1} 
+                                    fill="url(#colorLessons)" 
+                                    strokeWidth={3}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="practiceCompleted" 
+                                    name="Practice" 
+                                    stroke="#8b5cf6" 
+                                    fillOpacity={1} 
+                                    fill="url(#colorPractice)" 
+                                    strokeWidth={3}
+                                />
+                            </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Time Distribution Pie Chart */}
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-purple-500" />
@@ -332,7 +372,8 @@ export const AnalyticsDashboard: React.FC = () => {
                                             borderRadius: '12px', 
                                             border: 'none', 
                                             color: '#F3F4F6' 
-                                        }} 
+                                        }}
+                                        formatter={(value) => [`${value}%`, 'Time']}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -341,7 +382,6 @@ export const AnalyticsDashboard: React.FC = () => {
                                 Not enough data yet
                             </div>
                         )}
-                        {/* Legend */}
                         <div className="absolute bottom-0 w-full flex justify-center gap-4 text-xs text-gray-500">
                              {categoryStats.map((entry, index) => (
                                 <div key={entry.name} className="flex items-center gap-1">
@@ -353,7 +393,6 @@ export const AnalyticsDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Hourly Productivity Chart */}
                  <div className="lg:col-span-3 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-orange-500" />
@@ -377,7 +416,8 @@ export const AnalyticsDashboard: React.FC = () => {
                                 />
                                 <YAxis stroke="#9CA3AF" fontSize={12} />
                                 <Tooltip 
-                                    labelFormatter={(val) => `${val}:00 - ${val + 1}:00`}
+                                    labelFormatter={(val) => `Time: ${val}:00`}
+                                    formatter={(value) => [value, 'Activity Intensity']}
                                     contentStyle={{ 
                                         backgroundColor: '#1F2937', 
                                         borderRadius: '12px', 
@@ -385,7 +425,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                         color: '#F3F4F6' 
                                     }} 
                                 />
-                                <Area type="monotone" dataKey="count" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCount)" />
+                                <Area type="monotone" dataKey="count" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCount)" strokeWidth={3} />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -435,8 +475,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* AI Learning Journal */}
-             <ReviewHistory />
+            <ReviewHistory />
         </div>
     );
 };
