@@ -1605,12 +1605,13 @@ const App: React.FC = () => {
                     {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
-                        {/* Mobile Curriculum Trigger (When Nav is hidden) */}
-                        {isClassroom && isMobile && !isNavOpen && (
+                        {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
+                        {isClassroom && !isNavOpen && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
                                 aria-label="Open Curriculum"
+                                title="Open Curriculum"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
