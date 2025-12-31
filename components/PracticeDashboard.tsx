@@ -3,6 +3,7 @@ import type { PracticeItem, PracticeType, Difficulty } from '../types';
 import { GenerateQuizModal } from './GenerateQuizModal';
 import { generatePracticeQuiz } from '../services/geminiService';
 import { Helmet } from 'react-helmet-async';
+import { formatCompactNumber } from '../utils/formatters';
 
 
 
@@ -326,7 +327,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     <div className="flex items-center gap-4">
                         <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50 shadow-sm">
                             <span className="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest block mb-0.5">Completed</span>
-                            <span className="text-lg font-bold text-green-900 dark:text-green-100">{completedCount} <span className="text-xs opacity-60 font-medium">/{allItems.length}</span></span>
+                            <span className="text-lg font-bold text-green-900 dark:text-green-100">{formatCompactNumber(completedCount)} <span className="text-xs opacity-60 font-medium">/{formatCompactNumber(allItems.length)}</span></span>
                         </div>
                     </div>
                 </div>

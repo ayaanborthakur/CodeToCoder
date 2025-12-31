@@ -23,6 +23,7 @@ import { AIChatPage } from './AIChatPage';
 import { ReviewTab } from './ReviewTab';
 import { useAuth } from '../contexts/AuthContext';
 import { getDueReviews } from '../services/learningService';
+import { formatCompactNumber } from '../utils/formatters';
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
@@ -222,7 +223,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance !== undefined ? starBalance.toLocaleString() : completedLessons.size} Stars</span>
+                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance !== undefined ? formatCompactNumber(starBalance) : completedLessons.size} Stars</span>
                 </div>
               </div>
             </div>
@@ -437,7 +438,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
+                      {formatCompactNumber(netWorth)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Net Worth</div>
                   </div>

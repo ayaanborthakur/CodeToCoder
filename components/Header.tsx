@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCompactNumber } from '../utils/formatters';
 
 export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard';
 
@@ -139,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
           {user && starBalance !== undefined && (
             <div ref={starTargetRef as React.RefObject<HTMLDivElement>} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-yellow-400/30">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance.toLocaleString()}</span>
+              <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{formatCompactNumber(starBalance)}</span>
             </div>
           )}
 
