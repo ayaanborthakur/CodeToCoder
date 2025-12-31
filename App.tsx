@@ -734,6 +734,9 @@ const App: React.FC = () => {
             setCurrentModuleId(moduleId);
             setCurrentLessonId(lessonId);
             setSessionRunCount(0); // Reset run count for new lesson
+            setChatHistory([
+                { role: 'model', content: `Hello! I'm your AI assistant for "${lesson.title}". How can I help you with this topic?` }
+            ]);
         }
     }, [user, modules]);
 

@@ -21,6 +21,8 @@ import {
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { AIChatPage } from './AIChatPage';
 import { ReviewTab } from './ReviewTab';
+import { useAuth } from '../contexts/AuthContext';
+import { getDueReviews } from '../services/learningService';
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
@@ -52,7 +54,22 @@ export const HomePage: React.FC<HomePageProps> = ({
   dailyChallenges = [],
   onClaimChallengeReward,
 }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = React.useState<'overview' | 'analytics' | 'mentor' | 'review'>('overview');
+  const [dueReviewsCount, setDueReviewsCount] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    const loadReviewCount = async () => {
+      if (!user) return;
+      try {
+        const reviews = await getDueReviews(user.id);
+        setDueReviewsCount(reviews.length);
+      } catch (error) {
+        console.error("Failed to fetch review count:", error);
+      }
+    };
+    loadReviewCount();
+  }, [user]);
 
 
   // Find the most recent lesson worked on
@@ -176,6 +193,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                 }`}
             >
                 Review
+                {dueReviewsCount > 0 && (
+                    <span className="absolute -top-1 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
+                        {dueReviewsCount}
+                    </span>
+                )}
                 {activeTab === 'review' && (
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
                 )}
