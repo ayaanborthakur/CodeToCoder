@@ -13,10 +13,14 @@ import {
   Zap, 
   Trophy,
   Flame,
-  Plus
+  Plus,
+  MessageSquare,
+  Brain
 } from 'lucide-react';
 
 import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { AIChatPage } from './AIChatPage';
+import { ReviewTab } from './ReviewTab';
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
@@ -48,7 +52,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   dailyChallenges = [],
   onClaimChallengeReward,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'analytics' | 'mentor' | 'review'>('overview');
 
 
   // Find the most recent lesson worked on
@@ -147,6 +151,32 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
                 Analytics
                 {activeTab === 'analytics' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('mentor')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'mentor' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Mentor
+                {activeTab === 'mentor' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('review')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'review' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Review
+                {activeTab === 'review' && (
                     <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
                 )}
             </button>
@@ -317,6 +347,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                     Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
+
+                {/* AI Mentor Card */}
+                <button
+                  onClick={() => setActiveTab('mentor')}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md col-span-2 lg:col-span-1"
+                >
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">AI Mentor</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
+                    Chat with your coding assistant
+                  </p>
+                  <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* Review Card */}
+                <button
+                  onClick={() => setActiveTab('review')}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md col-span-2 lg:col-span-1"
+                >
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Brain className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Review</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
+                    Memory boost & journal
+                  </p>
+                  <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-400">
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -421,8 +485,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
         </div>
-        ) : (
+        ) : activeTab === 'analytics' ? (
             <AnalyticsDashboard />
+        ) : activeTab === 'review' ? (
+            <ReviewTab onSelectLesson={onSelectLesson} />
+        ) : (
+            <AIChatPage />
         )}
       </div>
     </div>

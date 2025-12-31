@@ -7,8 +7,9 @@ import {
 import { Clock, BookOpen, Target, Calendar, Award, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getDailyActivityStats, getCategoryStats, getRecentActivity, getProductivityByHour, getAccuracyStats, getSkillRadarData, getActivityHeatmap } from '../services/analyticsDataService';
-
-import type { DailyActivitySummary, UserActivity } from '../types';
+import { getDueReviews } from '../services/learningService';
+import { ReviewHistory } from './ReviewHistory';
+import type { DailyActivitySummary, UserActivity, ReviewItem } from '../types';
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981'];
 
@@ -22,6 +23,7 @@ export const AnalyticsDashboard: React.FC = () => {
     const [accuracyStats, setAccuracyStats] = useState({ averageQuizScore: 0, perfectScores: 0, averageCodeRuns: 0 });
     const [radarData, setRadarData] = useState<{subject: string, A: number, fullMark: number}[]>([]);
     const [heatmapData, setHeatmapData] = useState<{date: string, count: number, level: number}[]>([]);
+    const [dueReviews, setDueReviews] = useState<ReviewItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -36,14 +38,15 @@ export const AnalyticsDashboard: React.FC = () => {
                 if (timeRange === '90d') days = 90;
                 if (timeRange === 'all') days = 365; // Approximate 'all time' to 1 year for daily view
 
-                const [daily, category, recent, hours, accuracy, radar, heatmap] = await Promise.all([
+                const [daily, category, recent, hours, accuracy, radar, heatmap, reviews] = await Promise.all([
                     getDailyActivityStats(user.id, days),
                     getCategoryStats(user.id),
                     getRecentActivity(user.id, 5),
                     getProductivityByHour(user.id),
                     getAccuracyStats(user.id),
                     getSkillRadarData(user.id),
-                    getActivityHeatmap(user.id)
+                    getActivityHeatmap(user.id),
+                    getDueReviews(user.id)
                 ]);
                 
                 setDailyStats(daily);
@@ -53,6 +56,7 @@ export const AnalyticsDashboard: React.FC = () => {
                 setAccuracyStats(accuracy);
                 setRadarData(radar);
                 setHeatmapData(heatmap);
+                setDueReviews(reviews);
             } catch (error) {
                 console.error("Failed to load analytics:", error);
             } finally {
@@ -103,6 +107,36 @@ export const AnalyticsDashboard: React.FC = () => {
                     ))}
                 </div>
             </div>
+
+            {/* SRS Review Due Alert */}
+            {dueReviews.length > 0 && (
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <Clock className="w-32 h-32" />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="bg-white/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">Memory Boost</span>
+                        </div>
+                        <h3 className="text-2xl font-black mb-1">Time to Review!</h3>
+                        <p className="text-indigo-100 mb-4 max-w-lg">
+                            The Spaced Repetition System has identified {dueReviews.length} topics you might be forgetting. Review them now to strengthen your long-term memory.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {dueReviews.slice(0, 3).map(review => (
+                                <span key={review.id} className="bg-black/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/10">
+                                    {review.topic || review.itemTitle}
+                                </span>
+                            ))}
+                            {dueReviews.length > 3 && (
+                                <span className="bg-black/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/10">
+                                    +{dueReviews.length - 3} more
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -400,6 +434,9 @@ export const AnalyticsDashboard: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            {/* AI Learning Journal */}
+             <ReviewHistory />
         </div>
     );
 };

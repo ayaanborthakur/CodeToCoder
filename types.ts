@@ -285,3 +285,26 @@ export interface DailyActivitySummary {
   timeSpentSeconds: number;
   starsEarned: number;
 }
+
+// Smart Learning & SRS Types
+export interface ReviewItem {
+  id?: string;
+  userId: string;
+  itemId: string; // The lesson or quiz ID
+  itemTitle: string;
+  topic: string; // e.g. "Loops", "Variables"
+  nextReviewDate: number; // Timestamp
+  interval: number; // Days until next review
+  easeFactor: number; // Multiplier (default 2.5)
+  lastReviewed: number;
+}
+
+export interface CodeReviewLog {
+  id?: string;
+  userId: string;
+  topic: string; // e.g. "Functions"
+  mistake: string; // "Forgot colon", "Indentation error"
+  aiTip: string; // The advice given
+  timestamp: number;
+  relatedLessonId?: string;
+}

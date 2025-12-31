@@ -281,6 +281,7 @@ const App: React.FC = () => {
         prevCompletedPracticeRef.current = completedPracticeItems;
     });
 
+
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
         return user ? `code2coder_autosave_${type}_${id}_${user.id} ` : `code2coder_autosave_${type}_${id} `;
     }, [user]);
@@ -1924,8 +1925,6 @@ const App: React.FC = () => {
                         <Route path="/signup" element={<SignupPage />} />
 
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
-
-
 
 
                         <Route path="/playground" element={
