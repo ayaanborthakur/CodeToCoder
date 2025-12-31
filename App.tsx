@@ -156,7 +156,7 @@ const App: React.FC = () => {
 
     // Initialize Pyodide & Check Environment
     useEffect(() => {
-        console.log("[Environment] Cross-Origin Isolated:", window.crossOriginIsolated);
+        console.warn("[Environment] Cross-Origin Isolated:", window.crossOriginIsolated);
         import('./services/pyodideService').then(({ initializePyodide }) => {
             initializePyodide().catch(console.error);
         });
@@ -197,7 +197,6 @@ const App: React.FC = () => {
     const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
 
 
-    // Playground autocomplete preference
     const [isPlaygroundAutocompleteEnabled, setIsPlaygroundAutocompleteEnabled] = useState(() => {
         if (typeof window !== 'undefined' && window.localStorage) {
             const saved = window.localStorage.getItem('playgroundAutocomplete');
@@ -208,6 +207,10 @@ const App: React.FC = () => {
 
     const [isWaitingForInput, setIsWaitingForInput] = useState(false);
     const [inputPromiseResolve, setInputPromiseResolve] = useState<((val: string) => void) | null>(null);
+    
+    // Analytics: Track attempts/runs per session
+    const [sessionRunCount, setSessionRunCount] = useState(0);
+    const [lessonStartTime, setLessonStartTime] = useState(Date.now());
 
     const handleInputSubmit = useCallback((value: string) => {
         // Optimistically update output to show what user typed
@@ -278,6 +281,7 @@ const App: React.FC = () => {
         prevCompletedLessonsRef.current = completedLessons;
         prevCompletedPracticeRef.current = completedPracticeItems;
     });
+
 
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
         return user ? `code2coder_autosave_${type}_${id}_${user.id} ` : `code2coder_autosave_${type}_${id} `;
@@ -397,14 +401,14 @@ const App: React.FC = () => {
     }, [user, isAuthLoading, location.pathname]);
 
     const handleOpenAuth = useCallback(() => {
-        console.log("Opening Auth Modal");
+        console.warn("Opening Auth Modal");
         setIsAuthModalOpen(true);
     }, []);
 
     const prevCompletedLessons = prevCompletedLessonsRef.current;
     const prevCompletedPractice = prevCompletedPracticeRef.current;
 
-    const activePlaygroundFile = useMemo(() =>
+    const activePlaygroundFile = useMemo(() => 
         playgroundFiles.find(f => f.id === activePlaygroundFileId),
         [playgroundFiles, activePlaygroundFileId]
     );
@@ -497,8 +501,8 @@ const App: React.FC = () => {
     const activeCode = currentView === 'playground' ? playgroundEditorCode : code;
 
     const handleCodeGenerated = useCallback((generatedCode: string | null) => {
-        console.log('📝 handleCodeGenerated called with:', generatedCode);
-        console.log('📝 Type of generatedCode:', typeof generatedCode);
+        console.warn('📝 handleCodeGenerated called with:', generatedCode);
+        console.warn('📝 Type of generatedCode:', typeof generatedCode);
         
         // Check if code generation was successful
         if (!generatedCode || typeof generatedCode !== 'string') {
@@ -507,35 +511,35 @@ const App: React.FC = () => {
             return;
         }
 
-        console.log('✅ Code is valid, updating editor...');
-        console.log('📍 Current view:', currentView);
+        console.warn('✅ Code is valid, updating editor...');
+        console.warn('📍 Current view:', currentView);
 
         if (currentView === 'playground') {
             // ALWAYS update the editor state if we are in playground mode
-            console.log('🎮 Updating playground editor code');
+            console.warn('🎮 Updating playground editor code');
             setPlaygroundEditorCode(generatedCode);
             
             // Only update file persistence if we have an active file
             if (activePlaygroundFile) {
-                console.log('💾 Updating file:', activePlaygroundFile.name);
+                console.warn('💾 Updating file:', (activePlaygroundFile as any).name);
                 updateFile(activePlaygroundFile.id, { content: generatedCode });
             }
         } else {
             // Update classroom/practice code
-            console.log('📚 Updating classroom/practice code');
+            console.warn('📚 Updating classroom/practice code');
             setCode(generatedCode);
         }
         // Close flowchart mode after generating code
-        console.log('🔒 Closing flowchart mode');
+        console.warn('🔒 Closing flowchart mode');
         setIsFlowchartMode(false);
     }, [currentView, activePlaygroundFile, updateFile]);
 
     // Handle flowchart generation - receives FlowchartData, calls AI, then updates code
     const handleFlowchartGenerate = useCallback(async (flowchartData: FlowchartData) => {
-        console.log('🎨 handleFlowchartGenerate called with flowchart data');
+        console.warn('🎨 handleFlowchartGenerate called with flowchart data');
         try {
             const generatedCode = await generateCodeFromFlowchart(flowchartData);
-            console.log('🎯 AI returned code:', generatedCode);
+            console.warn('🎯 AI returned code:', generatedCode);
             handleCodeGenerated(generatedCode);
         } catch (error) {
             console.error('💥 Error generating code:', error);
@@ -730,6 +734,11 @@ const App: React.FC = () => {
 
             setCurrentModuleId(moduleId);
             setCurrentLessonId(lessonId);
+            setSessionRunCount(0); // Reset run count for new lesson
+            setChatHistory([
+                { role: 'model', content: `Hello! I'm your AI assistant for "${lesson.title}". How can I help you with this topic?` }
+            ]);
+            setLessonStartTime(Date.now());
         }
     }, [user, modules]);
 
@@ -952,6 +961,9 @@ const App: React.FC = () => {
     const handleRunCode = useCallback(async () => {
         if (isTerminalLoading) return;
 
+        // Track attempt/run
+        setSessionRunCount(prev => prev + 1);
+
         const contextItem = currentView === 'practice' ? activePracticeItem : currentLesson;
         if (!contextItem && currentView !== 'practice') return;
 
@@ -1022,20 +1034,20 @@ const App: React.FC = () => {
                             // Import validation service
                             const { validateLessonCompletion } = await import('./services/lessonValidationService');
 
-                            console.log('[App] Validating lesson:', contextItem.id);
-                            console.log('[App] Code length:', code.length);
-                            console.log('[App] Output:', result.output.trim());
+                            const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
 
                             // Perform validation
                             const validation = await validateLessonCompletion(
                                 code,
                                 result.output,
-                                contextItem
+                                contextItem,
+                                durationSeconds,
+                                sessionRunCount
                             );
 
                             if (validation.passed) {
                                 // Both output and methodology are correct
-                                console.log('[App] Validation passed! Marking complete...');
+                                console.warn('[App] Validation passed! Marking complete...');
                                 triggerConfetti(); // Visual feedback
                                 await markLessonAsCompleted(contextItem.id);
 
@@ -1052,34 +1064,54 @@ const App: React.FC = () => {
                                     });
                                 }
 
-                                // Small delay to allow state to update before moving?
-                                // await new Promise(r => setTimeout(r, 100));
-                                advanceToNextLesson();
+                                // Log activity for analytics when validation passes
+                                try {
+                                    const { logUserActivity } = await import('./services/analyticsDataService');
+                                    
+                                    console.warn('[App] Logging activity for analytics...');
+                                    await logUserActivity(user!.id, {
+                                        type: 'lesson',
+                                        itemId: contextItem.id,
+                                        itemTitle: contextItem.title,
+                                        timestamp: Date.now(),
+                                        durationSeconds,
+                                        completed: true,
+                                        score: 100,
+                                        attempts: sessionRunCount,
+                                        skillRatings: validation.skillRatings
+                                    });
+                                } catch (err) {
+                                    console.error('[App] Failed to log analytics:', err);
+                                }
                             } else {
-                                // Validation failed - log reason but don't show to user
-                                console.log('[Lesson Validation Failed]', validation.reason);
-                                // Code ran successfully but didn't meet requirements
-                                // User sees the output but lesson doesn't complete
+                                console.warn('[Lesson Validation Failed]', validation.reason);
                             }
                         } else {
-                            // This shouldn't happen in classroom view, but handle gracefully
+                            // This shouldn't happen in classroom view (usually only for quiz/lesson), but handle gracefully
                             markLessonAsCompleted(contextItem.id);
-                            if (user) {
-                                import('./services/starService').then(({ awardStarsForActivity }) => {
-                                    awardStarsForActivity(user.id, 'lesson', contextItem.id).then(result => {
-                                        if (result.awarded) {
-                                            setStarNotification({
-                                                amount: result.amount,
-                                                reason: `Completed ${contextItem.title}`
-                                            });
-                                        }
-                                    });
-                                });
-                            }
-                            advanceToNextLesson();
                         }
+
+                        setLessonStartTime(Date.now());
+                        advanceToNextLesson();
                     } else {
                         // Already completed, just advance
+                        // Log activity anyway since they redid it
+                        if (user) {
+                             import('./services/analyticsDataService').then(({ logUserActivity }) => {
+                                const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
+                                logUserActivity(user.id, {
+                                    type: 'lesson',
+                                    itemId: contextItem.id,
+                                    itemTitle: contextItem.title,
+                                    timestamp: Date.now(),
+                                    durationSeconds,
+                                    completed: true,
+                                    score: 100,
+                                    attempts: sessionRunCount
+                                });
+                            });
+                        }
+                        setLessonStartTime(Date.now());
                         advanceToNextLesson();
                     }
                 }
@@ -1090,7 +1122,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
+    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -1223,7 +1255,7 @@ const App: React.FC = () => {
         setLintIssues([]);
         setSaveStatus('saved');
         setIsResetModalOpen(false);
-    }, [currentLesson, markLessonAsIncomplete, currentView, activePlaygroundFileId, updateFile, activePracticeItem, user, getStorageKey]);
+    }, [currentLesson, markLessonAsIncomplete, currentView, activePlaygroundFileId, updateFile, activePracticeItem, getStorageKey]);
 
     const handlePlaygroundNew = useCallback((name: string) => {
         if (!user) {
@@ -1570,12 +1602,13 @@ const App: React.FC = () => {
                     {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
-                        {/* Mobile Curriculum Trigger (When Nav is hidden) */}
-                        {isClassroom && isMobile && !isNavOpen && (
+                        {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
+                        {isClassroom && !isNavOpen && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
                                 aria-label="Open Curriculum"
+                                title="Open Curriculum"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -1636,8 +1669,8 @@ const App: React.FC = () => {
                                 isCompleted={completedLessons.has(activeLesson.id)}
                                 onPreviousLesson={handlePreviousLessonNav}
                                 onNextLesson={handleNextLessonNav}
-                                hasPreviousLesson={navigationState.hasPrevious}
                                 hasNextLesson={navigationState.hasNext}
+                                runCount={sessionRunCount}
                             />
                         ) : isQuizMode && activeContentItem ? (
                             <div className="h-full flex flex-col">
@@ -1661,8 +1694,10 @@ const App: React.FC = () => {
                                 <QuizPanel
                                     questions={activeContentItem.quizQuestions || []}
                                     onComplete={handleQuizComplete}
-                                    isCollapsed={false}
-                                    onToggleCollapse={() => { }}
+                                    isCollapsed={panelsCollapsed.ide}
+                                    onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, ide: !prev.ide }))}
+                                    id={activeContentItem.id}
+                                    title={activeContentItem.title}
                                 />
                             </div>
                         ) : (
@@ -1916,8 +1951,6 @@ const App: React.FC = () => {
                         <Route path="/signup" element={<SignupPage />} />
 
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
-
-
 
 
                         <Route path="/playground" element={

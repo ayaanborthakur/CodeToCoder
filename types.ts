@@ -74,7 +74,7 @@ export interface User {
 
 
 // Badge System Types
-export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project';
+export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project' | 'streak' | 'collection' | 'special';
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
 
 export interface Badge {
@@ -84,6 +84,7 @@ export interface Badge {
   type: BadgeType;
   tier: BadgeTier;
   requirement: number;
+  icon?: string; // Emoji or icon identifier
 }
 
 export interface UserAchievements {
@@ -260,4 +261,60 @@ export interface FlowchartData {
     target: string;
     label?: string; // For conditional branches: "True", "False"
   }>;
+}
+
+// User Activity & Analytics Types
+export interface SkillRatings {
+  logic: number;
+  syntax: number;
+  algorithms: number;
+  debugging: number;
+  efficiency: number;
+  creativity: number;
+}
+
+export interface UserActivity {
+  id: string;
+  userId: string;
+  type: 'lesson' | 'quiz' | 'practice' | 'project';
+  itemId: string;
+  itemTitle: string;
+  timestamp: number;
+  durationSeconds: number;
+  attempts?: number; // Number of run/check attempts
+  score?: number; // 0-100 for quizzes/projects
+  completed: boolean;
+  skillRatings?: SkillRatings; // AI-assigned proficiency scores (0-100)
+  metadata?: Record<string, any>; // Flexible field for "nothing left out" (code, errors, etc.)
+}
+
+export interface DailyActivitySummary {
+  date: string; // YYYY-MM-DD
+  lessonsCompleted: number;
+  practiceCompleted: number;
+  timeSpentSeconds: number;
+  starsEarned: number;
+}
+
+// Smart Learning & SRS Types
+export interface ReviewItem {
+  id?: string;
+  userId: string;
+  itemId: string; // The lesson or quiz ID
+  itemTitle: string;
+  topic: string; // e.g. "Loops", "Variables"
+  nextReviewDate: number; // Timestamp
+  interval: number; // Days until next review
+  easeFactor: number; // Multiplier (default 2.5)
+  lastReviewed: number;
+}
+
+export interface CodeReviewLog {
+  id?: string;
+  userId: string;
+  topic: string; // e.g. "Functions"
+  mistake: string; // "Forgot colon", "Indentation error"
+  aiTip: string; // The advice given
+  timestamp: number;
+  relatedLessonId?: string;
 }

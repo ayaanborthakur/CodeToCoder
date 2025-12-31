@@ -96,8 +96,21 @@ Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
  */
 export async function validateCodeMethodology(
     code: string,
-    lesson: Lesson
-): Promise<{ isValid: boolean; reason?: string }> {
+    lesson: Lesson,
+    durationSeconds?: number,
+    attempts?: number
+): Promise<{ 
+    isValid: boolean; 
+    reason?: string; 
+    skillRatings?: {
+        logic: number;
+        syntax: number;
+        algorithms: number;
+        debugging: number;
+        efficiency: number;
+        creativity: number;
+    }
+}> {
     // Heuristic check: Empty code is always invalid
     if (!code || !code.trim()) {
         return { isValid: false, reason: 'Code is empty' };
@@ -110,7 +123,7 @@ export async function validateCodeMethodology(
             return { isValid: true }; // Fallback to permissive
         }
 
-        const prompt = `You are validating Python code methodology for a coding lesson.
+        const prompt = `You are an expert Python tutor validating a student's code.
 
 Lesson Title: ${lesson.title}
 Lesson Objective: ${lesson.objective}
@@ -121,43 +134,59 @@ User's Code:
 ${code}
 \`\`\`
 
-Task: Analyze if the user's code uses the correct approach/methodology as required by the lesson.
+Context:
+- Duration: ${durationSeconds || 'unknown'} seconds
+- Attempts: ${attempts || 'unknown'}
 
-BE LENIENT - The user is learning! Accept code that:
-- Uses different variable names than the lesson suggests
-- Has different formatting, spacing, or style
-- Uses alternative but correct approaches to solve the problem
-- Has comments or lacks comments
-- Uses slight variations that still demonstrate understanding
+Task: 
+1. Analyze if the code correctly implements the lesson's core concept.
+2. Rate the user's proficiency (0-100) in the following categories based ONLY on this specific submission and context:
+   - logic: Complexity and flow control.
+   - syntax: Correct use of Python rules and style.
+   - algorithms: Problem-solving approach.
+   - debugging: Code cleanliness and error-handling (or likelihood of errors).
+   - efficiency: How concise and direct the solution is.
+   - creativity: Originality or going beyond the basics.
 
-Only mark INVALID if:
-1. The code is empty or contains only comments
-2. The code hardcodes the answer instead of calculating it (e.g. printing "55" instead of using a loop to sum 1-10)
-3. The code completely ignores the required concept (e.g. not using a loop when loops are the lesson topic, not using a function when functions are the topic)
-4. The code doesn't actually solve the problem at all
-
-Be generous! If the code produces the correct output using a reasonable approach, mark it VALID.
-
-Respond with ONLY "VALID" or "INVALID" followed by a brief technical reason.`;
+Respond with ONLY a JSON object in this format:
+{
+  "isValid": boolean,
+  "reason": "string (brief explanation)",
+  "skillRatings": {
+    "logic": number,
+    "syntax": number,
+    "algorithms": number,
+    "debugging": number,
+    "efficiency": number,
+    "creativity": number
+  }
+}`;
 
         const result = await ai.models.generateContent({
             model: PRO_MODEL,
             contents: prompt,
-            config: { temperature: 0 }
+            config: { 
+                temperature: 0,
+                response_mime_type: "application/json"
+            }
         });
 
-        const response = (result.text ?? '').trim();
+        const responseText = (result.text ?? '').trim();
+        let jsonResponse;
+        try {
+            jsonResponse = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse AI JSON response:', responseText);
+            return { isValid: true }; // Permissive fallback
+        }
 
-        const isValid = response.toUpperCase().startsWith('VALID');
-        const reason = response.substring(response.indexOf(' ') + 1);
-
-        if (!isValid) {
-            console.log('[Validation] Methodology issue:', reason);
+        if (!jsonResponse.isValid) {
+            console.log('[Validation] Methodology issue:', jsonResponse.reason);
         } else {
             console.log('[Validation] Methodology passed!');
         }
 
-        return { isValid, reason };
+        return jsonResponse;
     } catch (error) {
         console.error('Methodology validation error:', error);
         return { isValid: true }; // Fallback to permissive on error
@@ -171,12 +200,22 @@ Respond with ONLY "VALID" or "INVALID" followed by a brief technical reason.`;
 export async function validateLessonCompletion(
     code: string,
     output: string,
-    lesson: Lesson
+    lesson: Lesson,
+    durationSeconds?: number,
+    attempts?: number
 ): Promise<{
     passed: boolean;
     outputMatch: boolean;
     methodologyMatch: boolean;
     reason?: string;
+    skillRatings?: {
+        logic: number;
+        syntax: number;
+        algorithms: number;
+        debugging: number;
+        efficiency: number;
+        creativity: number;
+    }
 }> {
     console.log('[Validation] Starting lesson validation for:', lesson.id);
     console.log('[Validation] Has expectedOutput:', lesson.expectedOutput !== undefined);
@@ -184,7 +223,7 @@ export async function validateLessonCompletion(
     // Run both validations in parallel
     const [outputValid, methodologyResult] = await Promise.all([
         validateOutput(output, lesson),
-        validateCodeMethodology(code, lesson)
+        validateCodeMethodology(code, lesson, durationSeconds, attempts)
     ]);
 
     const passed = outputValid && methodologyResult.isValid;
@@ -206,7 +245,8 @@ export async function validateLessonCompletion(
         passed,
         outputMatch: outputValid,
         methodologyMatch: methodologyResult.isValid,
-        reason
+        reason,
+        skillRatings: methodologyResult.skillRatings
     };
 }
 

@@ -10,21 +10,24 @@ interface QuizPanelProps {
     onComplete: () => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
+    id?: string;
+    title?: string;
 }
 
 import { CheckCircle2, XCircle } from 'lucide-react';
 
-export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isCollapsed, onToggleCollapse }) => {
+export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isCollapsed, onToggleCollapse, id, title }) => {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState<number | null>(null);
+    const startTimeRef = React.useRef(Date.now());
 
     const handleOptionSelect = (questionId: string, optionIndex: number) => {
         if (submitted) return;
         setAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         let correctCount = 0;
         questions.forEach(q => {
             if (answers[q.id] === q.correctAnswerIndex) {
@@ -35,6 +38,26 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
         const finalScore = (correctCount / questions.length) * 100;
         setScore(finalScore);
         setSubmitted(true);
+
+        // Log Activity
+        try {
+            const { logUserActivity } = await import('../services/analyticsDataService');
+            const { auth } = await import('../services/firebase');
+            if (auth.currentUser) {
+                const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
+                await logUserActivity(auth.currentUser.uid, {
+                    type: 'quiz',
+                    itemId: id || `quiz-${Date.now()}`,
+                    itemTitle: title || `Quiz (${questions.length} questions)`,
+                    timestamp: Date.now(),
+                    durationSeconds,
+                    score: finalScore,
+                    completed: true
+                });
+            }
+        } catch (error) {
+            console.error("Failed to log quiz activity", error);
+        }
 
         if (correctCount === questions.length) {
             onComplete();
