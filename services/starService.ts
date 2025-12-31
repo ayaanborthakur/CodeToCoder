@@ -1,41 +1,25 @@
-import type { UserStars, StarTransaction, Difficulty } from '../types';
-import { getMarketplaceData, addStars, spendStars } from './marketplaceService';
-
-// Star reward base amounts (one-time only per activity)
-const STAR_REWARDS = {
-    lesson: 3,
-    quiz: 7,
-    practice: 5,
-    project: 7,
-    badge: 30,
-    dailyChallenge: 25
-};
-
-/**
- * Calculate star reward based on activity type
- * Note: Difficulty multipliers removed - all rewards are flat amounts
- */
-export const calculateStarReward = (
-    activityType: keyof typeof STAR_REWARDS
-): number => {
-    return STAR_REWARDS[activityType];
-};
+import type { UserStars, StarTransaction } from '../types';
+import { getMarketplaceData, addStars, getStarsData, calculateStarReward, STAR_REWARDS } from './marketplaceService';
 
 /**
  * Get user's star data
- * @deprecated Use getMarketplaceData instead
  */
 export const getStarData = async (userId: string): Promise<UserStars> => {
-    const data = await getMarketplaceData(userId);
-    return data.stars;
+    const data = await getStarsData(userId);
+    return {
+        balance: data.balance,
+        totalEarned: data.totalEarned,
+        totalSpent: data.totalSpent,
+        lastUpdated: data.lastUpdated
+    };
 };
 
 /**
  * Get transaction history
  */
 export const getTransactionHistory = async (userId: string, limit: number = 50): Promise<StarTransaction[]> => {
-    const data = await getMarketplaceData(userId);
-    return data.transactionHistory.slice(0, limit);
+    const data = await getStarsData(userId);
+    return (data.transactionHistory || []).slice(0, limit);
 };
 
 
@@ -50,8 +34,7 @@ export const awardStars = async (
     await addStars(userId, amount, reason);
 
     // Return updated data
-    const data = await getMarketplaceData(userId);
-    return data.stars;
+    return await getStarData(userId);
 };
 
 /**
@@ -60,39 +43,75 @@ export const awardStars = async (
  */
 export const awardStarsForActivity = async (
     userId: string,
-    activityType: 'lesson' | 'quiz' | 'practice',
+    activityType: 'lesson' | 'quiz' | 'practice' | 'project',
     activityId: string
 ): Promise<{ awarded: boolean, amount: number, reason: string }> => {
-    const data = await getMarketplaceData(userId);
+    const { loadClassroomProgress, loadPracticeProgress, syncClassroomProgress, syncPracticeProgress, loadAchievements } = await import('./userDataService');
 
-    // Determine the correct array based on activity type
-    const completedArray = activityType === 'lesson' ? data.completedActivities.lessons :
-        activityType === 'quiz' ? data.completedActivities.quizzes :
-            data.completedActivities.practice;
+    let isAlreadyRewarded = false;
+    let rewardType = activityType;
 
-    // Check if already completed
-    if (completedArray.includes(activityId)) {
+    // Quizzes in modules are often passed as 'lesson' type in App.tsx but should be rewarded as 'quiz'
+    // However, for consistency with tracking, we follow the storage structure
+    
+    if (activityType === 'lesson' || activityType === 'quiz') {
+        const classroomData = await loadClassroomProgress(userId);
+        const rewardedLessons = classroomData?.rewardedLessons || [];
+        if (rewardedLessons.includes(activityId)) {
+            isAlreadyRewarded = true;
+        } else {
+            // Update rewarded set in classroom progress
+            const achievements = await loadAchievements(userId);
+            await syncClassroomProgress(
+                userId, 
+                classroomData?.completedLessons || [], 
+                achievements || undefined, 
+                [...rewardedLessons, activityId]
+            );
+        }
+    } else {
+        // Practice types (quiz, problem, project)
+        // We need to determine the correct sub-category for storage
+        const { contentService } = await import('./contentService');
+        const practiceItem = await contentService.getPracticeItem(activityId);
+        
+        let category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects' = 'PracticeProblems';
+        if (practiceItem?.type === 'quiz') category = 'PracticeQuizzes';
+        if (practiceItem?.type === 'project') {
+            category = 'PracticeProjects';
+            rewardType = 'project'; // Higher reward for projects
+        }
+
+        const practiceData = await loadPracticeProgress(userId, category);
+        const rewardedItems = practiceData?.rewardedItems || [];
+        
+        if (rewardedItems.includes(activityId)) {
+            isAlreadyRewarded = true;
+        } else {
+            // Update rewarded set in practice progress
+            await syncPracticeProgress(
+                userId,
+                category,
+                practiceData?.completed || [],
+                [...rewardedItems, activityId]
+            );
+        }
+    }
+
+    if (isAlreadyRewarded) {
         return {
             awarded: false,
             amount: 0,
-            reason: `${activityType} already completed`
+            reason: `${activityType} already awarded stars`
         };
     }
 
     // Calculate reward amount
-    const amount = calculateStarReward(activityType);
+    const amount = calculateStarReward(rewardType as keyof typeof STAR_REWARDS);
     const reason = `Completed ${activityType}: ${activityId}`;
 
-    // Award stars
+    // Award stars via marketplaceService
     await addStars(userId, amount, reason);
-
-    // Mark as completed
-    completedArray.push(activityId);
-
-    // Save updated data
-    const updatedData = await getMarketplaceData(userId);
-    updatedData.completedActivities = data.completedActivities;
-    await import('./marketplaceService').then(m => m.saveMarketplaceData(userId, updatedData));
 
     return { awarded: true, amount, reason };
 };

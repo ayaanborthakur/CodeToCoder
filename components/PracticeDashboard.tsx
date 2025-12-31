@@ -15,8 +15,9 @@ interface PracticeDashboardProps {
     customItems?: PracticeItem[]; // User-generated items from Firestore
     onAddCustomItem?: (item: PracticeItem) => void;
     onNavigate?: (path: string) => void;
-
+    activities?: UserActivity[];
 }
+
 
 import { 
     BrainCircuit, 
@@ -24,8 +25,12 @@ import {
     Rocket, 
     BookOpen, 
     Sparkles, 
-    Star 
+    Star,
+    History,
+    CheckCircle2
 } from 'lucide-react';
+import type { UserActivity } from '../types';
+
 
 const DifficultyBadge: React.FC<{ difficulty: Difficulty }> = ({ difficulty }) => {
     let colorClass = "";
@@ -49,9 +54,10 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
     onSelectType,
     customItems = [], // From Firestore per-user
     onAddCustomItem,
-    onNavigate
-
+    onNavigate,
+    activities = []
 }) => {
+
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
 
     // Combine built-in items (from GCS) with custom items (from Firestore)
@@ -138,73 +144,161 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     {currentType === 'quiz' && onAddCustomItem && (
                         <button
                             onClick={() => setIsGenerateModalOpen(true)}
-                            className="bg-gradient-to-r from-cyan-600 to-cyan-500 p-4 rounded-lg hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-3"
+                            className="bg-gradient-to-r from-cyan-600 to-cyan-500 p-5 rounded-xl hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-6 shadow-md border border-cyan-400/30"
                         >
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="p-1.5 bg-white/20 rounded-lg">
-                                        <Sparkles className="w-5 h-5 text-white" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-white">
-                                        Create New Quiz
-                                    </h3>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">
+                                    <Sparkles className="w-6 h-6 text-white" />
                                 </div>
-                                <p className="text-sm text-cyan-50">
-                                    Generate a custom quiz on any topic
-                                </p>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-0.5">
+                                        AI Quiz Generator
+                                    </h3>
+                                    <p className="text-sm text-cyan-50 opacity-90">
+                                        Generate a custom quiz on any topic
+                                    </p>
+                                </div>
                             </div>
-                            <div className="bg-white/20 p-2 rounded-lg text-white group-hover:bg-white group-hover:text-cyan-600 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <div className="bg-white/20 p-2.5 rounded-xl text-white group-hover:bg-white group-hover:text-cyan-600 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
                             </div>
                         </button>
                     )}
 
-                    {filteredItems.map((item, index) => {
-                        const isCompleted = completedItems.has(item.id);
-                        const isCustom = item.id.startsWith('custom-');
+                    {(() => {
+                        const completedList = filteredItems.filter(i => 
+                            completedItems.has(i.id) || 
+                            activities.some(a => a.itemId === i.id)
+                        );
+                        const availableList = filteredItems.filter(i => 
+                            !completedItems.has(i.id) && 
+                            !activities.some(a => a.itemId === i.id)
+                        );
+                        
+                        const renderItem = (item: PracticeItem, index: number) => {
+                            const isCompleted = completedItems.has(item.id);
+                            const isCustom = item.id.startsWith('custom-');
+                            
+                            // Calculate attempts and last score from activities
+                            const itemActivities = activities.filter(a => a.itemId === item.id);
+                            const attempts = itemActivities.length;
+                            const lastAttempt = itemActivities.length > 0 
+                                ? itemActivities.reduce((prev, curr) => prev.timestamp > curr.timestamp ? prev : curr)
+                                : null;
+                            const lastScore = lastAttempt?.score;
 
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => onSelectItem(item)}
-                                style={{ animationDelay: `${index * 30}ms` }}
-                                className={`p-4 rounded-lg border-2 transition-all text-left flex justify-between items-center group animate-slide-up opacity-0 ${isCustom
-                                    ? 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800 hover:border-purple-500'
-                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-cyan-500'
-                                    }`}
-                            >
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="text-lg font-bold text-gray-800 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                                            {item.title}
-                                        </h3>
-                                        <DifficultyBadge difficulty={item.difficulty} />
-                                        {isCustom && (
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 rounded">AI Generated</span>
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => onSelectItem(item)}
+                                    style={{ animationDelay: `${index * 40}ms` }}
+                                    className={`p-5 rounded-xl border-2 transition-all text-left flex justify-between items-center group animate-slide-up opacity-0 shadow-sm ${isCustom
+                                        ? 'bg-purple-50/50 dark:bg-purple-900/10 border-purple-200/60 dark:border-purple-800/50 hover:border-purple-400'
+                                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700/50 hover:border-cyan-400 dark:hover:border-cyan-600'
+                                        }`}
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center flex-wrap gap-3 mb-2">
+                                            <h3 className="text-lg font-bold text-gray-800 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">
+                                                {item.title}
+                                            </h3>
+                                            <DifficultyBadge difficulty={item.difficulty} />
+                                            {isCustom && (
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-1">
+                                            {item.description}
+                                        </p>
+                                        
+                                        {(attempts > 0 || lastScore !== undefined) && (
+                                            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider">
+                                                {attempts > 0 && (
+                                                    <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/80 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700">
+                                                        <History className="w-3.5 h-3.5" />
+                                                        <span>{attempts} {attempts === 1 ? 'Attempt' : 'Attempts'}</span>
+                                                    </div>
+                                                )}
+                                                {lastScore !== undefined && (
+                                                    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md border ${
+                                                        lastScore >= 100 
+                                                            ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50'
+                                                            : lastScore >= 80 
+                                                                ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800/50'
+                                                                : 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/50'
+                                                    }`}>
+                                                        <Star className={`w-3.5 h-3.5 ${lastScore >= 100 ? 'fill-current' : ''}`} />
+                                                        <span>Score: {Math.round(lastScore)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {item.description}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    {isCompleted && (
-                                        <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full border border-yellow-200 dark:border-yellow-700/50">
-                                            <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                                        </div>
-                                    )}
-                                    <div className="p-2 text-gray-400 group-hover:text-cyan-500 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                        </svg>
+                                    <div className="flex items-center gap-4 ml-4">
+                                        {isCompleted ? (
+                                            <div className="p-2.5 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800/50 text-green-600 dark:text-green-400 shadow-sm">
+                                                <CheckCircle2 className="w-6 h-6" />
+                                            </div>
+                                        ) : (
+                                            <div className="p-2.5 text-gray-300 dark:text-gray-600 group-hover:text-cyan-500 group-hover:bg-cyan-50 dark:group-hover:bg-cyan-900/20 rounded-xl transition-all">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-6 h-6">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            </button>
+                                </button>
+                            );
+                        };
+
+                        return (
+                            <div className="space-y-10">
+                                {availableList.length > 0 && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-3 px-1">
+                                            <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.4)]" />
+                                            <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-widest">Yet to Start</h3>
+                                            <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-2 py-0.5 rounded-md border border-cyan-100 dark:border-cyan-800/40">{availableList.length}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {availableList.map((item, idx) => renderItem(item, idx))}
+                                        </div>
+                                    </div>
+                                )}
+
+
+                                {completedList.length > 0 && (
+                                    <div className="space-y-6 pt-4">
+                                        <div className="flex items-center gap-3 px-1">
+                                            <div className="w-1.5 h-6 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
+                                            <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-widest">Completed</h3>
+                                            <span className="text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-md border border-green-100 dark:border-green-800/40">{completedList.length}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-90 transition-opacity hover:opacity-100">
+                                            {completedList.map((item, idx) => renderItem(item, idx + availableList.length))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                
+                                {filteredItems.length === 0 && (
+                                    <div className="py-20 text-center animate-fade-in">
+                                        <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                            <Sparkles className="w-10 h-10" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No {typeLabel} found</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                                            Feel free to generate a new quiz or check back later for more content.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         );
-                    })}
+                    })()}
                 </div>
+
             </div>
         );
     }
@@ -224,20 +318,19 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
             
             <div className="max-w-6xl mx-auto p-4 space-y-6">
                 {/* Header with Stats */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Practice Center</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Sharpen your Python skills</p>
+                        <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Practice Center</h1>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Master Python through interactive challenges</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-700">
-                            <span className="text-sm font-bold text-green-700 dark:text-green-300">{completedCount} completed</span>
-                        </div>
-                        <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">{allItems.length} total</span>
+                    <div className="flex items-center gap-4">
+                        <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50 shadow-sm">
+                            <span className="text-xs font-black text-green-700 dark:text-green-400 uppercase tracking-widest block mb-0.5">Completed</span>
+                            <span className="text-lg font-bold text-green-900 dark:text-green-100">{completedCount} <span className="text-xs opacity-60 font-medium">/{allItems.length}</span></span>
                         </div>
                     </div>
                 </div>
+
 
                 {/* Featured: Create Quiz CTA */}
                 {onAddCustomItem && (
@@ -266,88 +359,88 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                 )}
 
                 {/* Main Category Grid */}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Quizzes */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Category Cards... (keeping same as before for brevity in chunking but applying better shadows/padding) */}
                     <button
                         onClick={() => onSelectType('quiz')}
-                        className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-5 text-left hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-md transition-all group"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-xl transition-all group relative overflow-hidden"
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <BrainCircuit className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-purple-100 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <BrainCircuit className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-bold rounded-lg">
-                                {quizCount} available
+                            <span className="px-2.5 py-1 bg-purple-100/60 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-purple-200/50 dark:border-purple-800/30">
+                                {quizCount} QUIZZES
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                             Practice Quizzes
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            Test your knowledge with multiple-choice questions on Python concepts
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Test your knowledge with conceptual multiple-choice questions
                         </p>
-                        <div className="flex items-center text-sm font-semibold text-purple-600 dark:text-purple-400">
-                            Start Quiz
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform">
+                        <div className="flex items-center text-sm font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>
                         </div>
                     </button>
 
-                    {/* Problems */}
                     <button
                         onClick={() => onSelectType('problem')}
-                        className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-5 text-left hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl transition-all group relative overflow-hidden"
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <Terminal className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-blue-100 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <Terminal className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-lg">
-                                {problemCount} available
+                            <span className="px-2.5 py-1 bg-blue-100/60 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                                {problemCount} PROBLEMS
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                             Coding Problems
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            Solve focused coding challenges with instant feedback and hints
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Solve focused coding challenges with instant AI feedback
                         </p>
-                        <div className="flex items-center text-sm font-semibold text-blue-600 dark:text-blue-400">
-                            Start Problem
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform">
+                        <div className="flex items-center text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>
                         </div>
                     </button>
 
-                    {/* Projects */}
                     <button
                         onClick={() => onSelectType('project')}
-                        className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-5 text-left hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-xl transition-all group relative overflow-hidden"
                     >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                                <Rocket className="w-7 h-7 text-orange-600 dark:text-orange-400" />
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-orange-100 dark:bg-orange-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <Rocket className="w-8 h-8 text-orange-600 dark:text-orange-400" />
                             </div>
-                            <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-bold rounded-lg">
-                                {projectCount} available
+                            <span className="px-2.5 py-1 bg-orange-100/60 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-orange-200/50 dark:border-orange-800/30">
+                                {projectCount} PROJECTS
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                             Mini Projects
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                            Build complete applications with open-ended creative challenges
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Build real apps and apply everything you've learned
                         </p>
-                        <div className="flex items-center text-sm font-semibold text-orange-600 dark:text-orange-400">
-                            Start Project
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform">
+                        <div className="flex items-center text-sm font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                             </svg>
                         </div>
                     </button>
                 </div>
+
+
 
                 {/* Reference Section */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border-2 border-green-200 dark:border-green-800 p-5">
