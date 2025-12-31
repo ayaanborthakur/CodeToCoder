@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock as LockIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getOwnedCollectibles, sellCollectible } from '../services/marketplaceService';
+import { getOwnedCollectibles, sellCollectible, sellAllDuplicates } from '../services/marketplaceService';
 import { COLLECTIBLES, RARITY_COLORS, RARITY_BG_COLORS, RARITY_BORDER_COLORS, RARITY_GLOW, COLLECTIBLE_SELL_RATES } from '../data/collectiblesData';
 import type { Collectible, Rarity } from '../types';
 
@@ -23,6 +23,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
     const [loading, setLoading] = useState(true);
     const [selling, setSelling] = useState(false);
     const [sellAmount, setSellAmount] = useState(1);
+    const [sellingAll, setSellingAll] = useState(false);
 
     useEffect(() => {
         loadCollection();
@@ -62,6 +63,42 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
     const getSellValue = (rarity: Rarity) => {
         return COLLECTIBLE_SELL_RATES[rarity] || 0;
+    };
+
+    // Calculate total duplicates and their value
+    const getDuplicatesInfo = () => {
+        let totalDuplicates = 0;
+        let totalValue = 0;
+        ownedCollectibles.forEach(item => {
+            if (item.count > 1) {
+                const duplicateCount = item.count - 1;
+                totalDuplicates += duplicateCount;
+                totalValue += getSellValue(item.rarity) * duplicateCount;
+            }
+        });
+        return { totalDuplicates, totalValue };
+    };
+
+    const duplicatesInfo = getDuplicatesInfo();
+
+    const handleSellAllDuplicates = async () => {
+        if (!user || sellingAll || duplicatesInfo.totalDuplicates === 0) return;
+
+        if (!window.confirm(
+            `Are you sure you want to sell ${duplicatesInfo.totalDuplicates} duplicate item${duplicatesInfo.totalDuplicates > 1 ? 's' : ''} for ${duplicatesInfo.totalValue} ★?`
+        )) return;
+
+        setSellingAll(true);
+        try {
+            const result = await sellAllDuplicates(user.id);
+            await loadCollection();
+            alert(`Sold ${result.totalSold} duplicate item${result.totalSold > 1 ? 's' : ''} for ${result.totalEarned} ★!`);
+        } catch (error) {
+            console.error('Failed to sell duplicates:', error);
+            alert('Failed to sell duplicates. Please try again.');
+        } finally {
+            setSellingAll(false);
+        }
     };
 
     const rarities: (Rarity | 'all')[] = ['all', 'common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic', 'divine'];
@@ -246,6 +283,28 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                 </div>
                             ))}
                         </div>
+
+                        {/* Sell All Duplicates Button */}
+                        {duplicatesInfo.totalDuplicates > 0 && (
+                            <div className="mt-6 pt-6 border-t border-border-default">
+                                <button
+                                    onClick={handleSellAllDuplicates}
+                                    disabled={sellingAll}
+                                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/25"
+                                >
+                                    {sellingAll ? (
+                                        <>Selling...</>
+                                    ) : (
+                                        <>
+                                            <span>Sell All Duplicates</span>
+                                            <span className="bg-white/20 px-3 py-1 rounded-lg text-sm">
+                                                {duplicatesInfo.totalDuplicates} items → {duplicatesInfo.totalValue} ★
+                                            </span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
