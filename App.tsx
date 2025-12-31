@@ -1063,35 +1063,32 @@ const App: React.FC = () => {
                                         });
                                     });
                                 }
+
+                                // Log activity for analytics when validation passes
+                                try {
+                                    const { logUserActivity } = await import('./services/analyticsDataService');
+                                    
+                                    console.warn('[App] Logging activity for analytics...');
+                                    await logUserActivity(user!.id, {
+                                        type: 'lesson',
+                                        itemId: contextItem.id,
+                                        itemTitle: contextItem.title,
+                                        timestamp: Date.now(),
+                                        durationSeconds,
+                                        completed: true,
+                                        score: 100,
+                                        attempts: sessionRunCount,
+                                        skillRatings: validation.skillRatings
+                                    });
+                                } catch (err) {
+                                    console.error('[App] Failed to log analytics:', err);
+                                }
                             } else {
                                 console.warn('[Lesson Validation Failed]', validation.reason);
                             }
                         } else {
                             // This shouldn't happen in classroom view (usually only for quiz/lesson), but handle gracefully
                             markLessonAsCompleted(contextItem.id);
-                        }
-
-                        // Consolidated Logging for Personal Analytics (runs for every successful run/advance)
-                        if (currentView !== 'practice' && user) {
-                            try {
-                                const { logUserActivity } = await import('./services/analyticsDataService');
-                                const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
-                                
-                                console.warn('[App] Logging activity for analytics...');
-                                await logUserActivity(user.id, {
-                                    type: 'lesson',
-                                    itemId: contextItem.id,
-                                    itemTitle: contextItem.title,
-                                    timestamp: Date.now(),
-                                    durationSeconds,
-                                    completed: true,
-                                    score: 100,
-                                    attempts: sessionRunCount,
-                                    skillRatings: validation.skillRatings
-                                });
-                            } catch (err) {
-                                console.error('[App] Failed to log analytics:', err);
-                            }
                         }
 
                         setLessonStartTime(Date.now());

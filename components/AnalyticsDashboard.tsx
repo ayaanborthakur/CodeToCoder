@@ -362,7 +362,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                         paddingAngle={5}
                                         dataKey="value"
                                     >
-                                        {categoryStats.map((entry, index) => (
+                                        {categoryStats.map((_entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
