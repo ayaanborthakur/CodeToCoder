@@ -71,26 +71,52 @@ export const AnimatedCodeBlock: React.FC<AnimatedCodeBlockProps> = ({
     const displayedCode = currentSnippet.slice(0, displayedLength);
 
     // Simple syntax highlighting
+    // Simple syntax highlighting (Single-pass to avoid overlapping replacements)
+    // Simple syntax highlighting (Single-pass to avoid overlapping replacements)
     const highlightCode = (code: string) => {
-        return code
-            // Keywords
-            .replace(/\b(def|for|in|if|else|elif|return|import|from|class|while|try|except|with|as|not|and|or|True|False|None|range|print|input)\b/g, 
-                '<span class="text-purple-500 dark:text-purple-400">$1</span>')
-            // Strings
-            .replace(/(["'])((?:\\.|(?!\1)[^\\])*)\1/g, 
-                '<span class="text-green-500 dark:text-green-400">$1$2$1</span>')
-            // f-strings (simplified)
-            .replace(/f(["'])/g, 
-                '<span class="text-green-600 dark:text-green-400">f</span><span class="text-green-500 dark:text-green-400">$1</span>')
-            // Comments
-            .replace(/(#.*)/g, 
-                '<span class="text-gray-400 dark:text-gray-500 italic">$1</span>')
-            // Numbers
-            .replace(/\b(\d+)\b/g, 
-                '<span class="text-orange-500 dark:text-orange-400">$1</span>')
-            // Function calls
-            .replace(/(\w+)\(/g, 
-                '<span class="text-cyan-600 dark:text-cyan-400">$1</span>(');
+        // Escape HTML entities to prevent rendering issues
+        const escape = (str: string) => str.replace(/[&<>"']/g, (c) => {
+            const map: Record<string, string> = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            };
+            return map[c] || c;
+        });
+
+        // Combined regex for all tokens
+        // Groups:
+        // 1. Comment
+        // 2. String (full match including prefix and quotes)
+        // 3. Keyword
+        // 4. Number
+        // 5. Function call
+        const tokenRegex = /(#.*)|((?:f|r)?(["'])((?:\\.|(?!\3)[^\\])*)\3)|(\b(?:def|for|in|if|else|elif|return|import|from|class|while|try|except|with|as|not|and|or|True|False|None|range|print|input|async|await)\b)|(\b\d+\b)|([a-zA-Z_]\w*)(?=\()/g;
+
+        return code.replace(tokenRegex, (match, comment, str, quote, content, keyword, number, func) => {
+            if (comment) {
+                return `<span class="text-gray-500 dark:text-gray-400 italic">${escape(comment)}</span>`;
+            }
+            if (str) {
+                // Handle f-strings highlighting
+                if (str.startsWith('f') || str.startsWith('F')) {
+                     return `<span class="text-blue-600 dark:text-blue-400">f</span><span class="text-green-600 dark:text-green-400">${escape(str.substring(1))}</span>`;
+                }
+                return `<span class="text-green-600 dark:text-green-400">${escape(str)}</span>`;
+            }
+            if (keyword) {
+                return `<span class="text-purple-600 dark:text-purple-400">${escape(keyword)}</span>`;
+            }
+            if (number) {
+                return `<span class="text-orange-500 dark:text-orange-400">${escape(number)}</span>`;
+            }
+            if (func) {
+                return `<span class="text-blue-600 dark:text-blue-400">${escape(func)}</span>`;
+            }
+            return escape(match);
+        });
     };
 
     return (
