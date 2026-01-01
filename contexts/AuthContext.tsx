@@ -3,6 +3,7 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { User } from '../types';
 import { authService } from '../services/authService';
+import { getDatabase, ref, set, onDisconnect, onValue } from "firebase/database";
 
 interface AuthContextType {
   user: User | null;
@@ -156,6 +157,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const trackPresence = (userId: string) => {
+  const db = getDatabase(); // Connects to RTDB, NOT Firestore
+  const statusRef = ref(db, `status/${userId}`);
+  const connectedRef = ref(db, ".info/connected");
+
+  onValue(connectedRef, (snap) => {
+    if (snap.val() === true) {
+      // Set the "If I leave" rule first
+      onDisconnect(statusRef).set("offline");
+      // Then set current state to online
+      set(statusRef, "online");
+    }
+  });
 };
 
 export const useAuth = () => {
