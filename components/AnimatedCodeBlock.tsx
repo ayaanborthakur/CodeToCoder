@@ -72,50 +72,39 @@ export const AnimatedCodeBlock: React.FC<AnimatedCodeBlockProps> = ({
 
     // Simple syntax highlighting
     // Simple syntax highlighting (Single-pass to avoid overlapping replacements)
-    // Simple syntax highlighting (Single-pass to avoid overlapping replacements)
     const highlightCode = (code: string) => {
-        // Escape HTML entities to prevent rendering issues
-        const escape = (str: string) => str.replace(/[&<>"']/g, (c) => {
-            const map: Record<string, string> = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            };
-            return map[c] || c;
-        });
-
         // Combined regex for all tokens
         // Groups:
         // 1. Comment
-        // 2. String (full match including prefix and quotes)
-        // 3. Keyword
-        // 4. Number
-        // 5. Function call
-        const tokenRegex = /(#.*)|((?:f|r)?(["'])((?:\\.|(?!\3)[^\\])*)\3)|(\b(?:def|for|in|if|else|elif|return|import|from|class|while|try|except|with|as|not|and|or|True|False|None|range|print|input|async|await)\b)|(\b\d+\b)|([a-zA-Z_]\w*)(?=\()/g;
+        // 2,3,4. String (Prefix, Quote, Content)
+        // 5. Keyword
+        // 6. Number
+        // 7. Function call
+        const tokenRegex = /(#.*)|((?:f|r)?)(["'])((?:\\.|(?!\3)[^\\])*)\3|\b(def|for|in|if|else|elif|return|import|from|class|while|try|except|with|as|not|and|or|True|False|None|range|print|input)\b|\b(\d+)\b|(\w+)(?=\()/g;
 
-        return code.replace(tokenRegex, (match, comment, str, quote, content, keyword, number, func) => {
+        return code.replace(tokenRegex, (match, comment, prefix, quote, content, keyword, number, func) => {
             if (comment) {
-                return `<span class="text-gray-500 dark:text-gray-400 italic">${escape(comment)}</span>`;
+                return `<span class="text-gray-400 dark:text-gray-500 italic">${comment}</span>`;
             }
-            if (str) {
-                // Handle f-strings highlighting
-                if (str.startsWith('f') || str.startsWith('F')) {
-                     return `<span class="text-blue-600 dark:text-blue-400">f</span><span class="text-green-600 dark:text-green-400">${escape(str.substring(1))}</span>`;
+            if (quote) {
+                const str = match;
+                // Handle f-strings highlighting if prefix is 'f'
+                if (prefix === 'f') {
+                     const rest = str.substring(1);
+                     return `<span class="text-green-600 dark:text-green-400">f</span><span class="text-green-500 dark:text-green-400">${rest}</span>`;
                 }
-                return `<span class="text-green-600 dark:text-green-400">${escape(str)}</span>`;
+                return `<span class="text-green-500 dark:text-green-400">${str}</span>`;
             }
             if (keyword) {
-                return `<span class="text-purple-600 dark:text-purple-400">${escape(keyword)}</span>`;
+                return `<span class="text-purple-500 dark:text-purple-400">${keyword}</span>`;
             }
             if (number) {
-                return `<span class="text-orange-500 dark:text-orange-400">${escape(number)}</span>`;
+                return `<span class="text-orange-500 dark:text-orange-400">${number}</span>`;
             }
             if (func) {
-                return `<span class="text-blue-600 dark:text-blue-400">${escape(func)}</span>`;
+                return `<span class="text-cyan-600 dark:text-cyan-400">${func}</span>`;
             }
-            return escape(match);
+            return match;
         });
     };
 
