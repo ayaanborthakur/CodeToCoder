@@ -13,8 +13,17 @@ import {
   Zap, 
   Trophy,
   Flame,
-  Plus
+  Plus,
+  MessageSquare,
+  Brain
 } from 'lucide-react';
+
+import { AnalyticsDashboard } from './AnalyticsDashboard';
+import { AIChatPage } from './AIChatPage';
+import { ReviewTab } from './ReviewTab';
+import { useAuth } from '../contexts/AuthContext';
+import { getDueReviews } from '../services/learningService';
+import { formatCompactNumber } from '../utils/formatters';
 
 interface HomePageProps {
   modules: Module[]; // Dynamic data
@@ -46,6 +55,23 @@ export const HomePage: React.FC<HomePageProps> = ({
   dailyChallenges = [],
   onClaimChallengeReward,
 }) => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = React.useState<'overview' | 'analytics' | 'mentor' | 'review'>('overview');
+  const [dueReviewsCount, setDueReviewsCount] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    const loadReviewCount = async () => {
+      if (!user) return;
+      try {
+        const reviews = await getDueReviews(user.id);
+        setDueReviewsCount(reviews.length);
+      } catch (error) {
+        console.error("Failed to fetch review count:", error);
+      }
+    };
+    loadReviewCount();
+  }, [user]);
+
 
   // Find the most recent lesson worked on
   const getMostRecentLesson = () => {
@@ -118,7 +144,69 @@ export const HomePage: React.FC<HomePageProps> = ({
           </span>
         </div>
 
-        {/* Main 2-Column Layout */}
+        {/* Tabs */}
+        <div className="flex gap-6 mb-6 border-b border-gray-200 dark:border-gray-800">
+            <button 
+                onClick={() => setActiveTab('overview')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'overview' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Overview
+                {activeTab === 'overview' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('analytics')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'analytics' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Analytics
+                {activeTab === 'analytics' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('mentor')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'mentor' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Mentor
+                {activeTab === 'mentor' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+            <button 
+                onClick={() => setActiveTab('review')} 
+                className={`pb-3 px-1 text-sm font-bold transition-colors relative ${
+                    activeTab === 'review' 
+                        ? 'text-cyan-600 dark:text-cyan-400' 
+                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+            >
+                Review
+                {dueReviewsCount > 0 && (
+                    <span className="absolute -top-1 -right-4 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
+                        {dueReviewsCount}
+                    </span>
+                )}
+                {activeTab === 'review' && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-500 rounded-t-full" />
+                )}
+            </button>
+        </div>
+
+        {activeTab === 'overview' ? (
+        /* Main 2-Column Layout */
         <div className="grid lg:grid-cols-[1fr_320px] gap-6 flex-1">
           {/* Main Content */}
           <div className="space-y-6">
@@ -135,7 +223,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellow-300 dark:border-yellow-700">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance !== undefined ? starBalance.toLocaleString() : completedLessons.size} Stars</span>
+                  <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance !== undefined ? formatCompactNumber(starBalance) : completedLessons.size} Stars</span>
                 </div>
               </div>
             </div>
@@ -282,6 +370,40 @@ export const HomePage: React.FC<HomePageProps> = ({
                     Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
+
+                {/* AI Mentor Card */}
+                <button
+                  onClick={() => setActiveTab('mentor')}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md col-span-2 lg:col-span-1"
+                >
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <MessageSquare className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">AI Mentor</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
+                    Chat with your coding assistant
+                  </p>
+                  <div className="flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
+
+                {/* Review Card */}
+                <button
+                  onClick={() => setActiveTab('review')}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 transition-all text-left group hover:shadow-md col-span-2 lg:col-span-1"
+                >
+                  <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Brain className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Review</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
+                    Memory boost & journal
+                  </p>
+                  <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-400">
+                    Go <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </button>
               </div>
             </div>
           </div>
@@ -316,7 +438,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
+                      {formatCompactNumber(netWorth)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">Net Worth</div>
                   </div>
@@ -386,6 +508,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
         </div>
+        ) : activeTab === 'analytics' ? (
+            <AnalyticsDashboard />
+        ) : activeTab === 'review' ? (
+            <ReviewTab onSelectLesson={onSelectLesson} />
+        ) : (
+            <AIChatPage />
+        )}
       </div>
     </div>
   );

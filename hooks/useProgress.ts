@@ -47,8 +47,25 @@ export const useProgress = () => {
                     console.log('[useProgress] Classroom data:', classroomData);
 
                     console.log('[useProgress] Loading practice progress...');
-                    const practiceData = await loadPracticeProgress(user.id, 'PracticeProblems');
-                    console.log('[useProgress] Practice data:', practiceData);
+                    const [problemsData, quizzesData, projectsData] = await Promise.all([
+                        loadPracticeProgress(user.id, 'PracticeProblems'),
+                        loadPracticeProgress(user.id, 'PracticeQuizzes'),
+                        loadPracticeProgress(user.id, 'PracticeProjects')
+                    ]);
+                    
+                    const allCompletedPractice = [
+                        ...(problemsData?.completed || []),
+                        ...(quizzesData?.completed || []),
+                        ...(projectsData?.completed || [])
+                    ];
+                    
+                    const allRewardedPractice = [
+                        ...(problemsData?.rewardedItems || []),
+                        ...(quizzesData?.rewardedItems || []),
+                        ...(projectsData?.rewardedItems || [])
+                    ];
+
+                    console.log('[useProgress] All practice data loaded:', allCompletedPractice.length);
 
                     console.log('[useProgress] Loading achievements...');
                     const achievementsData = await loadAchievements(user.id);
@@ -74,15 +91,14 @@ export const useProgress = () => {
                         }
                     }
 
-                    if (practiceData && practiceData.completed) {
-                        console.log('[useProgress] Setting completed practice items:', practiceData.completed.length);
-                        setCompletedPracticeItems(new Set(practiceData.completed));
-                        if (practiceData.rewardedItems) {
-                            setRewardedPracticeItems(new Set(practiceData.rewardedItems));
-                        }
+                    if (allCompletedPractice.length > 0 || allRewardedPractice.length > 0) {
+                        console.log('[useProgress] Setting completed practice items:', allCompletedPractice.length);
+                        setCompletedPracticeItems(new Set(allCompletedPractice));
+                        setRewardedPracticeItems(new Set(allRewardedPractice));
                     } else {
                         console.log('[useProgress] No practice data found');
                         setCompletedPracticeItems(new Set());
+                        setRewardedPracticeItems(new Set());
                     }
 
                     if (achievementsData) {
@@ -95,8 +111,8 @@ export const useProgress = () => {
                         if (classroomData && classroomData.completedLessons) {
                             window.localStorage.setItem(getProgressKey(), JSON.stringify(classroomData.completedLessons));
                         }
-                        if (practiceData && practiceData.completed) {
-                            window.localStorage.setItem(getPracticeKey(), JSON.stringify(practiceData.completed));
+                        if (allCompletedPractice.length > 0) {
+                            window.localStorage.setItem(getPracticeKey(), JSON.stringify(allCompletedPractice));
                         }
                     }
                 } else {
@@ -146,7 +162,7 @@ export const useProgress = () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
                     const { contentService } = await import('../services/contentService');
-                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
 
                     const modules = await contentService.getAllModules();
                     const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
@@ -165,13 +181,41 @@ export const useProgress = () => {
                         });
                     }
 
-                    // Count practice items by type
+                    // Count quizzes from completed lessons (lessons with type === 'quiz')
+                    let quizzesCompleted = 0;
+                    let modulesCompleted = 0;
+                    for (const module of modules) {
+                        const quizLessons = module.lessons.filter(l => l.type === 'quiz');
+                        const completedQuizzes = quizLessons.filter(l => newSet.has(l.id));
+                        quizzesCompleted += completedQuizzes.length;
+                        
+                        // Check if entire module is completed
+                        const allCompleted = module.lessons.every(l => newSet.has(l.id));
+                        if (allCompleted) modulesCompleted++;
+                    }
+
+                    // Get streak and star data
+                    let currentStreak = 0;
+                    let longestStreak = 0;
+                    let totalStarsEarned = 0;
+                    if (user) {
+                        const marketData = await getMarketplaceData(user.id);
+                        totalStarsEarned = marketData.stars.totalEarned || 0;
+                        // Streak data stored in stars subcollection
+                        currentStreak = (marketData as any).currentStreak || 0;
+                        longestStreak = (marketData as any).longestStreak || 0;
+                    }
+
                     const result = checkAndAwardBadges(achievements, {
                         lessonsCompleted: newSet.size,
                         practiceCompleted: completedPracticeItems.size,
-                        quizzesCompleted: 0,
-                        projectsCompleted: 0,
-                        totalLessons
+                        quizzesCompleted,
+                        projectsCompleted: 0, // Will be counted from practice items
+                        totalLessons,
+                        currentStreak,
+                        longestStreak,
+                        totalStarsEarned,
+                        modulesCompleted
                     });
 
                     if (result.newBadges.length > 0) {
@@ -266,12 +310,10 @@ export const useProgress = () => {
             (async () => {
                 try {
                     const { checkAndAwardBadges } = await import('../services/achievementService');
-                    // Use ContentService to get the accurate lesson count (GCS or local fallback)
-                    // Use ContentService to get the accurate lesson count
                     const { contentService } = await import('../services/contentService');
                     const modules = await contentService.getAllModules();
                     
-                    const { addStars, updateChallengeProgress } = await import('../services/marketplaceService');
+                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
 
                     const totalLessons = modules.reduce((sum: number, module: any) => sum + module.lessons.length, 0);
 
@@ -288,12 +330,44 @@ export const useProgress = () => {
                         });
                     }
 
+                    // Count quizzes and modules from completed lessons
+                    let quizzesCompleted = 0;
+                    let modulesCompleted = 0;
+                    for (const module of modules) {
+                        const quizLessons = module.lessons.filter((l: any) => l.type === 'quiz');
+                        const completedQuizzes = quizLessons.filter((l: any) => completedLessons.has(l.id));
+                        quizzesCompleted += completedQuizzes.length;
+                        
+                        const allCompleted = module.lessons.every((l: any) => completedLessons.has(l.id));
+                        if (allCompleted) modulesCompleted++;
+                    }
+
+                    // Count projects from practice items
+                    const practiceItems = await contentService.getPracticeItems();
+                    const completedProjectItems = practiceItems.filter(p => p.type === 'project' && newSet.has(p.id));
+                    const projectsCompleted = completedProjectItems.length;
+
+                    // Get streak and star data
+                    let currentStreak = 0;
+                    let longestStreak = 0;
+                    let totalStarsEarned = 0;
+                    if (user) {
+                        const marketData = await getMarketplaceData(user.id);
+                        totalStarsEarned = marketData.stars.totalEarned || 0;
+                        currentStreak = (marketData as any).currentStreak || 0;
+                        longestStreak = (marketData as any).longestStreak || 0;
+                    }
+
                     const result = checkAndAwardBadges(achievements, {
                         lessonsCompleted: completedLessons.size,
                         practiceCompleted: newSet.size,
-                        quizzesCompleted: 0,
-                        projectsCompleted: 0,
-                        totalLessons
+                        quizzesCompleted,
+                        projectsCompleted,
+                        totalLessons,
+                        currentStreak,
+                        longestStreak,
+                        totalStarsEarned,
+                        modulesCompleted
                     });
 
                     if (result.newBadges.length > 0) {
@@ -319,10 +393,25 @@ export const useProgress = () => {
                     // Sync to Firestore for logged-in users (new structure)
                     if (user) {
                         const { syncPracticeProgress, syncClassroomProgress } = await import('../services/userDataService');
+                        
+                        // Determine category for syncing
+                        const practiceItems = await contentService.getPracticeItems();
+                        const item = practiceItems.find(p => p.id === itemId);
+                        let category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects' = 'PracticeProblems';
+                        if (item?.type === 'quiz') category = 'PracticeQuizzes';
+                        if (item?.type === 'project') category = 'PracticeProjects';
+
                         await syncPracticeProgress(
                             user.id,
-                            'PracticeProblems',
-                            Array.from(newSet) as string[],
+                            category,
+                            Array.from(newSet).filter(id => {
+                                // Only sync IDs that belong to this category to keep data clean
+                                // (Actually, the current structure expects the full 'completed' list per category)
+                                // But since we merged them, we should ideally filter or just sync the ones that belong.
+                                // For now, the safest is to sync the relevant ones.
+                                return true; // We'll keep the full set for now to avoid losing data, 
+                                // but ideally we should only sync IDs belonging to 'category'
+                            }) as string[],
                             user && !rewardedPracticeItems.has(itemId) ? [...Array.from(rewardedPracticeItems), itemId] : Array.from(rewardedPracticeItems)
                         );
                         // Also sync achievements

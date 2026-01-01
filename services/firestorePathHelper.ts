@@ -114,6 +114,11 @@ export const userPaths = {
         customQuizzes: (userId: string) => getCollectionFromPath(`users/${userId}/CustomQuizzes`),
         referenceMaterial: (userId: string) => getCollectionFromPath(`users/${userId}/CustomReferences`),
     },
+    
+    /**
+     * Activity log path - 3 segments = collection
+     */
+     activity: (userId: string) => getCollectionFromPath(`users/${userId}/Activity`),
 
     /**
      * Migration paths - 4 segments = document

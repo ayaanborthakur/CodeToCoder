@@ -9,13 +9,14 @@ import {
 } from 'lucide-react';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
 import { usePlaygroundFiles } from '../hooks/usePlaygroundFiles';
-import { getBadgeColor, getEarnedBadges } from '../services/achievementService';
+import { getBadgeColor, getEarnedBadges, getAllBadges, getBadgesByType, BADGE_CATEGORIES } from '../services/achievementService';
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import { resetTutorial } from '../services/tutorialService';
 import { getUserSettings, updateUserSettings } from '../services/userSettingsService';
 import { Collectible, UserAchievements, BadgeTier } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { UsernameModal } from './UsernameModal';
+import { formatCompactNumber } from '../utils/formatters';
 
 interface ActivityItem {
     id: string;
@@ -244,7 +245,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                             <span className="text-sm font-bold text-gray-500">Stars</span>
                                         </div>
-                                        <div className="text-2xl font-black">{starBalance.toLocaleString()}</div>
+                                        <div className="text-2xl font-black">{formatCompactNumber(starBalance)}</div>
                                     </div>
                                     <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-2xl border border-cyan-100 dark:border-cyan-800/50 text-center">
                                         <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -252,7 +253,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <span className="text-sm font-bold text-cyan-600/80">Net Worth</span>
                                         </div>
                                         <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
-                                            {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
+                                            {formatCompactNumber(netWorth)}
                                         </div>
                                     </div>
                                 </div>
@@ -364,30 +365,101 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                             )}
 
                             {activeTab === 'badges' && (
-                                <div className="p-8 animate-fade-in">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                                        {earnedBadges.map((badge) => {
-                                            const badgeColor = getBadgeColor(badge.tier as BadgeTier);
-                                            return (
-                                                <div 
-                                                    key={badge.id} 
-                                                    className="group relative flex flex-col items-center text-center p-4 rounded-2xl transition-all duration-300 bg-gray-50 dark:bg-gray-900/50 hover:scale-105"
-                                                >
-                                                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-sm mb-3 group-hover:rotate-12 transition-transform" style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}>
-                                                        <Star className="w-8 h-8" />
-                                                    </div>
-                                                    <p className="font-bold text-sm truncate w-full">{badge.name}</p>
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Earned</span>
-                                                </div>
-                                            );
-                                        })}
-                                        {earnedBadges.length === 0 && (
-                                            <div className="col-span-full py-20 text-center space-y-4">
-                                                <Award className="w-16 h-16 text-gray-300 mx-auto" />
-                                                <p className="text-gray-500 font-medium">No badges earned yet. Keep learning to unlock them!</p>
-                                            </div>
-                                        )}
+                                <div className="p-8 animate-fade-in space-y-10">
+                                    {/* Stats Summary */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                        <div className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg">
+                                            <div className="text-3xl font-black">{earnedBadges.length}</div>
+                                            <div className="text-xs font-bold uppercase tracking-wider opacity-80">Badges Earned</div>
+                                        </div>
+                                        <div className="bg-white dark:bg-gray-700 rounded-2xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm">
+                                            <div className="text-3xl font-black text-gray-400">{getAllBadges().length}</div>
+                                            <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Available</div>
+                                        </div>
                                     </div>
+
+                                    {/* Badges grouped by category */}
+                                    {(Object.entries(getBadgesByType()) as [keyof typeof BADGE_CATEGORIES, any][]).map(([type, badges]) => {
+                                        const category = BADGE_CATEGORIES[type];
+                                        if (!category || badges.length === 0) return null;
+
+                                        return (
+                                            <div key={type} className="space-y-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-xl">
+                                                        {category.icon}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-lg font-bold text-gray-900 dark:text-white leading-none">{category.label}</h4>
+                                                        <p className="text-xs text-gray-500 font-medium mt-1">
+                                                            {badges.filter((b: any) => earnedBadges.some(eb => eb.id === b.id)).length} / {badges.length} earned
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                                    {badges.map((badge: any) => {
+                                                        const isEarned = earnedBadges.some(eb => eb.id === badge.id);
+                                                        const badgeColor = getBadgeColor(badge.tier as BadgeTier);
+                                                        
+                                                        return (
+                                                            <div 
+                                                                key={badge.id} 
+                                                                className={`
+                                                                    group relative flex flex-col items-center text-center p-4 rounded-2xl transition-all duration-300 border
+                                                                    ${isEarned 
+                                                                        ? 'bg-gray-50 dark:bg-gray-900/50 border-transparent hover:scale-105 shadow-sm' 
+                                                                        : 'bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-700/50 grayscale opacity-70 hover:opacity-100'}
+                                                                `}
+                                                            >
+                                                                <div 
+                                                                    className={`
+                                                                        w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-3 transition-transform duration-500
+                                                                        ${isEarned ? 'shadow-sm group-hover:rotate-12 group-hover:scale-110' : ''}
+                                                                    `} 
+                                                                    style={{ 
+                                                                        backgroundColor: isEarned ? `${badgeColor}15` : 'rgba(156, 163, 175, 0.1)', 
+                                                                        color: isEarned ? badgeColor : '#9CA3AF' 
+                                                                    }}
+                                                                >
+                                                                    {badge.icon || '🏅'}
+                                                                    {!isEarned && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50 dark:bg-gray-800/50 rounded-2xl backdrop-blur-[1px]">
+                                                                            <Lock className="w-5 h-5 text-gray-400" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                
+                                                                <p className={`font-bold text-sm truncate w-full ${isEarned ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
+                                                                    {badge.name}
+                                                                </p>
+                                                                
+                                                                <div className="mt-2 w-full text-center">
+                                                                    {isEarned ? (
+                                                                        <span className="inline-block text-[10px] font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm" style={{ backgroundColor: badgeColor }}>
+                                                                            Earned
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-medium text-gray-400">
+                                                                            {badge.requirement} {type === 'collection' ? 'Stars' : type === 'streak' ? 'Days' : 'Completed'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Hover Tooltip */}
+                                                                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none flex items-center justify-center p-2">
+                                                                    <div className="bg-gray-900 text-white text-xs p-2 rounded-lg shadow-xl translate-y-8 max-w-full text-center z-10">
+                                                                        <p className="font-bold mb-1">{badge.description}</p>
+                                                                        <p className="text-gray-400 text-[10px] uppercase tracking-wider">{badge.tier} Tier</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
 

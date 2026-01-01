@@ -330,7 +330,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </div>
                         <div className="stat-card bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg rounded-2xl p-6 border border-gray-200/50 dark:border-gray-700/50">
                             <div className="text-3xl md:text-4xl font-black text-purple-600 dark:text-purple-400">
-                                <AnimatedCounter end={50} suffix="+" />
+                                <AnimatedCounter end={150} suffix="+" />
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Python Lessons</p>
                         </div>
@@ -782,7 +782,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
 
                 <div className="border-t border-gray-100 dark:border-gray-800 pt-8 text-center">
                     <p className="text-gray-400 dark:text-gray-500 text-sm">
-                        © {new Date().getFullYear()} Code2Coder. All rights reserved. Built with ❤️ for learners worldwide.
+                        {new Date().getFullYear()} Code2Coder. Built with ❤️ for passionate learners worldwide.
                     </p>
                 </div>
             </footer>

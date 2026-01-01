@@ -777,6 +777,82 @@ export const sellCollectible = async (userId: string, collectibleId: string, amo
     return totalSellValue;
 };
 
+/**
+ * Sell all duplicate collectibles (keeps one of each)
+ * Returns the total number sold and total stars earned
+ */
+export const sellAllDuplicates = async (userId: string): Promise<{ totalSold: number, totalEarned: number }> => {
+    const collectionData = await getCollectionData(userId);
+    const starsData = await getStarsData(userId);
+
+    // Count occurrences of each collectible
+    const counts: Record<string, number> = {};
+    collectionData.collectibles.ownedCollectibleIds.forEach(id => {
+        counts[id] = (counts[id] || 0) + 1;
+    });
+
+    // Calculate duplicates to sell and total value
+    let totalSold = 0;
+    let totalEarned = 0;
+    const newOwned: string[] = [];
+    const soldItems: { name: string, count: number }[] = [];
+
+    // Keep one of each, mark the rest for selling
+    const processedIds = new Set<string>();
+    
+    for (const id of collectionData.collectibles.ownedCollectibleIds) {
+        if (!processedIds.has(id)) {
+            // First occurrence - keep it
+            newOwned.push(id);
+            processedIds.add(id);
+        } else if (counts[id] > 1) {
+            // Duplicate - sell it
+            const collectible = COLLECTIBLES.find(c => c.id === id);
+            if (collectible) {
+                const sellValue = COLLECTIBLE_SELL_RATES[collectible.rarity];
+                totalEarned += sellValue;
+                totalSold++;
+                
+                // Track for transaction message
+                const existingSoldItem = soldItems.find(item => item.name === collectible.name);
+                if (existingSoldItem) {
+                    existingSoldItem.count++;
+                } else {
+                    soldItems.push({ name: collectible.name, count: 1 });
+                }
+            }
+            counts[id]--; // Decrease count so we sell one at a time
+        }
+    }
+
+    if (totalSold === 0) {
+        return { totalSold: 0, totalEarned: 0 };
+    }
+
+    // Update collection data
+    collectionData.collectibles.ownedCollectibleIds = newOwned;
+
+    // Update stars
+    starsData.balance += totalEarned;
+    starsData.totalEarned += totalEarned;
+
+    // Record transaction
+    const transaction: StarTransaction = {
+        id: Date.now().toString(),
+        amount: totalEarned,
+        type: 'earn',
+        reason: `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`,
+        timestamp: Date.now()
+    };
+    starsData.transactionHistory.unshift(transaction);
+
+    await saveCollectionData(userId, collectionData);
+    await saveStarsData(userId, starsData);
+    dispatchStarUpdate(starsData.balance, totalEarned, `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`);
+
+    return { totalSold, totalEarned };
+};
+
 // ============================================================================
 // STAR MANAGEMENT
 // ============================================================================

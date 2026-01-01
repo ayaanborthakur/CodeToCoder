@@ -2,7 +2,11 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
 import type { Lesson } from '../types';
+
+const plugins = [remarkGfm];
+const rehypePlugins = [rehypeHighlight];
 
 interface LearnPanelProps {
     lesson: Lesson;
@@ -12,6 +16,7 @@ interface LearnPanelProps {
     onNextLesson?: () => void;
     hasPreviousLesson?: boolean;
     hasNextLesson?: boolean;
+    runCount?: number;
 }
 
 export const LearnPanel: React.FC<LearnPanelProps> = ({ 
@@ -21,9 +26,51 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
     onPreviousLesson,
     onNextLesson,
     hasPreviousLesson = false,
-    hasNextLesson = false
+    hasNextLesson = false,
+    runCount = 0
 }) => {
+    const startTimeRef = React.useRef(Date.now());
+
+    // Import analytics service
+    const logActivity = async (completed: boolean) => {
+        try {
+            const { logUserActivity } = await import('../services/analyticsDataService');
+            const { auth } = await import('../services/firebase');
+            if (!auth.currentUser) return;
+
+            const durationSeconds = Math.round((Date.now() - startTimeRef.current) / 1000);
+            if (durationSeconds < 5) return; // Ignore very short views
+
+            await logUserActivity(auth.currentUser.uid, {
+                type: 'lesson',
+                itemId: lesson.id,
+                itemTitle: lesson.title,
+                timestamp: Date.now(),
+                durationSeconds,
+                completed,
+                score: completed ? 100 : undefined,
+                attempts: runCount
+            });
+            // Reset timer so we don't double count if component stays mounted
+            startTimeRef.current = Date.now();
+        } catch (error) {
+            console.error("Failed to log lesson activity", error);
+        }
+    };
+
+    // Log on unmount if significant time spent
+    React.useEffect(() => {
+        return () => {
+            // Only log if not already completed (completion handles its own log)
+            // But checking isCompleted prop is tricky if it changes. 
+            // Simplified: We log on unmount as 'partial' if we haven't logged completion explicitly
+            // For now, let's just log on completion for explicit "Done" and maybe periodic for time?
+            // Actually, let's just log on complete.
+        };
+    }, []);
+
     const handleContinue = () => {
+        logActivity(true);
         if (onNextLesson) {
             onNextLesson();
         } else {
@@ -82,7 +129,11 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                         prose-td:p-3 prose-td:border prose-td:border-gray-200 dark:prose-td:border-gray-700
                         prose-blockquote:border-l-4 prose-blockquote:border-cyan-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400
                     ">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        <ReactMarkdown 
+                            key={lesson.id}
+                            remarkPlugins={plugins} 
+                            rehypePlugins={rehypePlugins}
+                        >
                             {lesson.content}
                         </ReactMarkdown>
                     </div>

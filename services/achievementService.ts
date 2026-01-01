@@ -1,31 +1,74 @@
 import type { Badge, BadgeType, BadgeTier, UserAchievements } from '../types';
 
+// Badge icon mapping
+export const BADGE_ICONS: Record<string, string> = {
+    // Lesson badges
+    'lesson_bronze': '📚',
+    'lesson_silver': '📖',
+    'lesson_gold': '🎓',
+    'lesson_platinum': '👨‍🎓',
+    // Practice badges
+    'practice_bronze': '💪',
+    'practice_silver': '🏋️',
+    'practice_gold': '🏆',
+    // Quiz badges
+    'quiz_bronze': '❓',
+    'quiz_silver': '🧠',
+    'quiz_gold': '💡',
+    // Project badges
+    'project_bronze': '🔨',
+    'project_silver': '🏗️',
+    'project_gold': '🏛️',
+    // Streak badges
+    'streak_bronze': '🔥',
+    'streak_silver': '🔥',
+    'streak_gold': '🔥',
+    'streak_platinum': '🔥',
+    'streak_legend': '👑',
+    // Collection badges
+    'collection_bronze': '⭐',
+    'collection_silver': '⭐',
+    'collection_gold': '💰',
+    'collection_platinum': '👑',
+    // Special badges
+    'early_bird': '🌅',
+    'night_owl': '🦉',
+    'perfect_score': '🎯',
+    'speed_demon': '🚀',
+    'module_graduate': '🎓',
+    'python_master': '🐍',
+    'code2code_master': '🌟',
+};
+
 // Define all available badges
 export const BADGES: Badge[] = [
-    // Lesson Badges
+    // ============ LESSON BADGES ============
     {
         id: 'lesson_bronze',
         name: 'First Steps',
         description: 'Complete 5 lessons',
         type: 'lesson',
         tier: 'bronze',
-        requirement: 5
+        requirement: 5,
+        icon: '📚'
     },
     {
         id: 'lesson_silver',
         name: 'Learning Path',
-        description: 'Complete 10 lessons',
+        description: 'Complete 15 lessons',
         type: 'lesson',
         tier: 'silver',
-        requirement: 10
+        requirement: 15,
+        icon: '📖'
     },
     {
         id: 'lesson_gold',
         name: 'Knowledge Seeker',
-        description: 'Complete 20 lessons',
+        description: 'Complete 30 lessons',
         type: 'lesson',
         tier: 'gold',
-        requirement: 20
+        requirement: 30,
+        icon: '🎓'
     },
     {
         id: 'lesson_platinum',
@@ -33,17 +76,19 @@ export const BADGES: Badge[] = [
         description: 'Complete all lessons',
         type: 'lesson',
         tier: 'platinum',
-        requirement: 999 // Will be updated dynamically
+        requirement: 999, // Will be updated dynamically
+        icon: '👨‍🎓'
     },
 
-    // Practice Badges
+    // ============ PRACTICE BADGES ============
     {
         id: 'practice_bronze',
         name: 'Practice Starter',
         description: 'Complete 3 practice problems',
         type: 'practice',
         tier: 'bronze',
-        requirement: 3
+        requirement: 3,
+        icon: '💪'
     },
     {
         id: 'practice_silver',
@@ -51,7 +96,8 @@ export const BADGES: Badge[] = [
         description: 'Complete 10 practice problems',
         type: 'practice',
         tier: 'silver',
-        requirement: 10
+        requirement: 10,
+        icon: '🏋️'
     },
     {
         id: 'practice_gold',
@@ -59,17 +105,19 @@ export const BADGES: Badge[] = [
         description: 'Complete 25 practice problems',
         type: 'practice',
         tier: 'gold',
-        requirement: 25
+        requirement: 25,
+        icon: '🏆'
     },
 
-    // Quiz Badges
+    // ============ QUIZ BADGES ============
     {
         id: 'quiz_bronze',
         name: 'Quiz Novice',
         description: 'Complete 3 quizzes',
         type: 'quiz',
         tier: 'bronze',
-        requirement: 3
+        requirement: 3,
+        icon: '❓'
     },
     {
         id: 'quiz_silver',
@@ -77,7 +125,8 @@ export const BADGES: Badge[] = [
         description: 'Complete 10 quizzes',
         type: 'quiz',
         tier: 'silver',
-        requirement: 10
+        requirement: 10,
+        icon: '🧠'
     },
     {
         id: 'quiz_gold',
@@ -85,17 +134,19 @@ export const BADGES: Badge[] = [
         description: 'Complete 20 quizzes',
         type: 'quiz',
         tier: 'gold',
-        requirement: 20
+        requirement: 20,
+        icon: '💡'
     },
 
-    // Project Badges
+    // ============ PROJECT BADGES ============
     {
         id: 'project_bronze',
         name: 'Project Starter',
         description: 'Complete 1 project',
         type: 'project',
         tier: 'bronze',
-        requirement: 1
+        requirement: 1,
+        icon: '🔨'
     },
     {
         id: 'project_silver',
@@ -103,7 +154,8 @@ export const BADGES: Badge[] = [
         description: 'Complete 3 projects',
         type: 'project',
         tier: 'silver',
-        requirement: 3
+        requirement: 3,
+        icon: '🏗️'
     },
     {
         id: 'project_gold',
@@ -111,16 +163,133 @@ export const BADGES: Badge[] = [
         description: 'Complete 5 projects',
         type: 'project',
         tier: 'gold',
-        requirement: 5
+        requirement: 5,
+        icon: '🏛️'
     },
-    // Master badge – unlocked when all other badges are earned
+
+    // ============ STREAK BADGES ============
+    {
+        id: 'streak_bronze',
+        name: 'Hot Streak',
+        description: 'Maintain a 3-day coding streak',
+        type: 'streak',
+        tier: 'bronze',
+        requirement: 3,
+        icon: '🔥'
+    },
+    {
+        id: 'streak_silver',
+        name: 'On Fire',
+        description: 'Maintain a 7-day coding streak',
+        type: 'streak',
+        tier: 'silver',
+        requirement: 7,
+        icon: '🔥'
+    },
+    {
+        id: 'streak_gold',
+        name: 'Unstoppable',
+        description: 'Maintain a 14-day coding streak',
+        type: 'streak',
+        tier: 'gold',
+        requirement: 14,
+        icon: '🔥'
+    },
+    {
+        id: 'streak_platinum',
+        name: 'Marathon Coder',
+        description: 'Maintain a 30-day coding streak',
+        type: 'streak',
+        tier: 'platinum',
+        requirement: 30,
+        icon: '🔥'
+    },
+    {
+        id: 'streak_legend',
+        name: 'Coding Legend',
+        description: 'Maintain a 100-day coding streak',
+        type: 'streak',
+        tier: 'platinum',
+        requirement: 100,
+        icon: '👑'
+    },
+
+    // ============ COLLECTION (STARS) BADGES ============
+    {
+        id: 'collection_bronze',
+        name: 'Star Collector',
+        description: 'Earn 100 total stars',
+        type: 'collection',
+        tier: 'bronze',
+        requirement: 100,
+        icon: '⭐'
+    },
+    {
+        id: 'collection_silver',
+        name: 'Star Hoarder',
+        description: 'Earn 500 total stars',
+        type: 'collection',
+        tier: 'silver',
+        requirement: 500,
+        icon: '⭐'
+    },
+    {
+        id: 'collection_gold',
+        name: 'Star Millionaire',
+        description: 'Earn 1,000 total stars',
+        type: 'collection',
+        tier: 'gold',
+        requirement: 1000,
+        icon: '💰'
+    },
+    {
+        id: 'collection_platinum',
+        name: 'Star Emperor',
+        description: 'Earn 5,000 total stars',
+        type: 'collection',
+        tier: 'platinum',
+        requirement: 5000,
+        icon: '👑'
+    },
+
+    // ============ SPECIAL BADGES ============
+    {
+        id: 'module_graduate',
+        name: 'Module Graduate',
+        description: 'Complete all lessons in any module',
+        type: 'special',
+        tier: 'silver',
+        requirement: 1,
+        icon: '🎓'
+    },
+    {
+        id: 'speed_demon',
+        name: 'Speed Demon',
+        description: 'Complete 5 lessons in a single day',
+        type: 'special',
+        tier: 'gold',
+        requirement: 5,
+        icon: '🚀'
+    },
+    {
+        id: 'python_master',
+        name: 'Python Master',
+        description: 'Complete all 12 modules',
+        type: 'special',
+        tier: 'platinum',
+        requirement: 12,
+        icon: '🐍'
+    },
+
+    // ============ ULTIMATE BADGE ============
     {
         id: 'code2code_master',
-        name: 'Code2Code Master',
+        name: 'Code2Coder Master',
         description: 'Earn all other badges',
-        type: 'project',
+        type: 'special',
         tier: 'platinum',
-        requirement: 0 // handled programmatically
+        requirement: 0, // Handled programmatically
+        icon: '🌟'
     }
 ];
 
@@ -144,22 +313,34 @@ export const getBadgeGradient = (tier: BadgeTier): string => {
     }
 };
 
+// Get badge icon
+export const getBadgeIcon = (badgeId: string): string => {
+    return BADGE_ICONS[badgeId] || '🏅';
+};
+
+// Extended stats interface for badge checking
+export interface BadgeCheckStats {
+    lessonsCompleted: number;
+    practiceCompleted: number;
+    quizzesCompleted: number;
+    projectsCompleted: number;
+    totalLessons?: number;
+    currentStreak?: number;
+    longestStreak?: number;
+    totalStarsEarned?: number;
+    modulesCompleted?: number;
+    lessonsCompletedToday?: number;
+}
+
 // Check for newly earned badges
 export const checkAndAwardBadges = (
     currentAchievements: UserAchievements | undefined,
-    stats: {
-        lessonsCompleted: number;
-        practiceCompleted: number;
-        quizzesCompleted: number;
-        projectsCompleted: number;
-        totalLessons?: number;
-    }
+    stats: BadgeCheckStats
 ): { newBadges: Badge[]; updatedAchievements: UserAchievements } => {
     const earnedBadgeIds = currentAchievements?.earnedBadgeIds || (currentAchievements as any)?.earnedBadges || [];
     const newlyEarnedBadges: Badge[] = [];
 
     // Determine the actual platinum requirement - use a LOCAL variable, NOT mutation of global BADGES!
-    // This is critical: mutating BADGES can cause the requirement to persist incorrectly across calls
     let platinumRequirement = 999; // Default to very high
     if (stats.totalLessons && stats.totalLessons > 10) {
         platinumRequirement = stats.totalLessons;
@@ -167,8 +348,12 @@ export const checkAndAwardBadges = (
     
     console.log('[BadgeService] Badge check starting:', {
         lessonsCompleted: stats.lessonsCompleted,
+        practiceCompleted: stats.practiceCompleted,
+        quizzesCompleted: stats.quizzesCompleted,
+        projectsCompleted: stats.projectsCompleted,
+        currentStreak: stats.currentStreak,
+        totalStarsEarned: stats.totalStarsEarned,
         totalLessons: stats.totalLessons,
-        platinumRequirement,
         existingBadges: earnedBadgeIds.length
     });
 
@@ -201,6 +386,23 @@ export const checkAndAwardBadges = (
             case 'project':
                 count = stats.projectsCompleted;
                 break;
+            case 'streak':
+                // Use the higher of current or longest streak
+                count = Math.max(stats.currentStreak || 0, stats.longestStreak || 0);
+                break;
+            case 'collection':
+                count = stats.totalStarsEarned || 0;
+                break;
+            case 'special':
+                // Special badges have custom logic
+                if (badge.id === 'module_graduate') {
+                    count = stats.modulesCompleted || 0;
+                } else if (badge.id === 'speed_demon') {
+                    count = stats.lessonsCompletedToday || 0;
+                } else if (badge.id === 'python_master') {
+                    count = stats.modulesCompleted || 0;
+                }
+                break;
         }
 
         // Award badge if requirement is met
@@ -212,11 +414,10 @@ export const checkAndAwardBadges = (
     }
 
     // After awarding regular badges, check for master badge
-    const allOtherBadgeIds = BADGES.filter(b => b.id !== 'code2code_master').map(b => b.id);
-    // Only award master badge if user has earned ALL other badges (and has at least one badge)
-    const hasAllOthers = allOtherBadgeIds.length > 0 &&
-        allOtherBadgeIds.every(id => earnedBadgeIds.includes(id));
-    if (hasAllOthers && !earnedBadgeIds.includes('code2code_master')) {
+    const regularBadges = BADGES.filter(b => b.id !== 'code2code_master' && b.id !== 'streak_legend' && b.id !== 'python_master');
+    const hasAllRegular = regularBadges.length > 0 &&
+        regularBadges.every(b => earnedBadgeIds.includes(b.id));
+    if (hasAllRegular && !earnedBadgeIds.includes('code2code_master')) {
         const masterBadge = BADGES.find(b => b.id === 'code2code_master');
         if (masterBadge) {
             newlyEarnedBadges.push(masterBadge);
@@ -240,6 +441,11 @@ export const getEarnedBadges = (achievements: UserAchievements | undefined): Bad
     // Handle both new and old property names for backward compatibility
     const earnedIds = achievements.earnedBadgeIds || (achievements as any).earnedBadges || [];
     return BADGES.filter(badge => earnedIds.includes(badge.id));
+};
+
+// Get all badges (for display, showing locked/unlocked state)
+export const getAllBadges = (): Badge[] => {
+    return BADGES;
 };
 
 // Get progress toward next badge for a specific type
@@ -276,6 +482,20 @@ export const getBadgesByType = (): Record<BadgeType, Badge[]> => {
         lesson: BADGES.filter(b => b.type === 'lesson'),
         practice: BADGES.filter(b => b.type === 'practice'),
         quiz: BADGES.filter(b => b.type === 'quiz'),
-        project: BADGES.filter(b => b.type === 'project')
+        project: BADGES.filter(b => b.type === 'project'),
+        streak: BADGES.filter(b => b.type === 'streak'),
+        collection: BADGES.filter(b => b.type === 'collection'),
+        special: BADGES.filter(b => b.type === 'special')
     };
+};
+
+// Get badge category display info
+export const BADGE_CATEGORIES: Record<BadgeType, { label: string; icon: string; color: string }> = {
+    lesson: { label: 'Learning', icon: '📚', color: '#3B82F6' },
+    practice: { label: 'Practice', icon: '💪', color: '#10B981' },
+    quiz: { label: 'Quizzes', icon: '🧠', color: '#8B5CF6' },
+    project: { label: 'Projects', icon: '🏗️', color: '#F59E0B' },
+    streak: { label: 'Streaks', icon: '🔥', color: '#EF4444' },
+    collection: { label: 'Collection', icon: '⭐', color: '#FBBF24' },
+    special: { label: 'Special', icon: '✨', color: '#EC4899' }
 };

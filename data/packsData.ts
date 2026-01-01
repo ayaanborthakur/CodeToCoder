@@ -163,7 +163,7 @@ export const PACKS_DATA: PackData[] = [
         id: 'designer_pack',
         name: 'Designer Pack',
         tier: 'designer',
-        cost: 250,
+        cost: 350,
         description: 'Premium single item - guaranteed Legendary+ collectible',
         icon: '✨',
         dropRates: {
@@ -171,9 +171,9 @@ export const PACKS_DATA: PackData[] = [
             uncommon: 0.00,    // 0%
             rare: 0.00,        // 0%
             epic: 0.00,        // 0%
-            legendary: 0.50,   // 50%
-            mythic: 0.47,      // 47%
-            divine: 0.03       // 3%
+            legendary: 0.70,   // 50%
+            mythic: 0.28,      // 47%
+            divine: 0.02       // 3%
         },
         collectibleCount: {
             min: 1,

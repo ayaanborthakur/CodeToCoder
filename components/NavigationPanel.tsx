@@ -52,14 +52,14 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
             <div
               key={module.id}
               className={`rounded-xl transition-colors duration-200 overflow-hidden border ${isOpen
-                ? 'bg-white dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 shadow-sm'
+                ? 'bg-white dark:bg-gray-800/40 border-gray-200 dark:border-gray-700'
                 : 'bg-transparent border-transparent hover:bg-gray-50 dark:hover:bg-white/5'
                 } ${isLocked ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
             >
               <button
                 onClick={() => !isLocked && toggleModule(module.id)}
                 disabled={isLocked}
-                className={`w-full flex justify-between items-center text-left p-4 outline-none focus:outline-none ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`no-hover w-full flex justify-between items-center text-left p-4 outline-none focus:outline-none ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 title={isLocked ? "Complete previous module's final project to unlock" : ""}
               >
                 <div>
@@ -105,9 +105,9 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                             e.preventDefault();
                             onSelectLesson(module.id, lesson.id);
                           }}
-                          className={`w-full flex items-center gap-3 text-left py-2.5 px-3 rounded-lg transition-colors duration-200 text-sm group border-l-4 ${isCurrent
-                            ? 'bg-cyan-50/50 dark:bg-cyan-500/10 border-cyan-500 text-cyan-900 dark:text-cyan-100 font-medium'
-                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:bg-cyan-50/30 dark:hover:bg-cyan-500/5 hover:text-cyan-800 dark:hover:text-cyan-200'
+                          className={`no-hover w-full flex items-center gap-3 text-left py-2 px-3 rounded-lg transition-colors duration-200 text-sm group border-l-2 ${isCurrent
+                            ? 'bg-cyan-500/5 border-cyan-500 text-cyan-600 dark:text-cyan-400 font-bold'
+                            : 'border-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 hover:text-gray-700 dark:hover:text-gray-300'
                             }`}
                         >
                           <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors flex-shrink-0 ${isCompleted

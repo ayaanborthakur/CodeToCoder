@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCompactNumber } from '../utils/formatters';
 
 export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard';
 
@@ -23,6 +24,7 @@ import {
   Search,
   HelpCircle
 } from 'lucide-react';
+import { FocusTimer } from './FocusTimer';
 
 
 export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, setTheme, starTargetRef, onOpenAuth, starBalance }) => {
@@ -50,16 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
     setIsMobileMenuOpen(false);
   };
 
-  const scrollToMission = () => {
-    onNavigate('home');
-    setIsMobileMenuOpen(false);
-    setTimeout(() => {
-      const missionSection = document.getElementById('mission');
-      if (missionSection) {
-        missionSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
+
 
   return (
     <>
@@ -94,8 +87,9 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                     { view: 'marketplace' as ViewState, label: 'Star Market', icon: '⭐', keywords: ['market', 'star', 'pack', 'buy', 'collection'] },
                     { view: 'leaderboard' as ViewState, label: 'Leaderboard', icon: '🏆', keywords: ['rank', 'leaderboard', 'top', 'score'] },
                     { view: 'profile' as ViewState, label: 'Profile', icon: '👤', keywords: ['profile', 'account', 'settings', 'badge'] },
+                    { view: 'mentor' as ViewState, label: 'Mentor', icon: '💬', keywords: ['mentor', 'help', 'guidance', 'chat', 'support'] },
                   ]
-                    .filter(item => 
+                    .filter(item =>
                       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       item.keywords.some(kw => kw.includes(searchQuery.toLowerCase()))
                     )
@@ -118,6 +112,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                     { view: 'marketplace' as ViewState, label: 'Star Market', icon: '⭐', keywords: ['market', 'star', 'pack', 'buy', 'collection'] },
                     { view: 'leaderboard' as ViewState, label: 'Leaderboard', icon: '🏆', keywords: ['rank', 'leaderboard', 'top', 'score'] },
                     { view: 'profile' as ViewState, label: 'Profile', icon: '👤', keywords: ['profile', 'account', 'settings', 'badge'] },
+                    { view: 'mentor' as ViewState, label: 'Mentor', icon: '💬', keywords: ['mentor', 'help', 'guidance', 'chat', 'support'] },
                   ].filter(item => 
                     item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     item.keywords.some(kw => kw.includes(searchQuery.toLowerCase()))
@@ -145,9 +140,12 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
           {user && starBalance !== undefined && (
             <div ref={starTargetRef as React.RefObject<HTMLDivElement>} className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg border border-yellow-400/30">
               <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-              <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{starBalance.toLocaleString()}</span>
+              <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{formatCompactNumber(starBalance)}</span>
             </div>
           )}
+
+          {/* Focus Timer */}
+          {user && <FocusTimer />}
 
           {/* Help button */}
           <button
