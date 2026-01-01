@@ -16,6 +16,7 @@ import { getUserSettings, updateUserSettings } from '../services/userSettingsSer
 import { Collectible, UserAchievements, BadgeTier } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { UsernameModal } from './UsernameModal';
+import { formatCompactNumber } from '../utils/formatters';
 
 interface ActivityItem {
     id: string;
@@ -244,7 +245,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                             <span className="text-sm font-bold text-gray-500">Stars</span>
                                         </div>
-                                        <div className="text-2xl font-black">{starBalance.toLocaleString()}</div>
+                                        <div className="text-2xl font-black">{formatCompactNumber(starBalance)}</div>
                                     </div>
                                     <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-2xl border border-cyan-100 dark:border-cyan-800/50 text-center">
                                         <div className="flex items-center justify-center gap-1.5 mb-1">
@@ -252,7 +253,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <span className="text-sm font-bold text-cyan-600/80">Net Worth</span>
                                         </div>
                                         <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
-                                            {netWorth !== undefined ? (netWorth >= 1000 ? `${(netWorth / 1000).toFixed(1)}k` : netWorth) : '...'}
+                                            {formatCompactNumber(netWorth)}
                                         </div>
                                     </div>
                                 </div>

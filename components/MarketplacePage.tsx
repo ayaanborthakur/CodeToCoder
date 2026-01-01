@@ -17,6 +17,7 @@ import type { UserStars, DailyChallenge, Collectible } from '../types';
 
 import { ViewState } from './Header';
 import { PackOpeningModal } from './PackOpeningModal';
+import { formatCompactNumber } from '../utils/formatters';
 
 interface MarketplacePageProps {
     onNavigate: (view: ViewState) => void;
@@ -315,7 +316,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                     <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                     <div className="text-5xl font-black text-text-primary font-mono flex items-center gap-4 justify-center">
                                         <span className="text-4xl animate-pulse text-yellow-500">★</span>
-                                        <span className="text-text-primary">{(starBalance ?? stars?.balance ?? 0).toLocaleString()}</span>
+                                        <span className="text-text-primary">{formatCompactNumber(starBalance ?? stars?.balance ?? 0)}</span>
                                     </div>
                                 </div>
                             </div>

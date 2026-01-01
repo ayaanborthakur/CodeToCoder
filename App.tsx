@@ -35,7 +35,7 @@ import { SignupPage } from './components/SignupPage';
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
 // PRACTICE_ITEMS removed - loaded dynamically
-import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData } from './types';
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity } from './types';
 import { contentService } from './services/contentService';
 import { generateCodeFromFlowchart, getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
@@ -150,6 +150,7 @@ const App: React.FC = () => {
     const [currentStreak, setCurrentStreak] = useState(0);
     const [dailyChallenges, setDailyChallenges] = useState<DailyChallenge[]>([]);
     const [starNotification, setStarNotification] = useState<{ amount: number; reason: string } | null>(null);
+    const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
 
 
 
@@ -249,6 +250,16 @@ const App: React.FC = () => {
             setPanelsCollapsed(prev => ({ ...prev, chat: false }));
         }
     }, [isMobile]);
+
+    useEffect(() => {
+        if (user) {
+            import('./services/analyticsDataService').then(({ getRecentActivity }) => {
+                getRecentActivity(user.id).then(setUserActivities);
+            });
+        } else {
+            setUserActivities([]);
+        }
+    }, [user, currentView, location.pathname]); // Refresh when user changes, view changes, or path changes (to catch newly logged activities)
 
     const isTerminalLoadingRef = useRef(isTerminalLoading);
     useEffect(() => { isTerminalLoadingRef.current = isTerminalLoading; }, [isTerminalLoading]);
@@ -931,7 +942,7 @@ const App: React.FC = () => {
                     logPracticeComplete(activePracticeItem.id, activePracticeItem.title, activePracticeItem.type);
                 });
             }
-            setTimeout(() => setActivePracticeItem(null), 2000);
+            // Don't auto-clear - let user review results and manually navigate back
         } else if (currentLesson) {
             if (!completedLessons.has(currentLesson.id)) {
                 markLessonAsCompleted(currentLesson.id);
@@ -1982,6 +1993,7 @@ const App: React.FC = () => {
                                 onSelectType={setPracticeCategory}
                                 customItems={customQuizzes}
                                 onAddCustomItem={addCustomQuiz}
+                                activities={userActivities}
                                 onNavigate={(path) => navigate(path)}
                             />
                         } />

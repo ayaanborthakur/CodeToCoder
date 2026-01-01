@@ -59,6 +59,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
             console.error("Failed to log quiz activity", error);
         }
 
+        // Only mark complete and award stars if user gets 100%
         if (correctCount === questions.length) {
             onComplete();
         }
@@ -151,14 +152,20 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
             {!isCollapsed && (
                 <div className="flex-1 flex overflow-hidden">
                     {/* Question Sidebar */}
-                    <div className="hidden lg:flex w-64 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 border-r border-gray-200 dark:border-gray-700 flex-col">
-                        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Questions</h4>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {Object.keys(answers).length} of {questions.length} answered
+                    <div className="hidden lg:flex w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col shadow-sm">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-wider">Questions</h4>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                    {Object.keys(answers).length} of {questions.length} answered
+                                </span>
+                                <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 rounded-md font-bold">
+                                    {Math.round(progressPercentage)}%
+                                </span>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-gray-50/30 dark:bg-gray-900/30">
+
                             {questions.map((q, index) => {
                                 const isAnswered = answers[q.id] !== undefined;
                                 const isCorrect = submitted && answers[q.id] === q.correctAnswerIndex;
@@ -224,19 +231,19 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                         </div>
                         
                         {/* Submit Button in Sidebar */}
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                             {!submitted ? (
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!allAnswered}
-                                    className="w-full py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed transition-colors text-sm"
+                                    className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm uppercase tracking-widest"
                                 >
-                                    Submit ({Object.keys(answers).length}/{questions.length})
+                                    Submit Quiz
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleRetry}
-                                    className="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                                    className="w-full py-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm uppercase tracking-widest border border-gray-200 dark:border-gray-600"
                                 >
                                     Retake Quiz
                                 </button>
@@ -244,9 +251,10 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                         </div>
                     </div>
 
+
                     {/* Main Quiz Content */}
                     <div id="quiz-container" className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth">
-                        <div className="max-w-3xl mx-auto space-y-6 pb-20">
+                        <div className="max-w-3xl mx-auto space-y-6 pb-32">
 
                         {/* Result Summary Card - Shows at top when submitted */}
                         {submitted && (
@@ -391,27 +399,53 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
 
                                         {/* Explicit correction text if wrong */}
                                         {submitted && isWrong && (
-                                            <div className="mt-6 w-full p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl animate-fade-in">
-                                                <p className="text-sm font-bold text-red-800 dark:text-red-300 uppercase tracking-wide mb-1">Correction</p>
-                                                <p className="text-gray-800 dark:text-gray-200">
-                                                    The correct answer is <span className="font-bold text-green-600 dark:text-green-400">{String.fromCharCode(65 + q.correctAnswerIndex)}: {q.options[q.correctAnswerIndex]}</span>
+                                            <div className="mt-6 w-full p-5 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl animate-fade-in">
+                                                <p className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-widest mb-2 font-mono">Correction</p>
+                                                <p className="text-gray-800 dark:text-gray-200 text-lg">
+                                                    The correct answer is <span className="font-bold text-green-600 dark:text-green-400 border-b-2 border-green-200 dark:border-green-800/50">{String.fromCharCode(65 + q.correctAnswerIndex)}: {q.options[q.correctAnswerIndex]}</span>
                                                 </p>
+                                            </div>
+                                        )}
+
+                                        {/* Next Question Navigation */}
+                                        {!submitted && index < questions.length - 1 && userAnswer !== undefined && (
+                                            <div className="mt-8 flex justify-end animate-fade-in">
+                                                <button
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`question-${questions[index + 1].id}`);
+                                                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    }}
+                                                    className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold hover:gap-3 transition-all group"
+                                                >
+                                                    Next Question
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
+
                             );
                         })}
 
-                        {/* Footer Actions */}
-                        <div className="pt-8 pb-12 flex justify-center">
-                            {!submitted && (
+                        {/* Footer Actions - Always visible submit button */}
+                        <div className="pt-8 pb-16 flex justify-center sticky bottom-0 bg-gradient-to-t from-gray-50 dark:from-gray-900 via-gray-50 dark:via-gray-900 to-transparent py-6">
+                            {!submitted ? (
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!allAnswered}
-                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-md hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none transition-colors duration-200 lg:hidden"
+                                    className="px-12 py-4 bg-cyan-600 text-white font-bold text-xl rounded-full shadow-lg hover:bg-cyan-500 hover:shadow-xl disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-200"
                                 >
                                     Submit Answers
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleRetry}
+                                    className="px-12 py-4 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white font-bold text-xl rounded-full shadow-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+                                >
+                                    Retake Quiz
                                 </button>
                             )}
                         </div>
