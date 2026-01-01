@@ -5,6 +5,7 @@ import { User } from '../types';
 import { authService } from '../services/authService';
 import { getDatabase, ref, set, onDisconnect, onValue } from "firebase/database";
 
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -110,6 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Track user presence
+  useEffect(() => {
+    if (user?.id) {
+      trackPresence(user.id);
+    }
+  }, [user]);
+
   const login = async (email: string, password: string) => {
     // We don't need to set loading here as the auth listener handles the state update
     // But we await the service call to propagate errors to the caller
@@ -159,17 +167,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-export const trackPresence = (userId: string) => {
-  const db = getDatabase(); // Connects to RTDB, NOT Firestore
-  const statusRef = ref(db, `status/${userId}`);
+const trackPresence = (userId: string) => {
+  const db = getDatabase();
+  const statusRef = ref(db, 'status/' + userId);
   const connectedRef = ref(db, ".info/connected");
+
+  console.log("Presence tracking started for:", userId);
 
   onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
-      // Set the "If I leave" rule first
-      onDisconnect(statusRef).set("offline");
-      // Then set current state to online
-      set(statusRef, "online");
+      console.log("Connected to RTDB!");
+      
+      // 1. Set disconnect hook
+      onDisconnect(statusRef).set("offline").catch(err => {
+        console.error("onDisconnect setup failed:", err);
+      });
+      
+      // 2. Set current state
+      set(statusRef, "online").then(() => {
+        console.log("Successfully reported ONLINE to RTDB");
+      }).catch(err => {
+        console.error("Set online failed (Check Rules):", err);
+      });
+    } else {
+      console.log("Disconnected from RTDB...");
     }
   });
 };
