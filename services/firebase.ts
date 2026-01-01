@@ -12,6 +12,7 @@ const env = (window as any).env || import.meta.env;
 const firebaseConfig = {
     apiKey: env.VITE_FIREBASE_API_KEY,
     authDomain: "code2coder-a324f.firebaseapp.com",
+    databaseURL: "https://code2coder-a324f-default-rtdb.firebaseio.com/",
     projectId: "code2coder-a324f",
     storageBucket: "code2coder-a324f.firebasestorage.app",
     messagingSenderId: "875613254710",
