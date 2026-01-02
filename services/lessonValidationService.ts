@@ -31,15 +31,12 @@ export async function validateOutput(actualOutput: string, lesson: Lesson): Prom
 
         const isMatch = normalizedActual === normalizedExpected;
 
-        if (!isMatch) {
-            console.log('[Validation] Output mismatch:');
-            console.log('  Expected (norm):', JSON.stringify(normalizedExpected));
-            console.log('  Actual (norm):  ', JSON.stringify(normalizedActual));
-        } else {
+        if (isMatch) {
             console.log('[Validation] Output matched exactly (case-insensitive)!');
+            return true;
         }
 
-        return isMatch;
+        console.log('[Validation] Exact match failed, falling back to AI check...');
     }
 
     // Fallback: Use AI inference for lessons without explicit expectedOutput
@@ -62,9 +59,10 @@ ${actualOutput.trim()}
 Task: Determine if the actual output satisfies the lesson requirements.
 Rules:
 1. If the lesson asks for specific text, check for content match but IGNORE case.
-2. If the lesson is general (e.g. "print the result"), accept any valid representation.
-3. Ignore leading/trailing whitespace.
-4. If the output is empty, error, or completely unrelated, it is INVALID.
+2. If the output contains the correct information but in a different order, it is VALID (unless strict order is crucial for the lesson).
+3. If the lesson is general (e.g. "print the result"), accept any valid representation.
+4. Ignore leading/trailing whitespace.
+5. If the output is empty, error, or completely unrelated, it is INVALID.
 
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
