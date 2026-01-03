@@ -103,7 +103,8 @@ export const claimUsername = async (userId: string, username: string): Promise<v
         // THEN DO ALL WRITES
         transaction.set(userRef, {
             username: normalizedUsername,
-            lastActive: Date.now()
+            lastActive: Date.now(),
+            shown: true
         }, { merge: true });
 
         // Update leaderboard document if it exists

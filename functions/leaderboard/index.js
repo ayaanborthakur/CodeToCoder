@@ -35,7 +35,7 @@ exports.updateLeaderboard = onSchedule({
     // We'll fetch top 100 to keep it manageable and usually sufficient for a leaderboard.
     const usersSnapshot = await db.collection("users")
         .where("net_value", ">", 0)
-        .where("shown", "!=", false)
+        .where("shown", "==", true)
         .orderBy("net_value", "desc")
         .limit(100)
         .get();
