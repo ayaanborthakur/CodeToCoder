@@ -4,9 +4,10 @@ import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
 import { useProgress } from '../hooks/useProgress';
 import { 
-    ArrowLeft, Lock, AlertTriangle, RotateCw, Pencil, 
+    ArrowLeft, Lock, AlertTriangle, RotateCw, Pencil, Camera, X,
     Settings, Shield, Moon, Award, Layers, BarChart3, Star, Trophy, Layout, Code, Mail, Calendar, LogOut, Zap, FileCode
 } from 'lucide-react';
+import { uploadProfilePicture, deleteProfilePicture } from '../services/profilePictureService';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
 import { usePlaygroundFiles } from '../hooks/usePlaygroundFiles';
 import { getBadgeColor, getEarnedBadges, getAllBadges, getBadgesByType, BADGE_CATEGORIES } from '../services/achievementService';
@@ -39,7 +40,7 @@ interface ProfilePageProps {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats, netWorth, starBalance: propStarBalance }) => {
-    const { user, logout, deleteAccount } = useAuth();
+    const { user, logout, deleteAccount, refreshUser } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
     const [starBalance, setStarBalance] = useState(0);
@@ -50,6 +51,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [activityFeed, setActivityFeed] = useState<ActivityItem[]>([]);
+    const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Sync starBalance from prop if provided
     useEffect(() => {
@@ -174,6 +177,40 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
         }
     };
 
+    const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+        
+        setIsUploadingPicture(true);
+        const result = await uploadProfilePicture(user.id, file);
+        setIsUploadingPicture(false);
+        
+        if (result.success) {
+            await refreshUser();
+        } else {
+            alert(result.error || 'Failed to upload picture');
+        }
+        
+        // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleRemoveProfilePicture = async () => {
+        if (!user) return;
+        
+        setIsUploadingPicture(true);
+        const result = await deleteProfilePicture(user.id);
+        setIsUploadingPicture(false);
+        
+        if (result.success) {
+            await refreshUser();
+        } else {
+            alert(result.error || 'Failed to remove picture');
+        }
+    };
+
     if (!user) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900">
@@ -217,16 +254,56 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                             <div className="relative flex flex-col items-center">
                                 {/* Avatar */}
                                 <div className="relative group">
-                                    <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 transition-all duration-300">
-                                        {user.name.charAt(0).toUpperCase()}
+                                    {/* Hidden file input */}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        onChange={handleProfilePictureChange}
+                                        className="hidden"
+                                        id="profile-picture-input"
+                                    />
+                                    
+                                    {/* Avatar display */}
+                                    <div 
+                                        className="w-32 h-32 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 transition-all duration-300 overflow-hidden cursor-pointer"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        {isUploadingPicture ? (
+                                            <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
+                                        ) : user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            user.name.charAt(0).toUpperCase()
+                                        )}
                                     </div>
+                                    
+                                    {/* Camera overlay on hover */}
+                                    <div 
+                                        className="absolute inset-0 rounded-3xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <Camera className="w-8 h-8 text-white" />
+                                    </div>
+                                    
+                                    {/* Edit username button */}
                                     <button 
                                         onClick={() => setIsUsernameModalOpen(true)}
-                                        className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 hover:scale-110 transition-transform"
-                                        style={{ position: 'absolute' }}
+                                        className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 hover:scale-110 transition-transform z-10"
                                     >
                                         <Pencil className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                                     </button>
+                                    
+                                    {/* Remove photo button - only shown when avatar exists */}
+                                    {user.avatar && !isUploadingPicture && (
+                                        <button 
+                                            onClick={handleRemoveProfilePicture}
+                                            className="absolute top-0 right-0 p-1.5 bg-red-500 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+                                            title="Remove photo"
+                                        >
+                                            <X className="w-3 h-3 text-white" />
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="mt-6 text-center space-y-1">
