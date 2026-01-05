@@ -24,22 +24,19 @@ export async function validateOutput(actualOutput: string, lesson: Lesson): Prom
         return false;
     }
 
-    // If lesson has explicit expectedOutput, do exact match
+    // If lesson has explicit expectedOutput, do exact match (but case-insensitive)
     if (lesson.expectedOutput !== undefined) {
-        const normalizedActual = actualOutput.trim();
-        const normalizedExpected = lesson.expectedOutput.trim();
+        const normalizedActual = actualOutput.trim().toLowerCase();
+        const normalizedExpected = lesson.expectedOutput.trim().toLowerCase();
 
         const isMatch = normalizedActual === normalizedExpected;
 
-        if (!isMatch) {
-            console.log('[Validation] Output mismatch:');
-            console.log('  Expected:', JSON.stringify(normalizedExpected));
-            console.log('  Actual:  ', JSON.stringify(normalizedActual));
-        } else {
-            console.log('[Validation] Output matched exactly!');
+        if (isMatch) {
+            console.log('[Validation] Output matched exactly (case-insensitive)!');
+            return true;
         }
 
-        return isMatch;
+        console.log('[Validation] Exact match failed, falling back to AI check...');
     }
 
     // Fallback: Use AI inference for lessons without explicit expectedOutput
@@ -61,10 +58,11 @@ ${actualOutput.trim()}
 
 Task: Determine if the actual output satisfies the lesson requirements.
 Rules:
-1. If the lesson asks for specific text (e.g. "print exactly"), be strict about case and punctuation.
-2. If the lesson is general (e.g. "print the result"), accept any valid representation.
-3. Ignore leading/trailing whitespace.
-4. If the output is empty, error, or completely unrelated, it is INVALID.
+1. If the lesson asks for specific text, check for content match but IGNORE case.
+2. If the output contains the correct information but in a different order, it is VALID (unless strict order is crucial for the lesson).
+3. If the lesson is general (e.g. "print the result"), accept any valid representation.
+4. Ignore leading/trailing whitespace.
+5. If the output is empty, error, or completely unrelated, it is INVALID.
 
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
@@ -139,8 +137,12 @@ Context:
 - Attempts: ${attempts || 'unknown'}
 
 Task: 
-1. Analyze if the code correctly implements the lesson's core concept.
-2. Rate the user's proficiency (0-100) in the following categories based ONLY on this specific submission and context:
+1. **Identify the core concepts** required by the lesson (e.g., loops, variables, if-statements).
+2. **Verify usage**: Does the code actually USE these concepts?
+3. **Reject cheating**: Fail the code if it just prints the expected output ("hardcoded") without performing the required logic. 
+   - Example Invalid: printing the numbers directly when a loop is expected.
+   - Example Valid: using a loop to generate numbers.
+4. Rate the user's proficiency (0-100) in the following categories based ONLY on this specific submission and context:
    - logic: Complexity and flow control.
    - syntax: Correct use of Python rules and style.
    - algorithms: Problem-solving approach.
@@ -167,7 +169,7 @@ Respond with ONLY a JSON object in this format:
             contents: prompt,
             config: { 
                 temperature: 0,
-                response_mime_type: "application/json"
+                responseMimeType: "application/json"
             }
         });
 
@@ -190,6 +192,110 @@ Respond with ONLY a JSON object in this format:
     } catch (error) {
         console.error('Methodology validation error:', error);
         return { isValid: true }; // Fallback to permissive on error
+    }
+}
+
+/**
+ * Validates if a FINAL PROJECT meets the requirements listed in its content/description.
+ * This is a requirement-based check, not an exact output check.
+ */
+export async function validateProjectRequirements(
+    code: string,
+    output: string,
+    lesson: Lesson,
+    durationSeconds?: number
+): Promise<{
+    isValid: boolean;
+    reason?: string;
+    skillRatings?: {
+        logic: number;
+        syntax: number;
+        algorithms: number;
+        debugging: number;
+        efficiency: number;
+        creativity: number;
+    }
+}> {
+    // Heuristic check: Empty code is always invalid
+    if (!code || !code.trim()) {
+        return { isValid: false, reason: 'Project code is empty' };
+    }
+
+    try {
+        const ai = getGenAI();
+        if (!ai) {
+            console.warn('Gemini API not configured, skipping project validation');
+            return { isValid: true }; // Fallback
+        }
+
+        const prompt = `You are evaluating a student's Final Project for a Python course.
+
+Project Title: ${lesson.title}
+Requirements (from lesson content):
+${lesson.content}
+${lesson.goal ? `Goal: ${lesson.goal}` : ''}
+${lesson.objective ? `Objective: ${lesson.objective}` : ''}
+
+Student's Code:
+\`\`\`python
+${code}
+\`\`\`
+
+Actaul Execution Output:
+${output}
+
+Context:
+- Duration: ${durationSeconds || 'unknown'} seconds
+
+Task:
+1. Determine if the student's project meets the CORE requirements described in the lesson content.
+2. Be FLEXIBLE with implementation details (variable names, specific message wording) but STRICT on functionality (does it actually work as asked?).
+3. If the code errors out or fails to run, it is INVALID.
+4. Rate the proficiency (0-100).
+
+Respond with ONLY a JSON object in this format:
+{
+  "isValid": boolean,
+  "reason": "string (brief explanation for the student)",
+  "skillRatings": {
+    "logic": number,
+    "syntax": number,
+    "algorithms": number,
+    "debugging": number,
+    "efficiency": number,
+    "creativity": number
+  }
+}`;
+
+        const result = await ai.models.generateContent({
+            model: PRO_MODEL,
+            contents: prompt,
+            config: { 
+                temperature: 0.1,
+                responseMimeType: "application/json"
+            }
+        });
+
+        const responseText = (result.text ?? '').trim();
+        let jsonResponse;
+        try {
+            jsonResponse = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse AI JSON response for project:', responseText);
+            return { isValid: true }; // Permissive fallback
+        }
+
+        if (!jsonResponse.isValid) {
+            console.log('[Validation] Project Requirements issue:', jsonResponse.reason);
+        } else {
+            console.log('[Validation] Project passed!');
+        }
+
+        return jsonResponse;
+
+    } catch (error) {
+        console.error('Project validation error:', error);
+        return { isValid: true }; // Fallback
     }
 }
 
@@ -218,6 +324,21 @@ export async function validateLessonCompletion(
     }
 }> {
     console.log('[Validation] Starting lesson validation for:', lesson.id);
+    
+    // Special handling for Final Projects
+    if (lesson.type === 'project') {
+         console.log('[Validation] Validating as FINAL PROJECT (Req. Check)');
+         const projectResult = await validateProjectRequirements(code, output, lesson, durationSeconds);
+         
+         return {
+            passed: projectResult.isValid,
+            outputMatch: projectResult.isValid, // Implicitly true if project passes
+            methodologyMatch: projectResult.isValid,
+            reason: projectResult.reason,
+            skillRatings: projectResult.skillRatings
+         };
+    }
+
     console.log('[Validation] Has expectedOutput:', lesson.expectedOutput !== undefined);
 
     // Run both validations in parallel

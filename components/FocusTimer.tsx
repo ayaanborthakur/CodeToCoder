@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Timer, Play, Square, Award, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { addStars } from '../services/marketplaceService';
+import { updateFocusStats } from '../services/analyticsDataService';
 
 interface FocusTimerProps {
     onComplete?: (minutes: number) => void;
@@ -15,6 +16,14 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showAward, setShowAward] = useState(false);
     
+    const [totalLostStars, setTotalLostStars] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return parseInt(localStorage.getItem('focus_total_lost_stars') || '0');
+        }
+        return 0;
+    });
+    const [showLost, setShowLost] = useState<{ current: number; total: number } | null>(null);
+    
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const handleComplete = React.useCallback(() => {
@@ -25,6 +34,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
         // Award stars: 3 stars per minute
         if (user) {
             addStars(user.id, durationMinutes * 3, "Focus Session");
+            // Log analytics
+            updateFocusStats(user.id, {
+                starsEarned: durationMinutes * 3,
+                minutes: durationMinutes
+            });
         }
 
         if (onComplete) onComplete(durationMinutes);
@@ -35,6 +49,44 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
         // Reset
         setTimeLeft(durationMinutes * 60);
     }, [durationMinutes, onComplete, user]);
+
+    // Strict Focus Mode: Reset if tab is switched/minimized
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden && isActive) {
+                // User left the tab - Strict Reset
+                const potentialStars = durationMinutes * 3;
+                
+                setIsActive(false);
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                setTimeLeft(durationMinutes * 60);
+                
+                // Track lost stars
+                const newTotal = totalLostStars + potentialStars;
+                setTotalLostStars(newTotal);
+                localStorage.setItem('focus_total_lost_stars', newTotal.toString());
+                
+                if (user) {
+                    updateFocusStats(user.id, {
+                        starsLost: potentialStars
+                    });
+                }
+                
+                // Show Failure Notification
+                setShowAward(false); 
+                setShowLost({ current: potentialStars, total: newTotal });
+                console.warn('Focus lost! Timer reset. Stars lost:', potentialStars);
+
+                // Hide notification after 5s
+                setTimeout(() => setShowLost(null), 5000);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [isActive, durationMinutes, totalLostStars, user]);
 
     useEffect(() => {
         if (isActive && timeLeft > 0) {
@@ -55,6 +107,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
         setIsActive(true);
         setIsMenuOpen(false);
         setShowAward(false);
+        setShowLost(null);
     };
 
     const handleStop = () => {
@@ -81,7 +134,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
     return (
         <div className="relative flex items-center">
             {/* Timer Display */}
-            {!isActive && !showAward ? (
+            {!isActive && !showAward && !showLost ? (
                 <div className="flex items-center gap-2">
                      <button 
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -103,6 +156,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
                     <Award className="w-4 h-4" />
                     <span className="font-bold text-sm">Focus Complete!</span>
                 </div>
+            ) : showLost ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg animate-pulse" title={`Total lost: ${showLost.total}`}>
+                   <Timer className="w-4 h-4" />
+                   <span className="font-bold text-xs whitespace-nowrap">Lost {showLost.current} stars! (Total: {showLost.total})</span>
+               </div>
             ) : (
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-lg">
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />

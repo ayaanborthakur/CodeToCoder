@@ -858,7 +858,7 @@ const App: React.FC = () => {
                 setTimeout(() => {
                     changeLesson(currentModule.id, nextLesson.id, true);
                     setActiveBottomTab('lesson');
-                }, 2000);
+                }, 500);
             }
         }
     }, [currentModuleId, currentLesson, changeLesson, modules]);
@@ -1094,16 +1094,19 @@ const App: React.FC = () => {
                                 } catch (err) {
                                     console.error('[App] Failed to log analytics:', err);
                                 }
+
+                                setLessonStartTime(Date.now());
+                                advanceToNextLesson();
                             } else {
                                 console.warn('[Lesson Validation Failed]', validation.reason);
+                                setTerminalOutput(prev => prev + `\n\n❌ ${validation.reason || "Lesson requirements not met. Please check your code and try again."}`);
                             }
                         } else {
                             // This shouldn't happen in classroom view (usually only for quiz/lesson), but handle gracefully
                             markLessonAsCompleted(contextItem.id);
+                            setLessonStartTime(Date.now());
+                            advanceToNextLesson();
                         }
-
-                        setLessonStartTime(Date.now());
-                        advanceToNextLesson();
                     } else {
                         // Already completed, just advance
                         // Log activity anyway since they redid it

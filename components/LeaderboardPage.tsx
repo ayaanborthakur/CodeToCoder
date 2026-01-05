@@ -4,6 +4,13 @@ import { getLeaderboardData, LeaderboardEntry } from '../services/leaderboardSer
 import { useAuth } from '../contexts/AuthContext';
 import { Medal, Star, Crown, Trophy, Calendar, Search } from 'lucide-react';
 
+const RankBadge = ({ rank }: { rank: number }) => {
+    if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce-slow" />;
+    if (rank === 2) return <Medal className="w-6 h-6 text-gray-300 fill-gray-300" />;
+    if (rank === 3) return <Medal className="w-6 h-6 text-amber-700 fill-amber-700" />;
+    return <span className="font-mono font-bold text-gray-400">#{rank}</span>;
+};
+
 export const LeaderboardPage: React.FC = () => {
     const { user } = useAuth();
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -32,7 +39,6 @@ export const LeaderboardPage: React.FC = () => {
     const top3 = entries.slice(0, 3);
     const tableEntries = filteredEntries; // Show all entries in the table, including top 3
 
-    // Format member since date
     const getMemberSince = (timestamp?: number) => {
         if (!timestamp) return 'Unknown';
         const date = new Date(timestamp);
@@ -42,13 +48,6 @@ export const LeaderboardPage: React.FC = () => {
         
         if (diffDays < 30) return `${diffDays} days`;
         return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
-    };
-
-    const RankBadge = ({ rank }: { rank: number }) => {
-        if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce-slow" />;
-        if (rank === 2) return <Medal className="w-6 h-6 text-gray-300 fill-gray-300" />;
-        if (rank === 3) return <Medal className="w-6 h-6 text-amber-700 fill-amber-700" />;
-        return <span className="font-mono font-bold text-gray-400">#{rank}</span>;
     };
 
     return (
@@ -82,7 +81,7 @@ export const LeaderboardPage: React.FC = () => {
                                 {/* Rank 2 */}
                                 {top3[1] && (
                                     <div className="order-2 md:order-1 flex flex-col items-center w-full md:w-1/3 max-w-[280px]">
-                                        <div className="mb-4 relative">
+                                        <div className="mb-6 relative">
                                             <div className="w-24 h-24 rounded-full border-4 border-gray-300 overflow-hidden shadow-[0_0_20px_rgba(209,213,219,0.3)] bg-gray-800">
                                                 {top3[1].avatar ? (
                                                     <img src={top3[1].avatar} alt={top3[1].username} className="w-full h-full object-cover" />
@@ -92,7 +91,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gray-300 text-gray-900 font-black text-xs px-3 py-1 rounded-full shadow-lg">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gray-300 text-gray-900 font-black text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
                                                 RANK 2
                                             </div>
                                         </div>
@@ -123,7 +122,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black text-sm px-4 py-1.5 rounded-full shadow-xl z-20">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
                                                 CHAMPION
                                             </div>
                                         </div>
@@ -146,7 +145,7 @@ export const LeaderboardPage: React.FC = () => {
                                 {/* Rank 3 */}
                                 {top3[2] && (
                                     <div className="order-3 flex flex-col items-center w-full md:w-1/3 max-w-[280px]">
-                                        <div className="mb-4 relative">
+                                        <div className="mb-6 relative">
                                             <div className="w-24 h-24 rounded-full border-4 border-amber-700 overflow-hidden shadow-[0_0_20px_rgba(180,83,9,0.3)] bg-gray-800">
                                                 {top3[2].avatar ? (
                                                     <img src={top3[2].avatar} alt={top3[2].username} className="w-full h-full object-cover" />
@@ -156,7 +155,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-700 text-white font-black text-xs px-3 py-1 rounded-full shadow-lg">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-amber-700 text-white font-black text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
                                                 RANK 3
                                             </div>
                                         </div>
@@ -223,8 +222,8 @@ export const LeaderboardPage: React.FC = () => {
                                                     `}
                                                 >
                                                     <td className="px-6 py-4 text-center">
-                                                        <div className="inline-flex justify-center items-center w-8 h-8 rounded-lg bg-slate-800 text-slate-400 font-mono font-bold group-hover:bg-slate-700 transition-colors">
-                                                            {entry.rank}
+                                                        <div className="flex justify-center items-center">
+                                                            <RankBadge rank={entry.rank} />
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">

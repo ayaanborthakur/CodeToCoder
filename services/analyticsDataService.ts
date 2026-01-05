@@ -4,7 +4,11 @@ import {
     where, 
     orderBy, 
     limit, 
-    getDocs
+    getDocs,
+    updateDoc,
+    increment,
+    getDoc,
+    doc
 } from 'firebase/firestore';
 import { userPaths } from './firestorePathHelper';
 import type { UserActivity, DailyActivitySummary } from '../types';
@@ -44,6 +48,42 @@ export const logUserActivity = async (
         console.error('Failed to log user activity:', error);
         // Don't throw, just log error so it doesn't break app flow
         return '';
+    }
+};
+
+
+/**
+ * Update user's focus stats (incremental)
+ */
+export const updateFocusStats = async (
+    userId: string, 
+    stats: { 
+        starsLost?: number; 
+        starsEarned?: number; 
+        minutes?: number 
+    }
+): Promise<void> => {
+    try {
+        const userRef = userPaths.root(userId);
+        
+        // Construct the update object using dot notation for nested fields
+        const updates: any = {};
+        
+        if (stats.starsLost) {
+            updates['focusStats.totalStarsLost'] = increment(stats.starsLost);
+        }
+        if (stats.starsEarned) {
+            updates['focusStats.totalStarsEarned'] = increment(stats.starsEarned);
+        }
+        if (stats.minutes) {
+            updates['focusStats.totalFocusMinutes'] = increment(stats.minutes);
+        }
+        
+        await updateDoc(userRef, updates);
+        console.log('[Analytics] Updated focus stats successfully');
+        
+    } catch (error) {
+        console.error('Failed to update focus stats:', error);
     }
 };
 
@@ -162,7 +202,8 @@ export const getCategoryStats = async (userId: string): Promise<{name: string, v
             lesson: 0,
             practice: 0,
             quiz: 0,
-            project: 0
+            project: 0,
+            focus: 0
         };
         
         activities.forEach(act => {
@@ -172,7 +213,7 @@ export const getCategoryStats = async (userId: string): Promise<{name: string, v
         });
         
         // Calculate total time
-        const totalTime = categories.lesson + categories.practice + categories.quiz + categories.project;
+        const totalTime = categories.lesson + categories.practice + categories.quiz + categories.project + categories.focus;
         
         // If no time recorded, return empty
         if (totalTime === 0) {
@@ -185,6 +226,7 @@ export const getCategoryStats = async (userId: string): Promise<{name: string, v
             { name: 'Practice', value: Math.round((categories.practice / totalTime) * 100) },
             { name: 'Quizzes', value: Math.round((categories.quiz / totalTime) * 100) },
             { name: 'Projects', value: Math.round((categories.project / totalTime) * 100) },
+            { name: 'Focus', value: Math.round((categories.focus / totalTime) * 100) },
         ].filter(item => item.value > 0);
         
     } catch (error) {

@@ -171,8 +171,18 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
               className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
               aria-label="Open profile"
             >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold text-white">
-                {user.name.charAt(0).toUpperCase()}
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm relative">
+                 {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
+                      className="w-full h-full object-cover"
+                    />
+                 ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold text-white">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                 )}
               </div>
             </button>
           ) : (
