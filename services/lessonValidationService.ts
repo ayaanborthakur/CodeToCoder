@@ -137,8 +137,12 @@ Context:
 - Attempts: ${attempts || 'unknown'}
 
 Task: 
-1. Analyze if the code correctly implements the lesson's core concept.
-2. Rate the user's proficiency (0-100) in the following categories based ONLY on this specific submission and context:
+1. **Identify the core concepts** required by the lesson (e.g., loops, variables, if-statements).
+2. **Verify usage**: Does the code actually USE these concepts?
+3. **Reject cheating**: Fail the code if it just prints the expected output ("hardcoded") without performing the required logic. 
+   - Example Invalid: printing the numbers directly when a loop is expected.
+   - Example Valid: using a loop to generate numbers.
+4. Rate the user's proficiency (0-100) in the following categories based ONLY on this specific submission and context:
    - logic: Complexity and flow control.
    - syntax: Correct use of Python rules and style.
    - algorithms: Problem-solving approach.
