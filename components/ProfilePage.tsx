@@ -253,8 +253,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                             
                             <div className="relative flex flex-col items-center">
                                 {/* Avatar */}
-                                <div className="relative group">
-                                    {/* Hidden file input */}
+                                <div className="relative group w-32 h-32 mx-auto">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -264,11 +263,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                         id="profile-picture-input"
                                     />
                                     
-                                    {/* Avatar display */}
-                                    <div 
-                                        className="w-32 h-32 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 transition-all duration-300 overflow-hidden cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
+                                    {/* Avatar Display */}
+                                    <div className="w-full h-full rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
                                         {isUploadingPicture ? (
                                             <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
                                         ) : user.avatar ? (
@@ -277,39 +273,49 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             user.name.charAt(0).toUpperCase()
                                         )}
                                     </div>
-                                    
-                                    {/* Camera overlay on hover */}
+
+                                    {/* Persistent Edit Hint (Visible when NOT hovering) */}
+                                    <div className="absolute bottom-2 right-2 p-1.5 bg-black/40 backdrop-blur-md rounded-full text-white/90 shadow-sm border border-white/20 group-hover:opacity-0 transition-opacity duration-200">
+                                        <Camera className="w-4 h-4" />
+                                    </div>
+
+                                    {/* Hover Overlay */}
                                     <div 
-                                        className="absolute inset-0 rounded-3xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                                        className="absolute inset-0 bg-black/50 backdrop-blur-[2px] rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center cursor-pointer"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <Camera className="w-8 h-8 text-white" />
+                                        <Camera className="w-8 h-8 text-white mb-1 drop-shadow-md" />
+                                        <span className="text-white text-[10px] font-bold uppercase tracking-wider drop-shadow-md">Edit</span>
+
+                                        {/* Remove Button (Inside Overlay) */}
+                                        {user.avatar && !isUploadingPicture && (
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemoveProfilePicture();
+                                                }}
+                                                className="absolute top-2 right-2 p-1.5 bg-white/20 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all duration-200 shadow-sm"
+                                                title="Remove Photo"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
                                     </div>
-                                    
-                                    {/* Edit username button */}
-                                    <button 
-                                        onClick={() => setIsUsernameModalOpen(true)}
-                                        className="absolute bottom-0 right-0 p-2 bg-white dark:bg-gray-700 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 hover:scale-110 transition-transform z-10"
-                                    >
-                                        <Pencil className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                                    </button>
-                                    
-                                    {/* Remove photo button - only shown when avatar exists */}
-                                    {user.avatar && !isUploadingPicture && (
-                                        <button 
-                                            onClick={handleRemoveProfilePicture}
-                                            className="absolute top-0 right-0 p-1.5 bg-red-500 rounded-full shadow-lg hover:scale-110 transition-transform z-10"
-                                            title="Remove photo"
-                                        >
-                                            <X className="w-3 h-3 text-white" />
-                                        </button>
-                                    )}
                                 </div>
 
-                                <div className="mt-6 text-center space-y-1">
+                                <div className="mt-8 text-center space-y-1">
                                     <h2 className="text-3xl font-black tracking-tight">{user.name}</h2>
-                                    <p className="text-cyan-600 dark:text-cyan-400 font-bold">@{user.username || 'username'}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-center gap-2">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <p className="text-cyan-600 dark:text-cyan-400 font-bold">@{user.username || 'username'}</p>
+                                        <button 
+                                            onClick={() => setIsUsernameModalOpen(true)}
+                                            className="p-1 text-gray-400 hover:text-cyan-500 transition-colors"
+                                            title="Edit Username"
+                                        >
+                                            <Pencil className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
                                         <Mail className="w-3.5 h-3.5" />
                                         {user.email}
                                     </p>

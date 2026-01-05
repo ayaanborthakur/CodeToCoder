@@ -86,11 +86,26 @@ export async function deleteProfilePicture(userId: string): Promise<UploadResult
 }
 
 /**
- * Updates the avatar field in the user's Firestore document
+ * Updates the avatar field in the user's Firestore document AND leaderboard document
  */
 export async function updateAvatarInFirestore(userId: string, avatarUrl: string | null): Promise<void> {
+  // 1. Update User Document
   const userRef = doc(db, 'users', userId);
   await updateDoc(userRef, {
     avatar: avatarUrl
   });
+
+  // 2. Update Leaderboard Document (Best Effort)
+  // We try to update the leaderboard entry so the change is instant.
+  // If the user isn't on the leaderboard yet, this might fail or do nothing, which is fine.
+  try {
+    const leaderboardRef = doc(db, 'leaderboard', userId);
+    await updateDoc(leaderboardRef, {
+      avatar: avatarUrl
+    });
+  } catch (error) {
+    // It's possible the doc doesn't exist if they haven't earned any stars yet.
+    // We ignore this error as the scheduled function will eventually sync it.
+    console.warn('Could not update leaderboard avatar (user might not exist in leaderboard yet):', error);
+  }
 }
