@@ -61,32 +61,6 @@ export interface PracticeItem {
   quizQuestions?: QuizQuestion[];
 }
 
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  username?: string; // Unique username for display/leaderboard
-  avatar?: string;
-  joinedAt: number;
-  achievements?: UserAchievements;
-  net_value?: number; // Total value for leaderboard (e.g., total stars earned)
-}
-
-
-// Badge System Types
-export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project' | 'streak' | 'collection' | 'special';
-export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
-
-export interface Badge {
-  id: string;
-  name: string;
-  description: string;
-  type: BadgeType;
-  tier: BadgeTier;
-  requirement: number;
-  icon?: string; // Emoji or icon identifier
-}
-
 export interface UserAchievements {
   earnedBadgeIds: string[];
   totalPoints: number;
@@ -99,6 +73,24 @@ export interface UserStars {
   totalEarned: number;
   totalSpent: number;
   lastUpdated: number;
+}
+
+export interface FocusStats {
+    totalStarsLost: number;
+    totalStarsEarned: number;
+    totalFocusMinutes: number;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  username?: string; // Unique username for display/leaderboard
+  avatar?: string;
+  joinedAt: number;
+  achievements?: UserAchievements;
+  net_value?: number; // Total value for leaderboard (e.g., total stars earned)
+  focusStats?: FocusStats;
 }
 
 export interface StarTransaction {
@@ -276,7 +268,7 @@ export interface SkillRatings {
 export interface UserActivity {
   id: string;
   userId: string;
-  type: 'lesson' | 'quiz' | 'practice' | 'project';
+  type: 'lesson' | 'quiz' | 'practice' | 'project' | 'focus';
   itemId: string;
   itemTitle: string;
   timestamp: number;

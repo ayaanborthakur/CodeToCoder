@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Timer, Play, Square, Award, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { addStars } from '../services/marketplaceService';
+import { updateFocusStats } from '../services/analyticsDataService';
 
 interface FocusTimerProps {
     onComplete?: (minutes: number) => void;
@@ -33,6 +34,11 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
         // Award stars: 3 stars per minute
         if (user) {
             addStars(user.id, durationMinutes * 3, "Focus Session");
+            // Log analytics
+            updateFocusStats(user.id, {
+                starsEarned: durationMinutes * 3,
+                minutes: durationMinutes
+            });
         }
 
         if (onComplete) onComplete(durationMinutes);
@@ -60,6 +66,12 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
                 setTotalLostStars(newTotal);
                 localStorage.setItem('focus_total_lost_stars', newTotal.toString());
                 
+                if (user) {
+                    updateFocusStats(user.id, {
+                        starsLost: potentialStars
+                    });
+                }
+                
                 // Show Failure Notification
                 setShowAward(false); 
                 setShowLost({ current: potentialStars, total: newTotal });
@@ -74,7 +86,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [isActive, durationMinutes, totalLostStars]);
+    }, [isActive, durationMinutes, totalLostStars, user]);
 
     useEffect(() => {
         if (isActive && timeLeft > 0) {
