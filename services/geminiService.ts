@@ -1,709 +1,167 @@
+/**
+ * Gemini Service - Frontend API Client
+ * 
+ * Calls Cloud Functions that proxy to Vertex AI.
+ */
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 import type { ChatMessage, Lesson, LintIssue, PracticeItem, Difficulty } from '../types';
 
-// Helper to get or create the AI client
-const getAiClient = (): GoogleGenAI => {
-    // Use runtime env if available, otherwise fallback to build-time env
-    const env = (window as any).env || import.meta.env;
-    const apiKey = env.VITE_API_KEY;
-    
-    if (!apiKey) {
-        console.error("Gemini API Key is missing! Make sure VITE_API_KEY is set in .env or cloud environment.");
-    }
-    
-    return new GoogleGenAI({ apiKey });
-};
+// Callable function references
+const aiChatFn = httpsCallable(functions, 'aiChat');
+const aiFeedbackFn = httpsCallable(functions, 'aiFeedback');
+const aiLintFn = httpsCallable(functions, 'aiLint');
+const aiReferenceFn = httpsCallable(functions, 'aiReference');
+const aiQuizFn = httpsCallable(functions, 'aiQuiz');
+const aiFlowchartFn = httpsCallable(functions, 'aiFlowchart');
+const aiUsernameCheckFn = httpsCallable(functions, 'aiUsernameCheck');
 
-// Core models used in the application
+// Export model names for reference (used by other services)
 export const PRO_MODEL = 'gemini-2.5-pro';
 export const LITE_MODEL = 'gemini-2.5-flash-lite';
 
-// FIX: Default model to Pro if needed, but we'll use specific constants below
-const model = PRO_MODEL;
-
-// Rate Limiting: Hard cap of 6 requests per minute.
-// 60 seconds / 6 requests = 10 seconds per request.
-const MIN_REQUEST_DELAY = 10000;
-const RATE_LIMIT_KEY = 'code2coder_next_allowed_req_time';
-
-let requestQueue: Promise<any> = Promise.resolve();
-
-const rateLimit = async <T>(operation: () => Promise<T>): Promise<T> => {
-    // Chain requests to ensure strict serialization within this instance
-    const nextRequest = requestQueue.then(async () => {
-        const now = Date.now();
-        let nextAllowedTime = 0;
-
-        try {
-            const stored = localStorage.getItem(RATE_LIMIT_KEY);
-            if (stored) nextAllowedTime = parseInt(stored, 10);
-        } catch (e) { /* Ignore storage errors */ }
-
-        // If next allowed time is invalid or way in the past, reset to now
-        if (isNaN(nextAllowedTime) || nextAllowedTime < now - 60000) {
-            nextAllowedTime = now;
-        }
-
-        // Ensure we don't schedule in the past
-        if (nextAllowedTime < now) {
-            nextAllowedTime = now;
-        }
-
-        const waitDuration = nextAllowedTime - now;
-
-        // Reserve the slot immediately for the *next* request
-        // This effectively books the 10s window starting from nextAllowedTime
-        const newNextTime = nextAllowedTime + MIN_REQUEST_DELAY;
-        try {
-            localStorage.setItem(RATE_LIMIT_KEY, newNextTime.toString());
-        } catch (e) { /* Ignore */ }
-
-        if (waitDuration > 0) {
-            await new Promise(resolve => setTimeout(resolve, waitDuration));
-        }
-
-        return await operation();
-    });
-
-    // Advance the queue without breaking on errors
-    requestQueue = nextRequest.catch(() => { });
-    return nextRequest;
-};
-
-// Helper for retrying operations
-const retryOperation = async <T>(operation: () => Promise<T>, retries = 1, delay = 2000): Promise<T> => {
-    try {
-        return await rateLimit(operation);
-    } catch (error: any) {
-        const isQuotaError = error?.status === 429 ||
-            error?.code === 429 ||
-            error?.message?.includes('429') ||
-            error?.toString().includes('429') ||
-            error?.message?.includes('quota') ||
-            error?.error?.code === 429;
-
-        if (retries > 0 && isQuotaError) {
-            console.warn(`Quota limit reached. Retrying in ${delay}ms...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return retryOperation(operation, retries - 1, delay * 2);
-        }
-        throw error;
+/**
+ * Get chat response from AI tutor
+ */
+export const getChatResponse = async (
+  history: ChatMessage[], 
+  lesson: Lesson | null, 
+  code: string = '', 
+  isHardMode: boolean = false
+): Promise<string> => {
+  try {
+    const result = await aiChatFn({ history, lesson, code, isHardMode });
+    const data = result.data as { response: string };
+    return data.response;
+  } catch (error: unknown) {
+    console.error("Error fetching chat response:", error);
+    const err = error as { code?: string };
+    if (err.code === 'functions/resource-exhausted') {
+      return "I'm receiving too many requests right now. Please try again in a few seconds.";
     }
-};
-
-export const getChatResponse = async (history: ChatMessage[], lesson: Lesson | null, code: string = '', isHardMode: boolean = false): Promise<string> => {
-    let systemInstruction = '';
-
-    const codeContext = code ? `\n\nCURRENT USER CODE:\n\`\`\`python\n${code}\n\`\`\`` : '\n\nCURRENT USER CODE: (None provided)';
-
-    if (lesson) {
-        const commonMistakesContext = lesson.commonMistakes ? `\nCommon Mistakes to watch out for:\n${lesson.commonMistakes}` : '';
-
-        // Updated System Instruction: Tutor Mode (No Direct Answers)
-        systemInstruction = isHardMode
-            ? `You are Code2Coder AI, a strict code reviewer. The user is in HARD MODE.
-           - CRITICAL: Do NOT give direct answers or complete code solutions.
-           - Do NOT explain concepts in detail unless specifically asked.
-           - Only provide small, cryptic hints or point out the general area of the mistake.
-           - Encourage the user to read the error messages and debug themselves.
-           - Keep responses concise and professional.
-           
-           Current Lesson: "${lesson.title}"
-           Lesson Objective: ${lesson.objective}
-           Lesson Content:
-           ---
-           ${lesson.content}
-           ---
-           ${commonMistakesContext}
-           ${codeContext}`
-            : `You are Code2Coder AI, a supportive Socratic Tutor for Python beginners. 
-           
-           YOUR GOAL: Guide the user to the solution, but NEVER provide the full code answer directly.
-           
-           RULES:
-           1. **No Direct Solutions**: If the user asks "How do I do this?", do not write the code for them. Instead, explain the concept or provide a similar (but different) example.
-           2. **Socratic Method**: Ask guiding questions to help the user figure it out. e.g., "What happens if you try using the print function here?"
-           3. **Error Debugging**: If they have an error, explain *why* the error is happening, don't just fix it.
-           4. **Encouragement**: Be patient and encouraging. 
-           
-           FORMATTING:
-           - Use Markdown.
-           - Always use python code blocks for examples.
-           - Use inline code for variable names.
-
-           Current Lesson: "${lesson.title}"
-           Lesson Objective: ${lesson.objective}
-           Lesson Content:
-           ---
-           ${lesson.content}
-           ---
-           ${commonMistakesContext}
-           ${codeContext}`;
-    } else {
-        // Playground Mode
-        systemInstruction = `You are Code2Coder AI, an expert Python assistant in Playground Mode.
-      The user is experimenting with Python code freely.
-      - Answer questions about Python syntax, libraries, and best practices.
-      - Help debug code snippets provided by the user.
-      - Provide code examples and explanations using Markdown.
-      - Always use python code blocks for code snippets.
-      - Be helpful, encouraging, and concise.
-      
-      ${codeContext}`;
-    }
-
-    try {
-        const client = getAiClient();
-
-        const validHistory = history.filter(h => h.content && h.content.trim() !== '');
-        if (validHistory.length === 0) {
-            return "I'm listening. What's on your mind?";
-        }
-
-        const lastMessage = validHistory[validHistory.length - 1];
-        const historyForApi = validHistory.slice(0, -1).map(msg => ({
-            role: msg.role,
-            parts: [{ text: msg.content }]
-        }));
-
-        if (historyForApi.length > 0 && historyForApi[0].role === 'model') {
-            historyForApi.shift();
-        }
-
-        return await retryOperation(async () => {
-            const chat = client.chats.create({
-                model,
-                config: { systemInstruction },
-                history: historyForApi
-            });
-
-            const result = await chat.sendMessage({ message: lastMessage.content });
-            return result.text ?? "I'm not sure how to respond to that.";
-        });
-
-    } catch (error: any) {
-        console.error("Error fetching chat response:", error);
-        const isQuota = error?.status === 429 || error?.code === 429 || error?.message?.includes('429') || error?.toString().includes('429');
-        if (isQuota) {
-            return "I'm receiving too many requests right now. Please try again in a few seconds.";
-        }
-        return "I encountered an error while trying to think. Please check your internet connection.";
-    }
+    return "I encountered an error while trying to think. Please check your internet connection.";
+  }
 };
 
 export interface RunCodeResult {
-    success: boolean;
-    output: string;
-    explanation: string;
+  success: boolean;
+  output: string;
+  explanation: string;
 }
 
-// New Feedback Function (Decoupled from Execution)
-export const getFeedback = async (code: string, output: string, objective?: string, isHardMode: boolean = false): Promise<string | null> => {
-    if (isHardMode) return null; // No feedback in hard mode
-
-    const finalObjective = objective || "The user is exploring freely.";
-
-    const prompt = `
-    You are a Python tutor. The user has run some code.
-    
-    **User's Code:**
-    \`\`\`python
-    ${code}
-    \`\`\`
-    
-    **Execution Output:**
-    \`\`\`text
-    ${output}
-    \`\`\`
-    
-    **Objective:** ${finalObjective}
-    
-    **Task:**
-    Provide brief, helpful feedback.
-    1. If the code failed (error in output), explain *why* it failed in simple terms.
-    2. If the code succeeded but didn't meet the objective, give a hint.
-    3. If it succeeded and met the objective, say "Great job!" and maybe a small tip.
-    
-    **Constraints:**
-    - MAX 2-3 sentences.
-    - NO direct code solutions.
-    - Be encouraging.
-    `;
-
-    try {
-        const client = getAiClient();
-        return await retryOperation(async () => {
-            const response = await client.models.generateContent({
-                model: LITE_MODEL,
-                contents: prompt,
-            });
-            return response.text || null;
-        });
-    } catch (error) {
-        console.error("Error getting feedback:", error);
-        return null;
-    }
+/**
+ * Get feedback on code execution
+ */
+export const getFeedback = async (
+  code: string, 
+  output: string, 
+  objective?: string, 
+  isHardMode: boolean = false
+): Promise<string | null> => {
+  if (isHardMode) return null;
+  
+  try {
+    const result = await aiFeedbackFn({ code, output, objective, isHardMode });
+    const data = result.data as { feedback: string | null };
+    return data.feedback;
+  } catch (error) {
+    console.error("Error getting feedback:", error);
+    return null;
+  }
 };
 
 // DEPRECATED: Kept for reference but should be replaced by pyodideService + getFeedback
-export const runCodeWithAI = async (_code: string, _objective?: string, _isHardMode: boolean = false): Promise<RunCodeResult> => {
-    // This function is now deprecated in favor of client-side execution.
-    // We will return a dummy response to avoid breaking existing calls until refactor is complete.
-    return {
-        success: false,
-        output: "Please refresh the page to use the new execution engine.",
-        explanation: "System update required."
-    };
+export const runCodeWithAI = async (
+  _code: string, 
+  _objective?: string, 
+  _isHardMode: boolean = false
+): Promise<RunCodeResult> => {
+  return {
+    success: false,
+    output: "Please refresh the page to use the new execution engine.",
+    explanation: "System update required."
+  };
 };
 
-// Deduplication for linting
-let latestLintCode: string | null = null;
-
+/**
+ * Lint code with AI
+ */
 export const lintCodeWithAI = async (code: string): Promise<LintIssue[]> => {
-    latestLintCode = code;
-
-    const prompt = `
-You are a helpful Python linter. Your task is to analyze the provided Python code for syntax errors and major logical bugs.
-
-**Rules:**
-1.  **Analyze:** Check for invalid syntax, undefined variables, indentation errors (that break execution), and infinite loops.
-2.  **Noise Reduction:** Do NOT report minor PEP8 style issues (like missing whitespace around operators, blank lines, or variable naming conventions) unless they significantly affect readability. Focus on things that will likely cause the code to crash or behave incorrectly.
-3.  **Return JSON:** You MUST respond with a JSON object which contains a list of issues.
-    \`\`\`json
-    {
-        "issues": [
-            {
-                "line": number,
-                "message": "string",
-                "type": "error" | "warning"
-            }
-        ]
-    }
-    \`\`\`
-4.  **Details:**
-    *   \`line\`: The 1-based line number where the issue occurs.
-    *   \`message\`: A short, concise description of the error (e.g., "Missing colon", "Indentation error", "Undefined variable 'x'").
-    *   \`type\`: "error" for things that break code (syntax errors), "warning" for logical bugs or critical bad practices.
-    *   If the code is clean or issues are minor, return an empty array for "issues".
-
-**Python Code to Lint:**
-\`\`\`python
-${code}
-\`\`\`
-`;
-
-    try {
-        const client = getAiClient();
-        // Linting is background, we limit it via rateLimit, but return empty on error instead of throwing
-        const result = await rateLimit(async () => {
-            // Deduplication: If this request is not for the latest code, skip it to save tokens/quota
-            if (code !== latestLintCode) {
-                return [];
-            }
-
-            const response = await client.models.generateContent({
-                model: LITE_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            issues: {
-                                type: Type.ARRAY,
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        line: { type: Type.INTEGER },
-                                        message: { type: Type.STRING },
-                                        type: { type: Type.STRING, enum: ["error", "warning"] }
-                                    },
-                                    required: ["line", "message", "type"]
-                                }
-                            }
-                        },
-                        required: ['issues'],
-                    }
-                }
-            });
-
-            try {
-                const text = response.text;
-                if (!text) throw new Error("Empty response text");
-                const data = JSON.parse(text.trim());
-                return data.issues || [];
-            } catch (e) {
-                return [];
-            }
-        });
-        return result;
-
-    } catch (error: any) {
-        // Suppress errors for background linting
-        return [];
-    }
+  try {
+    const result = await aiLintFn({ code });
+    const data = result.data as { issues: LintIssue[] };
+    return data.issues || [];
+  } catch (error) {
+    console.error("Error linting code:", error);
+    return [];
+  }
 };
 
-
-
-export const generateReference = async (query: string, difficulty: 'Easy' | 'Medium' | 'Hard', size: 'Small' | 'Medium' | 'Large'): Promise<{ title: string; content: string }> => {
-
-    let sizeInstruction = '';
-    switch (size) {
-        case 'Small': sizeInstruction = 'Keep it concise. Focus on a quick summary and 1 simple example. Maximum 300 words.'; break;
-        case 'Medium': sizeInstruction = 'Provide a standard reference guide. Include introduction, syntax, usage, and 2-3 examples. Approx 600 words.'; break;
-        case 'Large': sizeInstruction = 'Provide an in-depth, comprehensive tutorial. deeply explain concepts, edge cases, best practices, and provide 4+ complex examples. Approx 1000+ words.'; break;
-    }
-
-    let difficultyInstruction = '';
-    switch (difficulty) {
-        case 'Easy': difficultyInstruction = 'Explain like the user is 10 years old. Use simple analogies, avoid jargon, and focus on the basics.'; break;
-        case 'Medium': difficultyInstruction = 'Write for a beginner-to-intermediate developer. Use standard technical terms but explain them clearly.'; break;
-        case 'Hard': difficultyInstruction = 'Write for an advanced engineer. Dive into memory management, performance implications, and advanced nuances. Assume high technical proficiency.'; break;
-    }
-
-    const prompt = `
-    You are an expert technical documentation writer for Python.
-    Your task is to create a custom reference guide for the following topic or question: "${query}".
-
-    **Configuration:**
-    - **Difficulty Level:** ${difficulty}. ${difficultyInstruction}
-    - **Length/Depth:** ${size}. ${sizeInstruction}
-
-    **Content Guidelines:**
-    1.  **Title:** Provide a short, clear, professional title for the topic (e.g., "Understanding Recursion", "Using the Requests Library").
-    2.  **Structure:**
-        -   **Introduction:** Briefly explain what the concept is and why it's useful.
-        -   **Syntax/Usage:** Show the basic syntax.
-        -   **Detailed Explanation:** Break down how it works.
-        -   **Code Examples:** Provide multiple distinct Python code examples according to the size parameter. Use standard markdown code blocks (\`\`\`python).
-        -   **Best Practices:** Mention common pitfalls or tips.
-    3.  **Tone:** Educational, encouraging, and precise.
-    4.  **Format:** You must return a JSON object.
-
-    **Response Schema:**
-    \`\`\`json
-    {
-        "title": "The generated title",
-        "content": "The full markdown content string..."
-    }
-    \`\`\`
-    `;
-
-    try {
-        const client = getAiClient();
-        return await retryOperation(async () => {
-            const response = await client.models.generateContent({
-                model: LITE_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            content: { type: Type.STRING }
-                        },
-                        required: ['title', 'content']
-                    }
-                }
-            });
-
-            try {
-                const text = response.text;
-                if (!text) throw new Error("Empty response text");
-                return JSON.parse(text.trim());
-            } catch (e) {
-                console.error("Failed to parse AI response as JSON:", response.text, e);
-                return {
-                    title: "Generation Failed",
-                    content: "Sorry, I couldn't generate a guide for that topic. Please try again."
-                };
-            }
-        });
-    } catch (error) {
-        console.error("Error generating reference:", error);
-        return {
-            title: "Error",
-            content: "An error occurred while connecting to the AI service."
-        };
-    }
+/**
+ * Generate reference documentation
+ */
+export const generateReference = async (
+  query: string, 
+  difficulty: 'Easy' | 'Medium' | 'Hard', 
+  size: 'Small' | 'Medium' | 'Large'
+): Promise<{ title: string; content: string }> => {
+  try {
+    const result = await aiReferenceFn({ query, difficulty, size });
+    return result.data as { title: string; content: string };
+  } catch (error) {
+    console.error("Error generating reference:", error);
+    return {
+      title: "Error",
+      content: "An error occurred while connecting to the AI service."
+    };
+  }
 };
 
-export const generatePracticeQuiz = async (topic: string, difficulty: Difficulty): Promise<PracticeItem | null> => {
-    const prompt = `
-    Create a Python practice quiz on the topic: "${topic}".
-    Difficulty Level: ${difficulty}.
-
-    **Requirements:**
-    1.  Generate 5 distinct multiple-choice questions.
-    2.  Each question must have 4 options.
-    3.  Indicate the correct answer index (0-3).
-    4.  Provide a catchy title and a short description for the quiz.
-
-    **Response Schema:**
-    \`\`\`json
-    {
-      "title": "string",
-      "description": "string",
-      "quizQuestions": [
-        {
-          "text": "string",
-          "options": ["string"],
-          "correctAnswerIndex": number
-        }
-      ]
-    }
-    \`\`\`
-    `;
-
-    try {
-        const client = getAiClient();
-        return await retryOperation(async () => {
-            const response = await client.models.generateContent({
-                model: LITE_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                            quizQuestions: {
-                                type: Type.ARRAY,
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        text: { type: Type.STRING },
-                                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                        correctAnswerIndex: { type: Type.INTEGER }
-                                    },
-                                    required: ['text', 'options', 'correctAnswerIndex']
-                                }
-                            }
-                        },
-                        required: ['title', 'description', 'quizQuestions']
-                    }
-                }
-            });
-
-            try {
-                const text = response.text;
-                if (!text) throw new Error("Empty response text");
-                const data = JSON.parse(text.trim());
-
-                // Add required PracticeItem fields
-                const newQuiz: PracticeItem = {
-                    id: `custom-quiz-${Date.now()}`,
-                    title: data.title,
-                    description: data.description,
-                    type: 'quiz',
-                    difficulty: difficulty,
-                    quizQuestions: data.quizQuestions.map((q: any, idx: number) => ({
-                        id: `q-${Date.now()}-${idx}`,
-                        text: q.text,
-                        options: q.options,
-                        correctAnswerIndex: q.correctAnswerIndex
-                    }))
-                };
-                return newQuiz;
-            } catch (e) {
-                console.error("Failed to parse AI quiz response:", response.text, e);
-                return null;
-            }
-        });
-    } catch (error) {
-        console.error("Error generating quiz:", error);
-        return null;
-    }
+/**
+ * Generate practice quiz
+ */
+export const generatePracticeQuiz = async (
+  topic: string, 
+  difficulty: Difficulty
+): Promise<PracticeItem | null> => {
+  try {
+    const result = await aiQuizFn({ topic, difficulty });
+    return result.data as PracticeItem | null;
+  } catch (error) {
+    console.error("Error generating quiz:", error);
+    return null;
+  }
 };
 
-export const generateCodeFromFlowchart = async (flowchart: import('../types').FlowchartData): Promise<string | null> => {
-    // Convert flowchart to descriptive text
-    let description = "Generate Python code based on this flowchart:\n\n";
-    
-    // Build a textual representation of the flowchart
-    const nodeMap = new Map(flowchart.nodes.map(n => [n.id, n]));
-    
-    flowchart.nodes.forEach((node, index) => {
-        description += `${index + 1}. `;
-        
-        switch (node.type) {
-            case 'start':
-                description += "Start of program\n";
-                break;
-            case 'end':
-                description += "End of program\n";
-                break;
-            case 'variable':
-                if (node.data.variableName) {
-                    description += `Create variable '${node.data.variableName}' = ${node.data.variableValue || 'None'}\n`;
-                } else {
-                    description += `Variable assignment (${node.data.label})\n`;
-                }
-                break;
-            case 'conditional':
-                if (node.data.condition) {
-                    description += `If ${node.data.condition}:\n`;
-                    // Find edges from this node
-                    const trueEdge = flowchart.edges.find(e => e.source === node.id && e.label?.toLowerCase().includes('true'));
-                    const falseEdge = flowchart.edges.find(e => e.source === node.id && e.label?.toLowerCase().includes('false'));
-                    if (trueEdge) {
-                        const trueNode = nodeMap.get(trueEdge.target);
-                        if (trueNode) description += `   - Then: ${trueNode.data.label}\n`;
-                    }
-                    if (falseEdge) {
-                        const falseNode = nodeMap.get(falseEdge.target);
-                        if (falseNode) description += `   - Else: ${falseNode.data.label}\n`;
-                    }
-                } else {
-                    description += `Conditional check (${node.data.label})\n`;
-                }
-                break;
-            case 'loop':
-                if (node.data.loopType && node.data.loopCondition) {
-                    description += `${node.data.loopType} loop: ${node.data.loopCondition}\n`;
-                } else {
-                    description += `Loop (${node.data.label})\n`;
-                }
-                break;
-            case 'function':
-                if (node.data.functionName) {
-                    description += `Call function ${node.data.functionName}(${node.data.functionArgs || ''})\n`;
-                } else {
-                    description += `Function call (${node.data.label})\n`;
-                }
-                break;
-            case 'output':
-                if (node.data.outputExpression) {
-                    description += `Print: ${node.data.outputExpression}\n`;
-                } else {
-                    description += `Output (${node.data.label})\n`;
-                }
-                break;
-        }
-    });
-    
-    description += "\n\nCRITICAL INSTRUCTIONS:\n";
-    description += "1. Output ONLY valid, executable Python code. No introduction, no markdown, no explanation text outside comments.\n";
-    description += "2. The code must be SIMPLE. If the flowchart is simple, the code MUST be simple.\n";
-    description += "3. Use Python comments (#) to explain the logic.\n";
-    description += "4. Do NOT define functions unless there is a 'Function' node in the flowchart.\n";
-    description += "5. Do NOT include 'if __name__ == \"__main__\":' blocks unless necessary.\n";
-    description += "6. Example Output:\n";
-    description += "   # Initialize variable\n";
-    description += "   x = 10\n";
-    description += "   # Print result\n";
-    description += "   print(x)\n";
-
-    const prompt = description;
-
-    try {
-        const client = getAiClient();
-        return await retryOperation(async () => {
-            const response = await client.models.generateContent({
-                model: PRO_MODEL,
-                contents: prompt,
-            });
-
-            const code = response.text;
-            console.log('🤖 Raw AI response:', code);
-            
-            if (!code) throw new Error("Empty response from AI");
-            
-            // Aggressive cleanup to extract only code
-            let cleanCode = code.trim();
-            
-            // Remove markdown code blocks
-            cleanCode = cleanCode.replace(/^```python\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '');
-
-            // Split into lines
-            const lines = cleanCode.split('\n');
-            const codeLines: string[] = [];
-            
-            // regex to identify likely code lines (not perfect, but filters out obvious conversational text)
-            // Python code usually starts with keywords, identifiers, or comments.
-            // Conversational text usually starts with "Here", "Sure", "This", "I have", etc.
-            
-            let foundCodeStart = false;
-
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed) {
-                    if (foundCodeStart) codeLines.push(line); // Preserve empty lines inside code
-                    continue;
-                }
-
-                // Skip lines that look like chat responses
-                if (!foundCodeStart && (
-                    trimmed.toLowerCase().startsWith('here is') ||
-                    trimmed.toLowerCase().startsWith('sure') || 
-                    trimmed.toLowerCase().startsWith('i have') ||
-                    trimmed.toLowerCase().startsWith('the following')
-                )) {
-                    continue;
-                }
-                
-                // Assume code starts
-                foundCodeStart = true;
-                codeLines.push(line);
-            }
-
-            const finalCode = codeLines.join('\n').trim();
-            console.log('✨ Cleaned code:', finalCode);
-            return finalCode;
-        });
-    } catch (error) {
-        console.error("Error generating code from flowchart:", error);
-        return null;
-    }
+/**
+ * Generate code from flowchart
+ */
+export const generateCodeFromFlowchart = async (
+  flowchart: import('../types').FlowchartData
+): Promise<string | null> => {
+  try {
+    const result = await aiFlowchartFn({ flowchart });
+    const data = result.data as { code: string | null };
+    return data.code;
+  } catch (error) {
+    console.error("Error generating code from flowchart:", error);
+    return null;
+  }
 };
 
 /**
  * Check if a username is safe (not profane/offensive)
- * Uses AI to detect vulgar language, hate speech, and harmful content
  */
-export const checkUsernameSafety = async (username: string): Promise<{ isSafe: boolean; reason?: string }> => {
-    const prompt = `
-    Analyze the username: "${username}".
-    Check if it contains:
-    1. Profanity or vulgar language.
-    2. Hate speech or racial slurs.
-    3. Sexually explicit references.
-    4. Harmful intent or offensive puns.
-    
-    If it is safe, return isSafe: true.
-    If it is NOT safe, return isSafe: false and a very brief reason (e.g., "Contains profanity").
-    `;
-
-    try {
-        const client = getAiClient();
-        return await retryOperation(async () => {
-            const response = await client.models.generateContent({
-                model: LITE_MODEL,
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            isSafe: { type: Type.BOOLEAN },
-                            reason: { type: Type.STRING }
-                        },
-                        required: ['isSafe']
-                    }
-                }
-            });
-
-            const text = response.text;
-            if (!text) return { isSafe: true }; // Default to safe on empty response
-            return JSON.parse(text.trim());
-        });
-    } catch (error) {
-        console.error("Error checking username safety:", error);
-        // Fallback: If AI fails, allow it (prevents blocking users due to AI issues)
-        return { isSafe: true }; 
-    }
+export const checkUsernameSafety = async (
+  username: string
+): Promise<{ isSafe: boolean; reason?: string }> => {
+  try {
+    const result = await aiUsernameCheckFn({ username });
+    return result.data as { isSafe: boolean; reason?: string };
+  } catch (error) {
+    console.error("Error checking username safety:", error);
+    // Fail open - allow username if AI check fails
+    return { isSafe: true };
+  }
 };
