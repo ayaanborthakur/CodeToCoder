@@ -6,6 +6,7 @@
 
 const leaderboard = require('./src/leaderboard');
 const aiProxy = require('./src/ai-proxy');
+const user = require('./src/user');
 
 // Export leaderboard functions
 exports.updateLeaderboard = leaderboard.updateLeaderboard;
@@ -22,3 +23,6 @@ exports.aiValidateOutput = aiProxy.aiValidateOutput;
 exports.aiValidateMethodology = aiProxy.aiValidateMethodology;
 exports.aiValidateProject = aiProxy.aiValidateProject;
 exports.aiSkillRadar = aiProxy.aiSkillRadar;
+
+// Export user functions
+exports.checkUsernameAvailability = user.checkUsernameAvailability;

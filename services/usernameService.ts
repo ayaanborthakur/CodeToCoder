@@ -1,6 +1,7 @@
 import { doc, getDoc, runTransaction, query, collection, where, getDocs, limit } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, functions } from './firebase';
 import { checkUsernameSafety } from './geminiService';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * Username Service
@@ -54,15 +55,20 @@ export const isUsernameAvailable = async (username: string): Promise<boolean> =>
 
     const normalizedUsername = username.trim().toLowerCase();
     
-    // Query users collection for documents where username == normalizedUsername
-    const q = query(
-        collection(db, USERS_COLLECTION),
-        where('username', '==', normalizedUsername),
-        limit(1)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.empty;
+    try {
+        // CALL CLOUD FUNCTION instead of questioning Firestore directly
+        // This bypasses client-side security rules obstructing new users
+        const checkAvailability = httpsCallable(functions, 'checkUsernameAvailability');
+        const result = await checkAvailability({ username: normalizedUsername });
+        const data = result.data as { available: boolean; reason?: string };
+        
+        return data.available;
+    } catch (error) {
+        console.error('Error checking username availability:', error);
+        // Fail securely (assume unavailable if error on server)
+        // OR return false to be safe
+        return false;
+    }
 };
 
 /**
