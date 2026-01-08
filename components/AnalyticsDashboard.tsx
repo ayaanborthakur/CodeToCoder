@@ -17,6 +17,34 @@ const COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981'];
 
 type TimeRange = '7d' | '14d' | '30d' | '90d' | 'all';
 
+// Custom theme-aware tooltip
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50">
+                {label && <p className="font-bold text-gray-900 dark:text-white mb-2 text-sm">{label}</p>}
+                {payload.map((entry: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2 text-sm py-0.5">
+                        <div 
+                            className="w-2.5 h-2.5 rounded-full" 
+                            style={{ backgroundColor: entry.color || entry.payload.fill || '#06b6d4' }} 
+                        />
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">
+                            {entry.name}:
+                        </span>
+                        <span className="font-bold text-gray-900 dark:text-white">
+                            {typeof entry.value === 'number' 
+                                ? (entry.name === 'Time' || entry.unit === '%') ? `${entry.value}%` : entry.value
+                                : entry.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 export const AnalyticsDashboard: React.FC = () => {
     const { user } = useAuth();
     const [timeRange, setTimeRange] = useState<TimeRange>('14d');
@@ -229,7 +257,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                     fill="#8b5cf6"
                                     fillOpacity={0.3}
                                 />
-                                <Tooltip />
+                                <Tooltip content={<CustomTooltip />} />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>
@@ -315,14 +343,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                     fontSize={12}
                                 />
                                 <YAxis stroke="#9CA3AF" fontSize={12} />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: '#1F2937', 
-                                        borderRadius: '12px', 
-                                        border: 'none', 
-                                        color: '#F3F4F6' 
-                                    }} 
-                                />
+                                <Tooltip content={<CustomTooltip />} />
                                 <Area 
                                     type="monotone" 
                                     dataKey="lessonsCompleted" 
@@ -366,15 +387,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip 
-                                        contentStyle={{ 
-                                            backgroundColor: '#1F2937', 
-                                            borderRadius: '12px', 
-                                            border: 'none', 
-                                            color: '#F3F4F6' 
-                                        }}
-                                        formatter={(value) => [`${value}%`, 'Time']}
-                                    />
+                                    <Tooltip content={<CustomTooltip />} />
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
@@ -415,16 +428,7 @@ export const AnalyticsDashboard: React.FC = () => {
                                     fontSize={12}
                                 />
                                 <YAxis stroke="#9CA3AF" fontSize={12} />
-                                <Tooltip 
-                                    labelFormatter={(val) => `Time: ${val}:00`}
-                                    formatter={(value) => [value, 'Activity Intensity']}
-                                    contentStyle={{ 
-                                        backgroundColor: '#1F2937', 
-                                        borderRadius: '12px', 
-                                        border: 'none', 
-                                        color: '#F3F4F6' 
-                                    }} 
-                                />
+                                <Tooltip content={<CustomTooltip />} />
                                 <Area type="monotone" dataKey="count" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCount)" strokeWidth={3} />
                             </AreaChart>
                         </ResponsiveContainer>

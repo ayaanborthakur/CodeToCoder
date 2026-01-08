@@ -1,19 +1,18 @@
 /**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Leaderboard Cloud Function
+ * 
+ * Scheduled function that runs daily to update the leaderboard.
  */
 
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
-admin.initializeApp();
+// Initialize only if not already initialized
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 // For cost control, we limit max instances.
@@ -32,7 +31,6 @@ exports.updateLeaderboard = onSchedule({
 
   try {
     // 1. Fetch all users with net_value > 0
-    // We'll fetch top 100 to keep it manageable and usually sufficient for a leaderboard.
     const usersSnapshot = await db.collection("users")
         .where("net_value", ">", 0)
         .where("shown", "==", true)
@@ -50,10 +48,7 @@ exports.updateLeaderboard = onSchedule({
     const batch = db.batch();
     const leaderboardRef = db.collection("leaderboard");
 
-    // 2. Clear existing leaderboard to avoid stale entries
-    // (e.g., users who improved or dropped out of top 100)
-    // Note: If leaderboard is large, we might need multiple batches to delete.
-    // For top 100, this is safe within a single batch (500 limit).
+    // 2. Clear existing leaderboard
     const existingLeaderboard = await leaderboardRef.get();
     existingLeaderboard.docs.forEach((doc) => {
       batch.delete(doc.ref);

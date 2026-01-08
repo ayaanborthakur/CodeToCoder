@@ -1,6 +1,6 @@
-import { doc, getDoc, runTransaction, query, collection, where, getDocs, limit } from 'firebase/firestore';
-import { db } from './firebase';
-import { checkUsernameSafety } from './geminiService';
+import { doc, getDoc, runTransaction } from 'firebase/firestore';
+import { db, functions } from './firebase';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * Username Service
@@ -54,15 +54,20 @@ export const isUsernameAvailable = async (username: string): Promise<boolean> =>
 
     const normalizedUsername = username.trim().toLowerCase();
     
-    // Query users collection for documents where username == normalizedUsername
-    const q = query(
-        collection(db, USERS_COLLECTION),
-        where('username', '==', normalizedUsername),
-        limit(1)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.empty;
+    try {
+        // CALL CLOUD FUNCTION instead of questioning Firestore directly
+        // This bypasses client-side security rules obstructing new users
+        const checkAvailability = httpsCallable(functions, 'checkUsernameAvailability');
+        const result = await checkAvailability({ username: normalizedUsername });
+        const data = result.data as { available: boolean; reason?: string };
+        
+        return data.available;
+    } catch (error) {
+        console.error('Error checking username availability:', error);
+        // Fail securely (assume unavailable if error on server)
+        // OR return false to be safe
+        return false;
+    }
 };
 
 /**
@@ -74,26 +79,14 @@ export const claimUsername = async (userId: string, username: string): Promise<v
         throw new Error(validation.error || 'Invalid username');
     }
 
-    // Check for profanity/offensive content using AI
-    const safetyCheck = await checkUsernameSafety(username);
-    if (!safetyCheck.isSafe) {
-        throw new Error(safetyCheck.reason || 'This username contains inappropriate content');
-    }
-
     const normalizedUsername = username.trim().toLowerCase();
     const userRef = doc(db, USERS_COLLECTION, userId);
     const leaderboardRef = doc(db, 'leaderboard', userId);
 
-    // Check if username is taken BEFORE the transaction (outside of transaction for simplicity)
-    const q = query(
-        collection(db, USERS_COLLECTION),
-        where('username', '==', normalizedUsername),
-        limit(1)
-    );
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty && querySnapshot.docs[0].id !== userId) {
-        throw new Error('Username is already taken');
+    // Cloud Function handles both availability AND profanity checking
+    const available = await isUsernameAvailable(normalizedUsername);
+    if (!available) {
+        throw new Error('Username is already taken or contains inappropriate content');
     }
 
     await runTransaction(db, async (transaction) => {
@@ -115,6 +108,8 @@ export const claimUsername = async (userId: string, username: string): Promise<v
         }
     });
 };
+
+
 
 /**
  * Change username (releases old, claims new)

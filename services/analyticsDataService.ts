@@ -6,25 +6,15 @@ import {
     limit, 
     getDocs,
     updateDoc,
-    increment,
-    getDoc,
-    doc
+    increment
 } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 import { userPaths } from './firestorePathHelper';
 import type { UserActivity, DailyActivitySummary } from '../types';
-import { GoogleGenAI } from '@google/genai';
-import { PRO_MODEL } from './geminiService';
 
-const API_KEY = import.meta.env.VITE_API_KEY || '';
-
-let genAI: GoogleGenAI | null = null;
-
-const getGenAI = () => {
-    if (!genAI && API_KEY) {
-        genAI = new GoogleGenAI({ apiKey: API_KEY });
-    }
-    return genAI;
-};
+// Callable function for AI skill assessment
+const aiSkillRadarFn = httpsCallable(functions, 'aiSkillRadar');
 
 /**
  * Log a user activity (Lesson, Quiz, Practice, Project)
@@ -457,88 +447,30 @@ export const getSkillRadarData = async (userId: string): Promise<{subject: strin
         metrics.averageAttemptsPerLesson = lessonCount > 0 ? Math.round((attemptsTotal / lessonCount) * 10) / 10 : 0;
         metrics.totalTimeSpentMinutes = Math.round(metrics.totalTimeSpentMinutes);
         
-        // Try AI assessment
-        const ai = getGenAI();
-        if (!ai) {
-            // Fallback to averaging existing ratings
-            return getSkillAveragesFromRatings(metrics.existingRatings);
-        }
-        
-        const prompt = `You are an expert coding skills assessor. Based on the following student performance data, provide a holistic skill assessment rating each skill from 1-100.
-
-STUDENT PERFORMANCE DATA:
-- Total Activities Completed: ${metrics.totalActivities}
-- Lessons Completed: ${metrics.lessonsCompleted}
-- Practice Exercises Completed: ${metrics.practiceCompleted}
-- Quizzes Completed: ${metrics.quizzesCompleted}
-- Projects Completed: ${metrics.projectsCompleted}
-- Average Quiz Score: ${metrics.averageQuizScore}%
-- Perfect Scores (100%): ${metrics.perfectScores}
-- Total Time Spent: ${metrics.totalTimeSpentMinutes} minutes
-- Average Attempts Per Lesson: ${metrics.averageAttemptsPerLesson}
-- Topics Covered: ${[...new Set(metrics.lessonTitles)].slice(0, 20).join(', ')}
-
-EXISTING PER-ACTIVITY AI RATINGS (averages from individual assessments):
-- Logic: ${metrics.existingRatings.logic.length > 0 ? Math.round(metrics.existingRatings.logic.reduce((a, b) => a + b, 0) / metrics.existingRatings.logic.length) : 'No data'}
-- Syntax: ${metrics.existingRatings.syntax.length > 0 ? Math.round(metrics.existingRatings.syntax.reduce((a, b) => a + b, 0) / metrics.existingRatings.syntax.length) : 'No data'}
-- Algorithms: ${metrics.existingRatings.algorithms.length > 0 ? Math.round(metrics.existingRatings.algorithms.reduce((a, b) => a + b, 0) / metrics.existingRatings.algorithms.length) : 'No data'}
-- Debugging: ${metrics.existingRatings.debugging.length > 0 ? Math.round(metrics.existingRatings.debugging.reduce((a, b) => a + b, 0) / metrics.existingRatings.debugging.length) : 'No data'}
-- Efficiency: ${metrics.existingRatings.efficiency.length > 0 ? Math.round(metrics.existingRatings.efficiency.reduce((a, b) => a + b, 0) / metrics.existingRatings.efficiency.length) : 'No data'}
-- Creativity: ${metrics.existingRatings.creativity.length > 0 ? Math.round(metrics.existingRatings.creativity.reduce((a, b) => a + b, 0) / metrics.existingRatings.creativity.length) : 'No data'}
-
-ASSESSMENT CRITERIA:
-- Logic (1-100): Ability to think through problems, control flow, conditionals
-- Syntax (1-100): Correct use of Python syntax, style, conventions
-- Algorithms (1-100): Problem-solving approach, data structure usage
-- Debugging (1-100): Code cleanliness, error handling, ability to fix issues (fewer attempts = better)
-- Efficiency (1-100): Conciseness, performance awareness, time management
-- Creativity (1-100): Going beyond basics, original solutions, exploration
-
-Consider:
-- More activities = more experience
-- Higher quiz scores = better understanding
-- Fewer attempts = stronger debugging skills
-- Existing ratings should heavily influence your assessment
-- If no data exists for a skill, start at 20 as a baseline for beginners
-
-Respond with ONLY a JSON object:
-{
-  "logic": number,
-  "syntax": number,
-  "algorithms": number,
-  "debugging": number,
-  "efficiency": number,
-  "creativity": number
-}`;
-
-        const result = await ai.models.generateContent({
-            model: PRO_MODEL,
-            contents: prompt,
-            config: { 
-                temperature: 0.1,
-                responseMimeType: "application/json"
-            }
-        });
-
-        const responseText = (result.text ?? '').trim();
-        let jsonResponse;
-        
+        // Call Cloud Function for AI assessment
         try {
-            jsonResponse = JSON.parse(responseText);
+            const result = await aiSkillRadarFn({ metrics });
+            const jsonResponse = result.data as {
+                logic: number;
+                syntax: number;
+                algorithms: number;
+                debugging: number;
+                efficiency: number;
+                creativity: number;
+            };
+            
+            return [
+                { subject: 'Logic', A: Math.min(100, Math.max(1, jsonResponse.logic || 20)), fullMark: 100 },
+                { subject: 'Syntax', A: Math.min(100, Math.max(1, jsonResponse.syntax || 20)), fullMark: 100 },
+                { subject: 'Algorithms', A: Math.min(100, Math.max(1, jsonResponse.algorithms || 20)), fullMark: 100 },
+                { subject: 'Debugging', A: Math.min(100, Math.max(1, jsonResponse.debugging || 20)), fullMark: 100 },
+                { subject: 'Efficiency', A: Math.min(100, Math.max(1, jsonResponse.efficiency || 20)), fullMark: 100 },
+                { subject: 'Creativity', A: Math.min(100, Math.max(1, jsonResponse.creativity || 20)), fullMark: 100 }
+            ];
         } catch {
-            console.error('Failed to parse AI skill assessment response:', responseText);
-            // Fallback to averaging existing ratings
+            // Fallback to averaging existing ratings if Cloud Function fails
             return getSkillAveragesFromRatings(metrics.existingRatings);
         }
-        
-        return [
-            { subject: 'Logic', A: Math.min(100, Math.max(1, jsonResponse.logic || 20)), fullMark: 100 },
-            { subject: 'Syntax', A: Math.min(100, Math.max(1, jsonResponse.syntax || 20)), fullMark: 100 },
-            { subject: 'Algorithms', A: Math.min(100, Math.max(1, jsonResponse.algorithms || 20)), fullMark: 100 },
-            { subject: 'Debugging', A: Math.min(100, Math.max(1, jsonResponse.debugging || 20)), fullMark: 100 },
-            { subject: 'Efficiency', A: Math.min(100, Math.max(1, jsonResponse.efficiency || 20)), fullMark: 100 },
-            { subject: 'Creativity', A: Math.min(100, Math.max(1, jsonResponse.creativity || 20)), fullMark: 100 }
-        ];
         
     } catch (error) {
         console.error('Failed to get skill radar:', error);
