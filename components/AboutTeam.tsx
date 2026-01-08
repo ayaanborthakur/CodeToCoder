@@ -1,11 +1,6 @@
 
 import React from 'react';
 
-import aryanImg from '../assets/team/aryan.png';
-import ayaanImg from '../assets/team/ayaan.png';
-import virajImg from '../assets/team/viraj.png';
-import neilImg from '../assets/team/neil.png';
-
 interface TeamMember {
     name: string;
     role: string;
@@ -15,12 +10,12 @@ interface TeamMember {
 
 const TEAM_MEMBERS: TeamMember[] = [
     // Project Managers (Class of 2029)
-    { name: "Aryan Kulkarni", role: "Project Manager", gradClass: "Graduating Class of 2029", image: aryanImg },
-    { name: "Ayaan Borthakur", role: "Project Manager", gradClass: "Graduating Class of 2029", image: ayaanImg },
-    { name: "Viraj Rungta", role: "Project Manager", gradClass: "Graduating Class of 2029", image: virajImg },
+    { name: "Aryan Kulkarni", role: "Project Manager", gradClass: "Graduating Class of 2029", image: "/team/aryan.png" },
+    { name: "Ayaan Borthakur", role: "Project Manager", gradClass: "Graduating Class of 2029", image: "/team/ayaan.png" },
+    { name: "Viraj Rungta", role: "Project Manager", gradClass: "Graduating Class of 2029", image: "/team/viraj.png" },
 
     // Outreach Managers (Class of 2029)
-    { name: "Neil Gandhi", role: "Outreach Manager", gradClass: "Graduating Class of 2029", image: neilImg },
+    { name: "Neil Gandhi", role: "Outreach Manager", gradClass: "Graduating Class of 2029", image: "/team/neil.png" },
 ];
 
 const BackIcon = () => (
