@@ -6,30 +6,38 @@
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
-const {GoogleGenAI, Type} = require("@google/genai");
 
-// Initialize Admin SDK if not already done (shared instance)
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+let _admin = null;
+function getAdmin() {
+  if (!_admin) {
+    const admin = require("firebase-admin");
+    if (admin.apps.length === 0) admin.initializeApp();
+    _admin = admin;
+  }
+  return _admin;
 }
 
-// Lazy initialization so Firestore and AI are only created at invocation time
-let dbInstance = null;
+let _db = null;
 function getDb() {
-  if (!dbInstance) {
-    const { getFirestore } = require('firebase-admin/firestore');
-    dbInstance = getFirestore('code2coder-india');
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    getAdmin();
+    _db = getFirestore("code2coder-india");
   }
-  return dbInstance;
+  return _db;
 }
 
-let aiInstance = null;
+let _ai = null;
 function getAI() {
-  if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  if (!_ai) {
+    const { GoogleGenAI } = require("@google/genai");
+    _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
-  return aiInstance;
+  return _ai;
+}
+
+function getType() {
+  return require("@google/genai").Type;
 }
 
 /**
@@ -117,10 +125,10 @@ Respond with JSON: { "isSafe": boolean, "reason": "optional string" }`;
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            isSafe: { type: Type.BOOLEAN },
-            reason: { type: Type.STRING }
+            isSafe: { type: getType().BOOLEAN },
+            reason: { type: getType().STRING }
           },
           required: ['isSafe']
         }

@@ -7,33 +7,41 @@
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
-const {GoogleGenAI, Type} = require("@google/genai");
 
-// Initialize Firebase Admin if not already done
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+// Nothing runs at module load time — all initialization is deferred until first use.
+// This prevents the Firebase CLI analysis from timing out locally.
+
+let _admin = null;
+function getAdmin() {
+  if (!_admin) {
+    const admin = require("firebase-admin");
+    if (admin.apps.length === 0) admin.initializeApp();
+    _admin = admin;
+  }
+  return _admin;
 }
 
-// Lazy initialization for Firestore and GoogleGenAI to avoid deployment timeouts
-let dbInstance = null;
+let _db = null;
 function getDb() {
-  if (!dbInstance) {
-    const { getFirestore } = require('firebase-admin/firestore');
-    dbInstance = getFirestore('code2coder-india');
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    getAdmin();
+    _db = getFirestore("code2coder-india");
   }
-  return dbInstance;
+  return _db;
 }
 
-let aiInstance = null;
+let _ai = null;
 function getAI() {
-  if (!aiInstance) {
-    const {GoogleGenAI} = require("@google/genai");
-    aiInstance = new GoogleGenAI({ 
-      apiKey: process.env.GEMINI_API_KEY
-    });
+  if (!_ai) {
+    const { GoogleGenAI } = require("@google/genai");
+    _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
-  return aiInstance;
+  return _ai;
+}
+
+function getType() {
+  return require("@google/genai").Type;
 }
 
 // Model constants
@@ -291,16 +299,16 @@ ${code}
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
             issues: {
-              type: Type.ARRAY,
+              type: getType().ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: getType().OBJECT,
                 properties: {
-                  line: { type: Type.INTEGER },
-                  message: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ["error", "warning"] }
+                  line: { type: getType().INTEGER },
+                  message: { type: getType().STRING },
+                  type: { type: getType().STRING, enum: ["error", "warning"] }
                 },
                 required: ["line", "message", "type"]
               }
@@ -366,10 +374,10 @@ exports.aiReference = onCall({
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING }
+            title: { type: getType().STRING },
+            content: { type: getType().STRING }
           },
           required: ['title', 'content']
         }
@@ -411,18 +419,18 @@ exports.aiQuiz = onCall({
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
+            title: { type: getType().STRING },
+            description: { type: getType().STRING },
             quizQuestions: {
-              type: Type.ARRAY,
+              type: getType().ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: getType().OBJECT,
                 properties: {
-                  text: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctAnswerIndex: { type: Type.INTEGER }
+                  text: { type: getType().STRING },
+                  options: { type: getType().ARRAY, items: { type: getType().STRING } },
+                  correctAnswerIndex: { type: getType().INTEGER }
                 },
                 required: ['text', 'options', 'correctAnswerIndex']
               }
@@ -567,10 +575,10 @@ exports.aiUsernameCheck = onCall({
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            isSafe: { type: Type.BOOLEAN },
-            reason: { type: Type.STRING }
+            isSafe: { type: getType().BOOLEAN },
+            reason: { type: getType().STRING }
           },
           required: ['isSafe']
         }

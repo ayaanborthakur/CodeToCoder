@@ -7,21 +7,25 @@
 const {setGlobalOptions} = require("firebase-functions");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
 
-// Initialize only if not already initialized
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+let _admin = null;
+function getAdmin() {
+  if (!_admin) {
+    const admin = require("firebase-admin");
+    if (admin.apps.length === 0) admin.initializeApp();
+    _admin = admin;
+  }
+  return _admin;
 }
 
-// Lazy Firestore initialization to avoid deployment timeouts
-let dbInstance = null;
+let _db = null;
 function getDb() {
-  if (!dbInstance) {
-    const { getFirestore } = require('firebase-admin/firestore');
-    dbInstance = getFirestore('code2coder-india');
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    getAdmin();
+    _db = getFirestore("code2coder-india");
   }
-  return dbInstance;
+  return _db;
 }
 
 // For cost control, we limit max instances.
@@ -83,7 +87,7 @@ exports.updateLeaderboard = onSchedule({
         net_value: userData.net_value || 0,
         rank: rank++,
         createdAt: userData.createdAt || null,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
       });
       
       logger.debug(`Adding user to leaderboard: ${userDoc.id} -> @${username}`);
