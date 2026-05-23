@@ -13,7 +13,10 @@ const admin = require("firebase-admin");
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
-const db = admin.firestore();
+
+// Named database reference (code2coder-india in asia-south1)
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore('code2coder-india');
 
 // For cost control, we limit max instances.
 setGlobalOptions({ maxInstances: 10 });
@@ -24,6 +27,7 @@ setGlobalOptions({ maxInstances: 10 });
  * assigns them a rank, and updates the 'leaderboard' collection.
  */
 exports.updateLeaderboard = onSchedule({
+  region: "asia-south1",
   schedule: "0 0 * * *",
   timeZone: "America/Los_Angeles",
 }, async (event) => {

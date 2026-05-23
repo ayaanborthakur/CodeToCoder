@@ -39,7 +39,7 @@ export const auth = getAuth(app);
 // standard getFirestore(app) can fail in isolated environments
 import { initializeFirestore } from 'firebase/firestore';
 
-export const db = initializeFirestore(app, {});
+export const db = initializeFirestore(app, {}, 'code2coder-india');
 
 // Initialize analytics with error handling
 let analytics: any;
@@ -55,6 +55,6 @@ try {
 
 export { analytics };
 export const googleProvider = new GoogleAuthProvider();
-export const functions = getFunctions(app);
+export const functions = getFunctions(app, 'asia-south1');
 export const storage = getStorage(app);
 export default app;

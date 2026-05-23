@@ -1,8 +1,8 @@
 /**
  * AI Proxy Cloud Function
  * 
- * Proxies AI requests to Vertex AI (Google Cloud) for the Code2Coder frontend.
- * This enables enterprise Vertex AI features while keeping authentication secure.
+ * Proxies AI requests to Google AI Studio (Free Tier) for the Code2Coder frontend.
+ * Uses gemini-2.5-flash-lite for most operations to minimize costs.
  */
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
@@ -15,19 +15,29 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Get project ID from environment (automatically set in Cloud Functions)
-const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "code2coder-a324f";
-const LOCATION = "us-central1";
+// Lazy initialization for Firestore and GoogleGenAI to avoid deployment timeouts
+let dbInstance = null;
+function getDb() {
+  if (!dbInstance) {
+    const { getFirestore } = require('firebase-admin/firestore');
+    dbInstance = getFirestore('code2coder-india');
+  }
+  return dbInstance;
+}
 
-// Initialize Vertex AI client with explicit project and location
-const ai = new GoogleGenAI({ 
-  vertexai: true,
-  project: PROJECT_ID,
-  location: LOCATION
-});
+let aiInstance = null;
+function getAI() {
+  if (!aiInstance) {
+    const {GoogleGenAI} = require("@google/genai");
+    aiInstance = new GoogleGenAI({ 
+      apiKey: process.env.GEMINI_API_KEY
+    });
+  }
+  return aiInstance;
+}
 
 // Model constants
-const PRO_MODEL = 'gemini-2.5-pro';
+const PRO_MODEL = 'gemini-2.5-flash';
 const LITE_MODEL = 'gemini-2.5-flash-lite';
 
 /**
@@ -41,14 +51,65 @@ function verifyAuth(request) {
 }
 
 /**
+ * Verify and rate limit user's AI requests (sliding window)
+ * Returns the uid if successful, otherwise throws HttpsError
+ */
+async function verifyAndRateLimitUsage(request, maxRequests = 5, windowMs = 3600000) {
+  const uid = verifyAuth(request);
+  const now = Date.now();
+  const limitTime = now - windowMs;
+
+  const usageRef = getDb().collection('users').doc(uid).collection('stats').doc('aiUsage');
+  
+  try {
+    const doc = await usageRef.get();
+    let timestamps = [];
+    
+    if (doc.exists) {
+      const data = doc.data();
+      if (data && Array.isArray(data.requestTimestamps)) {
+        // Filter out timestamps older than the window
+        timestamps = data.requestTimestamps.filter(t => t > limitTime);
+      }
+    }
+    
+    if (timestamps.length >= maxRequests) {
+      // Calculate minutes until the oldest request falls out of the window
+      const oldestTimestamp = timestamps[0];
+      const waitMs = oldestTimestamp + windowMs - now;
+      const waitMinutes = Math.ceil(waitMs / 60000);
+      throw new HttpsError(
+        'resource-exhausted',
+        `You have used your ${maxRequests} AI questions for this hour. Please wait ${waitMinutes} minute(s) before asking again.`
+      );
+    }
+    
+    // Add current timestamp and save
+    timestamps.push(now);
+    await usageRef.set({ requestTimestamps: timestamps }, { merge: true });
+    
+    return uid;
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Rate limit verification error:", error);
+    // Fail-open in case of Firestore issues so students aren't blocked from learning
+    return uid;
+  }
+}
+
+/**
  * AI Chat - Tutor mode for lessons or playground
  */
 exports.aiChat = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
-  verifyAuth(request);
+  await verifyAndRateLimitUsage(request, 5, 3600000);
   const { history, lesson, code, isHardMode } = request.data;
 
   let systemInstruction = '';
@@ -125,7 +186,7 @@ exports.aiChat = onCall({
       historyForApi.shift();
     }
 
-    const chat = ai.chats.create({
+    const chat = getAI().chats.create({
       model: PRO_MODEL,
       config: { systemInstruction },
       history: historyForApi
@@ -144,9 +205,11 @@ exports.aiChat = onCall({
  * AI Feedback - Code execution feedback
  */
 exports.aiFeedback = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "256MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code, output, objective, isHardMode } = request.data;
@@ -183,7 +246,7 @@ exports.aiFeedback = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
     });
@@ -198,9 +261,11 @@ exports.aiFeedback = onCall({
  * AI Lint - Code linting
  */
 exports.aiLint = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "256MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code } = request.data;
@@ -220,7 +285,7 @@ ${code}
 `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
@@ -260,9 +325,11 @@ ${code}
  * AI Reference - Generate reference documentation
  */
 exports.aiReference = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { query, difficulty, size } = request.data;
@@ -293,7 +360,7 @@ exports.aiReference = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
@@ -322,9 +389,11 @@ exports.aiReference = onCall({
  * AI Quiz - Generate practice quiz
  */
 exports.aiQuiz = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { topic, difficulty } = request.data;
@@ -336,7 +405,7 @@ exports.aiQuiz = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
@@ -391,9 +460,11 @@ exports.aiQuiz = onCall({
  * AI Flowchart - Generate code from flowchart
  */
 exports.aiFlowchart = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { flowchart } = request.data;
@@ -449,7 +520,7 @@ exports.aiFlowchart = onCall({
   description += "\n\nOutput ONLY valid, executable Python code. No markdown, no explanation.";
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: description,
     });
@@ -474,9 +545,11 @@ exports.aiFlowchart = onCall({
  * AI Username Check - Check if username is safe
  */
 exports.aiUsernameCheck = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "256MiB",
   timeoutSeconds: 15,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { username } = request.data;
@@ -488,7 +561,7 @@ exports.aiUsernameCheck = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
@@ -517,9 +590,11 @@ exports.aiUsernameCheck = onCall({
  * AI Validate Output - Validate lesson output
  */
 exports.aiValidateOutput = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { actualOutput, lesson } = request.data;
@@ -550,7 +625,7 @@ Determine if the output satisfies the lesson requirements.
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: prompt,
       config: { temperature: 0 }
@@ -568,9 +643,11 @@ Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
  * AI Validate Methodology - Validate code methodology
  */
 exports.aiValidateMethodology = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 45,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code, lesson, durationSeconds, attempts } = request.data;
@@ -608,7 +685,7 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: prompt,
       config: { temperature: 0, responseMimeType: "application/json" }
@@ -626,9 +703,11 @@ Respond with JSON:
  * AI Validate Project - Validate final project
  */
 exports.aiValidateProject = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code, output, lesson, durationSeconds } = request.data;
@@ -665,7 +744,7 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: prompt,
       config: { temperature: 0.1, responseMimeType: "application/json" }
@@ -682,9 +761,11 @@ Respond with JSON:
  * AI Skill Radar - Get AI skill assessment
  */
 exports.aiSkillRadar = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { metrics } = request.data;
@@ -713,7 +794,7 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: prompt,
       config: { temperature: 0.1, responseMimeType: "application/json" }

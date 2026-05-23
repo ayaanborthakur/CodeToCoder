@@ -13,16 +13,19 @@ const {GoogleGenAI, Type} = require("@google/genai");
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
-const db = admin.firestore();
 
-// Initialize Vertex AI for profanity checking
-const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "code2coder-a324f";
-const LOCATION = "us-central1";
-const ai = new GoogleGenAI({ 
-  vertexai: true,
-  project: PROJECT_ID,
-  location: LOCATION
-});
+// Named database reference (code2coder-india in asia-south1)
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore('code2coder-india');
+
+// Lazy initialization so secret is available at invocation time, not module load
+let aiInstance = null;
+function getAI() {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return aiInstance;
+}
 
 /**
  * Check if a username is available AND safe (combines availability + profanity check).
@@ -30,8 +33,10 @@ const ai = new GoogleGenAI({
  * new users from querying the users collection.
  */
 exports.checkUsernameAvailability = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   timeoutSeconds: 20,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   // Authentication check
   if (!request.auth) {
@@ -101,7 +106,7 @@ async function checkUsernameSafety(username) {
 Check if it contains profanity, hate speech, sexually explicit references, or harmful content.
 Respond with JSON: { "isSafe": boolean, "reason": "optional string" }`;
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
