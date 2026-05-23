@@ -8,22 +8,20 @@ const {setGlobalOptions} = require("firebase-functions");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
-let _admin = null;
-function getAdmin() {
-  if (!_admin) {
-    const admin = require("firebase-admin");
-    if (admin.apps.length === 0) admin.initializeApp();
-    _admin = admin;
+let _adminApp = null;
+function getAdminApp() {
+  if (!_adminApp) {
+    const { initializeApp, getApps } = require("firebase-admin/app");
+    _adminApp = getApps().length > 0 ? getApps()[0] : initializeApp();
   }
-  return _admin;
+  return _adminApp;
 }
 
 let _db = null;
 function getDb() {
   if (!_db) {
     const { getFirestore } = require("firebase-admin/firestore");
-    const admin = getAdmin();
-    _db = getFirestore(admin.app(), "code2coder-india");
+    _db = getFirestore(getAdminApp(), "code2coder-india");
   }
   return _db;
 }
@@ -87,7 +85,7 @@ exports.updateLeaderboard = onSchedule({
         net_value: userData.net_value || 0,
         rank: rank++,
         createdAt: userData.createdAt || null,
-        updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+        updatedAt: require("firebase-admin/firestore").FieldValue.serverTimestamp(),
       });
       
       logger.debug(`Adding user to leaderboard: ${userDoc.id} -> @${username}`);
