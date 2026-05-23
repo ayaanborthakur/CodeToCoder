@@ -22,8 +22,8 @@ let _db = null;
 function getDb() {
   if (!_db) {
     const { getFirestore } = require("firebase-admin/firestore");
-    getAdmin();
-    _db = getFirestore("code2coder-india");
+    const admin = getAdmin();
+    _db = getFirestore(admin.app(), "code2coder-india");
   }
   return _db;
 }
