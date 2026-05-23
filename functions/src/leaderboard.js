@@ -14,9 +14,15 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Named database reference (code2coder-india in asia-south1)
-const { getFirestore } = require('firebase-admin/firestore');
-const db = getFirestore('code2coder-india');
+// Lazy Firestore initialization to avoid deployment timeouts
+let dbInstance = null;
+function getDb() {
+  if (!dbInstance) {
+    const { getFirestore } = require('firebase-admin/firestore');
+    dbInstance = getFirestore('code2coder-india');
+  }
+  return dbInstance;
+}
 
 // For cost control, we limit max instances.
 setGlobalOptions({ maxInstances: 10 });
@@ -35,7 +41,7 @@ exports.updateLeaderboard = onSchedule({
 
   try {
     // 1. Fetch all users with net_value > 0
-    const usersSnapshot = await db.collection("users")
+    const usersSnapshot = await getDb().collection("users")
         .where("net_value", ">", 0)
         .where("shown", "==", true)
         .orderBy("net_value", "desc")
@@ -49,8 +55,8 @@ exports.updateLeaderboard = onSchedule({
       return;
     }
 
-    const batch = db.batch();
-    const leaderboardRef = db.collection("leaderboard");
+    const batch = getDb().batch();
+    const leaderboardRef = getDb().collection("leaderboard");
 
     // 2. Clear existing leaderboard
     const existingLeaderboard = await leaderboardRef.get();

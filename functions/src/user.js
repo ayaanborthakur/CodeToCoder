@@ -14,11 +14,16 @@ if (admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-// Named database reference (code2coder-india in asia-south1)
-const { getFirestore } = require('firebase-admin/firestore');
-const db = getFirestore('code2coder-india');
+// Lazy initialization so Firestore and AI are only created at invocation time
+let dbInstance = null;
+function getDb() {
+  if (!dbInstance) {
+    const { getFirestore } = require('firebase-admin/firestore');
+    dbInstance = getFirestore('code2coder-india');
+  }
+  return dbInstance;
+}
 
-// Lazy initialization so secret is available at invocation time, not module load
 let aiInstance = null;
 function getAI() {
   if (!aiInstance) {
@@ -75,7 +80,7 @@ exports.checkUsernameAvailability = onCall({
     }
 
     // 2. Query users collection for availability
-    const usersRef = db.collection('users');
+    const usersRef = getDb().collection('users');
     const snapshot = await usersRef
       .where('username', '==', normalizedUsername)
       .limit(1)
