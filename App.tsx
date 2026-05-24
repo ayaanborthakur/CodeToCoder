@@ -1184,6 +1184,11 @@ const App: React.FC = () => {
         if (!lastRunContextRef.current || isHintLoading || aiCreditsLeft <= 0) return;
         setIsHintLoading(true);
 
+        // Optimistic decrement — update the counter immediately without waiting for
+        // the Firestore round-trip. onCreditsChange will correct it once the server
+        // responds (usually ~1-2s later).
+        setAiCreditsLeft(prev => Math.max(0, prev - 1));
+
         // Open the chat panel immediately so the student sees the response arrive
         if (!isMobile) {
             setPanelsCollapsed(prev => ({ ...prev, chat: false }));
@@ -1874,6 +1879,7 @@ const App: React.FC = () => {
                                         onToggleCollapse={() => handleToggleCollapse('chat')}
                                         onOpenFlowchart={handleOpenFlowchart}
                                         onCreditsChange={setAiCreditsLeft}
+                                        optimisticCredits={aiCreditsLeft}
                                     />
                                 )}
                             </aside>

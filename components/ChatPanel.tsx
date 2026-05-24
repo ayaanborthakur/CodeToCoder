@@ -24,6 +24,9 @@ interface ChatPanelProps {
     onOpenFlowchart?: () => void;
     /** Called whenever the AI credits remaining changes — lets parent sync the hint button counter */
     onCreditsChange?: (creditsLeft: number) => void;
+    /** Optimistic credit count from parent — overrides the Firestore-derived count
+     *  for immediate UI feedback before the onSnapshot round-trip completes */
+    optimisticCredits?: number;
 }
 
 import { 
@@ -42,7 +45,7 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart, onCreditsChange }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart, onCreditsChange, optimisticCredits }) => {
     const { user } = useAuth();
     const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
     const [secondsUntilNext, setSecondsUntilNext] = useState<number>(0);
@@ -190,7 +193,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                             ? 'bg-amber-500 animate-pulse'
                                             : 'bg-cyan-500'
                                 }`} />
-                                {isLocked ? `Locked: ${formatCountdown(secondsUntilNext)}` : `${questionsLeft} / ${maxRequests} Left`}
+                                {isLocked ? `Locked: ${formatCountdown(secondsUntilNext)}` : `${optimisticCredits ?? questionsLeft} / ${maxRequests} Left`}
                             </div>
                         )}
                     </div>
