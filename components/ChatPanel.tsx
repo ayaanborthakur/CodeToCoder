@@ -21,7 +21,9 @@ interface ChatPanelProps {
     isLoading: boolean;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
-    onOpenFlowchart?: () => void; // Callback to open flowchart builder
+    onOpenFlowchart?: () => void;
+    /** Called whenever the AI credits remaining changes — lets parent sync the hint button counter */
+    onCreditsChange?: (creditsLeft: number) => void;
 }
 
 import { 
@@ -40,7 +42,7 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart, onCreditsChange }) => {
     const { user } = useAuth();
     const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
     const [secondsUntilNext, setSecondsUntilNext] = useState<number>(0);
@@ -76,6 +78,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
     const activeTimestamps = requestTimestamps.filter(t => t > Date.now() - windowMs);
     const questionsLeft = Math.max(0, maxRequests - activeTimestamps.length);
     const isLocked = questionsLeft === 0;
+
+    // Notify parent (App.tsx) whenever credits change so the hint button stays in sync
+    useEffect(() => {
+        onCreditsChange?.(questionsLeft);
+    }, [questionsLeft, onCreditsChange]);
 
     useEffect(() => {
         if (!isLocked || activeTimestamps.length === 0) {

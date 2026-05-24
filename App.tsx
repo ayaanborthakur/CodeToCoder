@@ -47,8 +47,6 @@ import { hasTutorialCompleted } from './services/tutorialService';
 import { subscribeToUserSettings } from './services/userSettingsService';
 import { getMarketplaceData, recalculateNetWorth, getDailyChallenges, claimChallengeReward } from './services/marketplaceService';
 import { getStreakInfo } from './services/streakService';
-import { db } from './services/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 import type { DailyChallenge } from './types';
 
 
@@ -216,25 +214,11 @@ const App: React.FC = () => {
     // Stores the last run's context so the hint button can reference it without re-running
     const lastRunContextRef = useRef<{ code: string; output: string; objective?: string; lessonId?: string } | null>(null);
 
-    // ── AI Credit Subscription (shared between Hint button and ChatPanel) ─────
-    const [aiUsageTimestamps, setAiUsageTimestamps] = useState<number[]>([]);
-    useEffect(() => {
-        if (!user) { setAiUsageTimestamps([]); return; }
-        const usageRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
-        const unsub = onSnapshot(usageRef, (snap) => {
-            if (snap.exists()) {
-                const data = snap.data();
-                setAiUsageTimestamps(Array.isArray(data?.requestTimestamps) ? data.requestTimestamps : []);
-            } else {
-                setAiUsageTimestamps([]);
-            }
-        }, () => { /* non-fatal */ });
-        return unsub;
-    }, [user]);
-    const AI_WINDOW_MS = 3600000;
-    const AI_MAX_REQUESTS = 5;
-    const activeAiTimestamps = aiUsageTimestamps.filter(t => t > Date.now() - AI_WINDOW_MS);
-    const aiCreditsLeft = Math.max(0, AI_MAX_REQUESTS - activeAiTimestamps.length);
+    // ── AI Credits (driven by ChatPanel's Firestore subscription via callback) ──
+    // ChatPanel already subscribes to users/{uid}/stats/aiUsage. Rather than a
+    // second subscription here, ChatPanel calls onCreditsChange whenever the
+    // count changes so the hint button counter stays in sync automatically.
+    const [aiCreditsLeft, setAiCreditsLeft] = useState(5);
     // ─────────────────────────────────────────────────────────────────────────
 
     // Analytics: Track attempts/runs per session
@@ -1879,9 +1863,10 @@ const App: React.FC = () => {
                                         messages={activeChatHistory}
                                         onSendMessage={handleSendMessage}
                                         isLoading={isChatLoading}
-                                        isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
+                                        isCollapsed={isMobile ? false : panelsCollapsed.chat}
                                         onToggleCollapse={() => handleToggleCollapse('chat')}
                                         onOpenFlowchart={handleOpenFlowchart}
+                                        onCreditsChange={setAiCreditsLeft}
                                     />
                                 )}
                             </aside>
