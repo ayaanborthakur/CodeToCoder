@@ -32,9 +32,16 @@ service cloud.firestore {
     match /leaderboard/{docId} {
       // Publicly readable
       allow read: if true;
-      // Writing is handled via Cloud Functions in production, 
+      // Writing is handled via Cloud Functions in production,
       // but if writing from client, strictly limit to the user's entry
       allow write: if request.auth.token.admin == true;
+    }
+
+    // --- AI Feedback Cache ---
+    // Written exclusively by Cloud Functions (admin SDK bypasses these rules).
+    // Clients have no direct access — feedback is always proxied through the function.
+    match /feedbackCache/{cacheKey} {
+      allow read, write: if false;
     }
 
     // --- Global Deny Fallback ---

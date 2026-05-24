@@ -7,6 +7,7 @@
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
+const crypto = require("crypto");
 
 // Nothing runs at module load time — all initialization is deferred until first use.
 // This prevents the Firebase CLI analysis from timing out locally.
@@ -208,6 +209,36 @@ exports.aiChat = onCall({
 });
 
 /**
+ * Extract the stable error signature from Python terminal output.
+ * Returns the error type + message line (e.g. "NameError: name 'x' is not defined")
+ * so the cache key is resilient to whitespace/line-number differences.
+ * Returns null if the output contains no recognisable Python error.
+ */
+function extractErrorSignature(output) {
+  if (!output) return null;
+  const lines = output.split('\n').map(l => l.trim()).filter(Boolean);
+  // Walk backwards — the actual error line is usually last
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    // Matches "SyntaxError: ...", "NameError: ...", "TypeError: ...", etc.
+    if (/^[A-Z][a-zA-Z]+Error:\s/.test(line)) return line;
+    // Bare "Traceback (most recent call last):" tells us there IS an error even
+    // if the specific type wasn't caught above.
+    if (line.startsWith('Traceback')) return lines[lines.length - 1] || line;
+  }
+  return null;
+}
+
+/**
+ * Build a deterministic cache key for a (lessonId, errorSignature) pair.
+ * The key is a short hex digest safe to use as a Firestore document ID.
+ */
+function buildFeedbackCacheKey(lessonId, errorSignature) {
+  const raw = `${lessonId || '__playground__'}:${errorSignature}`;
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 40);
+}
+
+/**
  * AI Feedback - Code execution feedback
  */
 exports.aiFeedback = onCall({
@@ -217,34 +248,58 @@ exports.aiFeedback = onCall({
   timeoutSeconds: 30,
   secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
+  // Always verify the user is authenticated (even for cache-hit paths)
   verifyAuth(request);
-  const { code, output, objective, isHardMode } = request.data;
+  const { code, output, objective, isHardMode, lessonId } = request.data;
 
   if (isHardMode) return { feedback: null };
 
   const finalObjective = objective || "The user is exploring freely.";
 
+  // ── Cached Feedback ───────────────────────────────────────────────────────
+  // Cache hits are FREE — no rate-limit credit deducted.
+  // Only actual LLM calls count against the student's 5/hour allowance.
+  const errorSignature = extractErrorSignature(output);
+  let cacheKey = null;
+  if (errorSignature && lessonId) {
+    cacheKey = buildFeedbackCacheKey(lessonId, errorSignature);
+    try {
+      const cacheRef = getDb().collection('feedbackCache').doc(cacheKey);
+      const cached = await cacheRef.get();
+      if (cached.exists) {
+        logger.info(`[aiFeedback] Cache HIT for key ${cacheKey}`);
+        return { feedback: cached.data().feedback, fromCache: true };
+      }
+    } catch (cacheReadError) {
+      // Non-fatal — fall through to LLM
+      logger.warn('[aiFeedback] Cache read failed, proceeding to LLM:', cacheReadError);
+    }
+  }
+  // Cache miss → consume one credit from the shared 5/hr pool
+  await verifyAndRateLimitUsage(request, 5, 3600000);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const prompt = `
     You are a Python tutor. The user has run some code.
-    
+
     **User's Code:**
     \`\`\`python
     ${code}
     \`\`\`
-    
+
     **Execution Output:**
     \`\`\`text
     ${output}
     \`\`\`
-    
+
     **Objective:** ${finalObjective}
-    
+
     **Task:**
     Provide brief, helpful feedback.
     1. If the code failed (error in output), explain *why* it failed in simple terms.
     2. If the code succeeded but didn't meet the objective, give a hint.
     3. If it succeeded and met the objective, say "Great job!" and maybe a small tip.
-    
+
     **Constraints:**
     - MAX 2-3 sentences.
     - NO direct code solutions.
@@ -256,7 +311,21 @@ exports.aiFeedback = onCall({
       model: LITE_MODEL,
       contents: prompt,
     });
-    return { feedback: response.text || null };
+    const feedback = response.text || null;
+
+    // ── Populate cache ──────────────────────────────────────────────────────
+    // Write asynchronously — don't block the response on a cache write failure.
+    if (feedback && cacheKey) {
+      getDb().collection('feedbackCache').doc(cacheKey).set({
+        feedback,
+        lessonId: lessonId || null,
+        errorSignature,
+        createdAt: Date.now(),
+      }).catch(err => logger.warn('[aiFeedback] Cache write failed (non-fatal):', err));
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
+    return { feedback };
   } catch (error) {
     logger.error("AI Feedback error:", error);
     return { feedback: null };

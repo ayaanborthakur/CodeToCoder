@@ -54,16 +54,20 @@ export interface RunCodeResult {
  * Get feedback on code execution
  */
 export const getFeedback = async (
-  code: string, 
-  output: string, 
-  objective?: string, 
-  isHardMode: boolean = false
+  code: string,
+  output: string,
+  objective?: string,
+  isHardMode: boolean = false,
+  lessonId?: string
 ): Promise<string | null> => {
   if (isHardMode) return null;
-  
+
   try {
-    const result = await aiFeedbackFn({ code, output, objective, isHardMode });
-    const data = result.data as { feedback: string | null };
+    const result = await aiFeedbackFn({ code, output, objective, isHardMode, lessonId });
+    const data = result.data as { feedback: string | null; fromCache?: boolean };
+    if (data.fromCache) {
+      console.debug('[getFeedback] Served from cache for lessonId:', lessonId);
+    }
     return data.feedback;
   } catch (error) {
     console.error("Error getting feedback:", error);
