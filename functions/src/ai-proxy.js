@@ -597,7 +597,7 @@ exports.aiFlowchart = onCall({
 
   try {
     const response = await getAI().models.generateContent({
-      model: PRO_MODEL,
+      model: LITE_MODEL, // Flowchart→code conversion doesn't need PRO
       contents: description,
     });
 
@@ -702,7 +702,7 @@ Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
   try {
     const result = await getAI().models.generateContent({
-      model: PRO_MODEL,
+      model: LITE_MODEL, // Simple output comparison — LITE is sufficient
       contents: prompt,
       config: { temperature: 0 }
     });
@@ -732,6 +732,26 @@ exports.aiValidateMethodology = onCall({
     return { isValid: false, reason: 'Code is empty' };
   }
 
+  // ── Methodology cache ───────────────────────────────────────────────────────
+  // Cache key = sha256(lessonId:normalizedCode). Duration/attempts are NOT
+  // included — same code + same lesson should always get the same verdict.
+  // This prevents re-validating identical submissions (e.g. student runs the
+  // correct code 3 times before advancing).
+  const normalizedCode = (code || '').trim().replace(/\s+/g, ' ');
+  const methodCacheRaw = `${lesson.id || lesson.title}:${normalizedCode}`;
+  const methodCacheKey = 'method_' + crypto.createHash('sha256').update(methodCacheRaw).digest('hex').slice(0, 40);
+
+  try {
+    const cached = await getDb().collection('feedbackCache').doc(methodCacheKey).get();
+    if (cached.exists) {
+      logger.info(`[aiValidateMethodology] Cache HIT for key ${methodCacheKey}`);
+      return cached.data().result;
+    }
+  } catch (cacheReadErr) {
+    logger.warn('[aiValidateMethodology] Cache read failed (non-fatal):', cacheReadErr);
+  }
+  // ───────────────────────────────────────────────────────────────────────────
+
   const prompt = `You are an expert Python tutor validating a student's code.
 
 Lesson Title: ${lesson.title}
@@ -747,7 +767,7 @@ Context:
 - Duration: ${durationSeconds || 'unknown'} seconds
 - Attempts: ${attempts || 'unknown'}
 
-Task: 
+Task:
 1. Identify core concepts required by the lesson.
 2. Verify the code actually uses these concepts.
 3. Reject if it just hardcodes the expected output.
@@ -762,13 +782,22 @@ Respond with JSON:
 
   try {
     const result = await getAI().models.generateContent({
-      model: PRO_MODEL,
+      model: LITE_MODEL, // Methodology check — LITE is sufficient; PRO saved for chat/projects
       contents: prompt,
       config: { temperature: 0, responseMimeType: "application/json" }
     });
 
     const responseText = (result.text ?? '').trim();
-    return JSON.parse(responseText);
+    const parsed = JSON.parse(responseText);
+
+    // Cache the result asynchronously (don't block the response)
+    getDb().collection('feedbackCache').doc(methodCacheKey).set({
+      result: parsed,
+      lessonId: lesson.id || lesson.title,
+      createdAt: Date.now(),
+    }).catch(err => logger.warn('[aiValidateMethodology] Cache write failed (non-fatal):', err));
+
+    return parsed;
   } catch (error) {
     logger.error("AI Validate Methodology error:", error);
     return { isValid: true };
@@ -871,7 +900,7 @@ Respond with JSON:
 
   try {
     const result = await getAI().models.generateContent({
-      model: PRO_MODEL,
+      model: LITE_MODEL, // Skill scoring from aggregate numbers — LITE is plenty
       contents: prompt,
       config: { temperature: 0.1, responseMimeType: "application/json" }
     });

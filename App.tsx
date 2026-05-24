@@ -597,26 +597,13 @@ const App: React.FC = () => {
         setIsFlowchartMode(false);
     }, []);
 
-    useEffect(() => {
-        if (currentView === 'home' || (currentView === 'playground' && playgroundView === 'dashboard') || (currentView === 'practice' && !activePracticeItem) || (currentView === 'practice' && activePracticeItem?.type === 'quiz')) return;
-
-        // Increased debounce to 15000ms to enforce strict rate limit (6 requests/min = 10s/request + safety margin)
-        const handler = setTimeout(async () => {
-            if (!activeCode.trim()) {
-                setLintIssues([]);
-                return;
-            }
-            if (isTerminalLoadingRef.current) return;
-
-            try {
-                const issues = await lintCodeWithAI(activeCode);
-                if (isTerminalLoadingRef.current) return;
-                setLintIssues(issues);
-            } catch { /* Silently fail in background */ }
-        }, 15000);
-
-        return () => clearTimeout(handler);
-    }, [activeCode, currentView, playgroundView, activePracticeItem]);
+    // ── AI Lint removed from background polling ──────────────────────────────
+    // The automatic 15-second debounce lint was triggering 5-15 Gemini API
+    // calls per session silently. Pyodide already surfaces all runtime errors
+    // the moment the student clicks Run, so the background lint was redundant.
+    // Lint results are now cleared when the view/lesson changes (below) and
+    // lintCodeWithAI can still be called explicitly if needed in the future.
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => { setLintIssues([]); }, [currentView, currentLessonId, activePlaygroundFileId]);
 

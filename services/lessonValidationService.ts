@@ -23,26 +23,25 @@ export async function validateOutput(actualOutput: string, lesson: Lesson): Prom
     return false;
   }
 
-  // If lesson has explicit expectedOutput, do exact match first (client-side)
+  // If lesson has explicit expectedOutput, use exact match ONLY — no AI fallback.
+  // If the output doesn't match exactly, it's wrong. Calling AI as a fallback
+  // here was generating unnecessary paid API calls for every failed run.
   if (lesson.expectedOutput !== undefined) {
     const normalizedActual = actualOutput.trim().toLowerCase();
     const normalizedExpected = lesson.expectedOutput.trim().toLowerCase();
-
-    if (normalizedActual === normalizedExpected) {
-      console.log('[Validation] Output matched exactly (case-insensitive)!');
-      return true;
-    }
-    console.log('[Validation] Exact match failed, falling back to AI check...');
+    const matched = normalizedActual === normalizedExpected;
+    console.log('[Validation] Exact output match:', matched);
+    return matched;
   }
 
-  // Fallback: Use AI inference via Cloud Function
+  // No expectedOutput defined → use AI inference (open-ended lessons/projects)
   try {
     const result = await validateOutputFn({ actualOutput, lesson });
     const data = result.data as { isValid: boolean };
     return data.isValid;
   } catch (error) {
     console.error('Output validation error:', error);
-    return true; // Fallback to permissive on error
+    return true; // Permissive fallback — never block students on a network error
   }
 }
 
