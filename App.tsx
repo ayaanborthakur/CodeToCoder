@@ -1178,6 +1178,8 @@ const App: React.FC = () => {
     }, [playgroundEditorCode, isTerminalLoading, activePlaygroundFileId, updateFile]);
 
     // ── Hint Button Handler ────────────────────────────────────────────────────
+    // Routes through aiChat (not aiFeedback) so the existing deployed rate-limit
+    // logic fires and the credit counter stays in sync with the chat panel.
     const handleRequestHint = useCallback(async () => {
         if (!lastRunContextRef.current || isHintLoading || aiCreditsLeft <= 0) return;
         setIsHintLoading(true);
@@ -1187,29 +1189,34 @@ const App: React.FC = () => {
             setPanelsCollapsed(prev => ({ ...prev, chat: false }));
         }
 
-        const { code: hCode, output: hOutput, objective: hObj, lessonId: hLessonId } = lastRunContextRef.current;
+        const { code: hCode, output: hOutput } = lastRunContextRef.current;
         try {
-            const { getFeedback } = await import('./services/geminiService');
-            const feedback = await getFeedback(hCode, hOutput, hObj, false, hLessonId);
-            if (feedback) {
-                setChatHistory(prev => [
-                    ...prev,
-                    { role: 'model', content: `💡 **Hint**\n\n${feedback}` }
-                ]);
-            }
+            const { getChatResponse } = await import('./services/geminiService');
+
+            // Phrase as a question so aiChat's Socratic tutor system prompt applies
+            const hintPrompt = `I ran my code and got this error:\n\`\`\`\n${hOutput}\n\`\`\`\n\nCan you give me a brief hint about what's causing this? Please don't give me the full solution.`;
+
+            const response = await getChatResponse(
+                [{ role: 'user', content: hintPrompt }],
+                currentLesson,  // lesson context feeds the tutor system prompt
+                hCode,
+                false           // never hard-mode for hints
+            );
+
+            setChatHistory(prev => [
+                ...prev,
+                { role: 'model', content: `💡 **Hint**\n\n${response}` }
+            ]);
         } catch (err: any) {
             const msg: string = err?.message ?? '';
             const errorContent = (msg.includes('resource-exhausted') || msg.includes('hourly'))
                 ? '⏳ You\'ve used all 5 AI credits for this hour. Try again later!'
                 : 'Could not load hint — please check your connection and try again.';
-            setChatHistory(prev => [
-                ...prev,
-                { role: 'model', content: errorContent }
-            ]);
+            setChatHistory(prev => [...prev, { role: 'model', content: errorContent }]);
         } finally {
             setIsHintLoading(false);
         }
-    }, [isHintLoading, aiCreditsLeft, isMobile]);
+    }, [isHintLoading, aiCreditsLeft, isMobile, currentLesson]);
     // ─────────────────────────────────────────────────────────────────────────
 
 
