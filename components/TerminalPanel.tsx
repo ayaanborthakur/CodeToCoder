@@ -14,7 +14,6 @@ interface TerminalPanelProps {
     // Hint button
     onRequestHint?: () => void;
     isHintLoading?: boolean;
-    hintFeedback?: string | null;
     aiCreditsLeft?: number;
 }
 
@@ -25,7 +24,6 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({
     onInputSubmit,
     onRequestHint,
     isHintLoading = false,
-    hintFeedback = null,
     aiCreditsLeft = 5,
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -85,47 +83,30 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({
                 )}
 
                 {/* ── Hint Button ─────────────────────────────────────────── */}
+                {/* Appears below the error. Response is sent to the AI chat panel. */}
                 {!isLoading && !isWaitingForInput && onRequestHint && outputHasError(output) && (
-                    <div className="mt-3 border-t border-gray-700 pt-3">
-                        {/* Button row */}
-                        {!hintFeedback && (
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={onRequestHint}
-                                    disabled={isHintLoading || aiCreditsLeft <= 0}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-                                        ${aiCreditsLeft <= 0
-                                            ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                                            : isHintLoading
-                                                ? 'bg-yellow-500/20 text-yellow-400 cursor-wait'
-                                                : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25 active:scale-95'
-                                        }`}
-                                    title={aiCreditsLeft <= 0 ? 'No AI hints left this hour' : 'Get an AI hint for this error'}
-                                >
-                                    {isHintLoading
-                                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        : <Lightbulb className="w-3.5 h-3.5" />
-                                    }
-                                    {isHintLoading ? 'Getting hint…' : aiCreditsLeft <= 0 ? 'No hints left' : 'Get Hint'}
-                                </button>
-                                {/* Credit counter */}
-                                <span className={`text-xs font-mono ${aiCreditsLeft <= 1 ? 'text-red-400' : 'text-gray-500'}`}>
-                                    {aiCreditsLeft} / 5 hints left this hour
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Hint response */}
-                        {hintFeedback && (
-                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-yellow-200 text-xs leading-relaxed font-sans">
-                                <div className="flex items-center gap-1.5 mb-1.5 text-yellow-400 font-semibold">
-                                    <Lightbulb className="w-3.5 h-3.5" />
-                                    AI Hint
-                                    <span className="ml-auto text-gray-500 font-normal">{aiCreditsLeft} / 5 left</span>
-                                </div>
-                                {hintFeedback}
-                            </div>
-                        )}
+                    <div className="mt-3 border-t border-gray-700 pt-3 flex items-center gap-3">
+                        <button
+                            onClick={onRequestHint}
+                            disabled={isHintLoading || aiCreditsLeft <= 0}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                                ${aiCreditsLeft <= 0
+                                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                    : isHintLoading
+                                        ? 'bg-yellow-500/20 text-yellow-400 cursor-wait'
+                                        : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25 active:scale-95'
+                                }`}
+                            title={aiCreditsLeft <= 0 ? 'No AI hints left this hour' : 'Get an AI hint — response will appear in the chat panel'}
+                        >
+                            {isHintLoading
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Lightbulb className="w-3.5 h-3.5" />
+                            }
+                            {isHintLoading ? 'Getting hint…' : aiCreditsLeft <= 0 ? 'No hints left' : 'Get Hint'}
+                        </button>
+                        <span className={`text-xs font-mono ${aiCreditsLeft <= 1 ? 'text-red-400' : 'text-gray-500'}`}>
+                            {aiCreditsLeft} / 5 AI credits left this hour
+                        </span>
                     </div>
                 )}
                 {/* ─────────────────────────────────────────────────────────── */}

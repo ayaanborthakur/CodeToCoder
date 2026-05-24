@@ -23,7 +23,6 @@ interface BottomPanelProps {
     // Hint button
     onRequestHint?: () => void;
     isHintLoading?: boolean;
-    hintFeedback?: string | null;
     aiCreditsLeft?: number;
 }
 
@@ -86,7 +85,6 @@ export const BottomPanel: React.FC<BottomPanelProps & {
     onInputSubmit = () => {},
     onRequestHint,
     isHintLoading = false,
-    hintFeedback = null,
     aiCreditsLeft = 5,
 }) => {
 
@@ -185,7 +183,6 @@ export const BottomPanel: React.FC<BottomPanelProps & {
                             onInputSubmit={onInputSubmit}
                             onRequestHint={onRequestHint}
                             isHintLoading={isHintLoading}
-                            hintFeedback={hintFeedback}
                             aiCreditsLeft={aiCreditsLeft}
                         />
                     )}

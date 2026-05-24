@@ -212,7 +212,6 @@ const App: React.FC = () => {
     const [inputPromiseResolve, setInputPromiseResolve] = useState<((val: string) => void) | null>(null);
 
     // ── Hint Button State ─────────────────────────────────────────────────────
-    const [hintFeedback, setHintFeedback] = useState<string | null>(null);
     const [isHintLoading, setIsHintLoading] = useState(false);
     // Stores the last run's context so the hint button can reference it without re-running
     const lastRunContextRef = useRef<{ code: string; output: string; objective?: string; lessonId?: string } | null>(null);
@@ -1036,7 +1035,6 @@ const App: React.FC = () => {
                     objective,
                     lessonId: (contextItem as any)?.id,
                 };
-                setHintFeedback(null); // Clear any previous hint when new code runs
             }
 
             // 3. Check Success (Simple check based on stderr for now, can be enhanced)
@@ -1188,7 +1186,6 @@ const App: React.FC = () => {
 
             // 3. Store context for Hint button (student requests hints explicitly — no auto AI call)
             lastRunContextRef.current = { code: playgroundEditorCode, output: result.output };
-            setHintFeedback(null);
         } catch {
             updateFile(activePlaygroundFileId, { terminalOutput: "An error occurred while running the playground code." });
         } finally {
@@ -1200,22 +1197,34 @@ const App: React.FC = () => {
     const handleRequestHint = useCallback(async () => {
         if (!lastRunContextRef.current || isHintLoading || aiCreditsLeft <= 0) return;
         setIsHintLoading(true);
+
+        // Open the chat panel immediately so the student sees the response arrive
+        if (!isMobile) {
+            setPanelsCollapsed(prev => ({ ...prev, chat: false }));
+        }
+
         const { code: hCode, output: hOutput, objective: hObj, lessonId: hLessonId } = lastRunContextRef.current;
         try {
             const { getFeedback } = await import('./services/geminiService');
             const feedback = await getFeedback(hCode, hOutput, hObj, false, hLessonId);
-            setHintFeedback(feedback ?? 'No hint available right now.');
+            const content = feedback ?? 'No hint available right now.';
+            setChatHistory(prev => [
+                ...prev,
+                { role: 'model', content: `💡 **Hint**\n\n${content}` }
+            ]);
         } catch (err: any) {
             const msg: string = err?.message ?? '';
-            if (msg.includes('resource-exhausted') || msg.includes('hourly')) {
-                setHintFeedback('⏳ You\'ve used all 5 hints for this hour. Try again later!');
-            } else {
-                setHintFeedback('Could not load hint — please try again.');
-            }
+            const errorContent = (msg.includes('resource-exhausted') || msg.includes('hourly'))
+                ? '⏳ You\'ve used all 5 AI credits for this hour. Try again later!'
+                : 'Could not load hint — please check your connection and try again.';
+            setChatHistory(prev => [
+                ...prev,
+                { role: 'model', content: errorContent }
+            ]);
         } finally {
             setIsHintLoading(false);
         }
-    }, [isHintLoading, aiCreditsLeft]);
+    }, [isHintLoading, aiCreditsLeft, isMobile]);
     // ─────────────────────────────────────────────────────────────────────────
 
 
@@ -1807,7 +1816,6 @@ const App: React.FC = () => {
                                         onInputSubmit={handleInputSubmit}
                                         onRequestHint={handleRequestHint}
                                         isHintLoading={isHintLoading}
-                                        hintFeedback={hintFeedback}
                                         aiCreditsLeft={aiCreditsLeft}
                                     />
                                 </div>

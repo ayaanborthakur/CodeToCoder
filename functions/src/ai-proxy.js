@@ -248,8 +248,12 @@ exports.aiFeedback = onCall({
   timeoutSeconds: 30,
   secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
-  // Always verify the user is authenticated (even for cache-hit paths)
-  verifyAuth(request);
+  // Verify auth and consume one credit FIRST (before cache check).
+  // Every hint button click costs 1 credit — the cache still saves the Gemini
+  // API call (money), but the student's rate limit always ticks down by 1.
+  // This keeps the counter in sync with what the student sees on-screen.
+  await verifyAndRateLimitUsage(request, 5, 3600000);
+
   const { code, output, objective, isHardMode, lessonId } = request.data;
 
   if (isHardMode) return { feedback: null };
@@ -257,8 +261,7 @@ exports.aiFeedback = onCall({
   const finalObjective = objective || "The user is exploring freely.";
 
   // ── Cached Feedback ───────────────────────────────────────────────────────
-  // Cache hits are FREE — no rate-limit credit deducted.
-  // Only actual LLM calls count against the student's 5/hour allowance.
+  // Cache hit → instant response, no Gemini call (credit was already deducted above).
   const errorSignature = extractErrorSignature(output);
   let cacheKey = null;
   if (errorSignature && lessonId) {
@@ -275,8 +278,6 @@ exports.aiFeedback = onCall({
       logger.warn('[aiFeedback] Cache read failed, proceeding to LLM:', cacheReadError);
     }
   }
-  // Cache miss → consume one credit from the shared 5/hr pool
-  await verifyAndRateLimitUsage(request, 5, 3600000);
   // ─────────────────────────────────────────────────────────────────────────
 
   const prompt = `
