@@ -62,17 +62,16 @@ export const getFeedback = async (
 ): Promise<string | null> => {
   if (isHardMode) return null;
 
-  try {
-    const result = await aiFeedbackFn({ code, output, objective, isHardMode, lessonId });
-    const data = result.data as { feedback: string | null; fromCache?: boolean };
-    if (data.fromCache) {
-      console.debug('[getFeedback] Served from cache for lessonId:', lessonId);
-    }
-    return data.feedback;
-  } catch (error) {
-    console.error("Error getting feedback:", error);
-    return null;
+  // Intentionally NOT catching errors here — callers (handleRequestHint) have
+  // their own catch blocks with user-friendly messages. Swallowing errors here
+  // caused the hint button to always show "No hint available" instead of the
+  // real failure reason (rate limit, network, etc.).
+  const result = await aiFeedbackFn({ code, output, objective, isHardMode, lessonId });
+  const data = result.data as { feedback: string | null; fromCache?: boolean };
+  if (data.fromCache) {
+    console.debug('[getFeedback] Served from cache for lessonId:', lessonId);
   }
+  return data.feedback;
 };
 
 // DEPRECATED: Kept for reference but should be replaced by pyodideService + getFeedback

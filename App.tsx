@@ -1207,11 +1207,12 @@ const App: React.FC = () => {
         try {
             const { getFeedback } = await import('./services/geminiService');
             const feedback = await getFeedback(hCode, hOutput, hObj, false, hLessonId);
-            const content = feedback ?? 'No hint available right now.';
-            setChatHistory(prev => [
-                ...prev,
-                { role: 'model', content: `💡 **Hint**\n\n${content}` }
-            ]);
+            if (feedback) {
+                setChatHistory(prev => [
+                    ...prev,
+                    { role: 'model', content: `💡 **Hint**\n\n${feedback}` }
+                ]);
+            }
         } catch (err: any) {
             const msg: string = err?.message ?? '';
             const errorContent = (msg.includes('resource-exhausted') || msg.includes('hourly'))
