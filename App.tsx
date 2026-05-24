@@ -218,7 +218,26 @@ const App: React.FC = () => {
     // ChatPanel already subscribes to users/{uid}/stats/aiUsage. Rather than a
     // second subscription here, ChatPanel calls onCreditsChange whenever the
     // count changes so the hint button counter stays in sync automatically.
-    const [aiCreditsLeft, setAiCreditsLeft] = useState(5);
+    // Seeded from localStorage so the counter is correct immediately on reload
+    // (before the first Firestore snapshot arrives). Firestore always wins once
+    // the snapshot fires and overwrites the cached value.
+    const [aiCreditsLeft, setAiCreditsLeft] = useState<number>(() => {
+        try {
+            const stored = localStorage.getItem('ai_credits_left');
+            return stored !== null ? parseInt(stored, 10) : 5;
+        } catch {
+            return 5;
+        }
+    });
+
+    // Keep localStorage in sync so the value survives page reloads
+    useEffect(() => {
+        try {
+            localStorage.setItem('ai_credits_left', String(aiCreditsLeft));
+        } catch {
+            // localStorage unavailable (e.g. private-browsing with strict settings)
+        }
+    }, [aiCreditsLeft]);
     // ─────────────────────────────────────────────────────────────────────────
 
     // Analytics: Track attempts/runs per session
