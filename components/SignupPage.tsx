@@ -58,22 +58,20 @@ export const SignupPage: React.FC = () => {
     const [joinError, setJoinError] = useState<string | null>(null);
     const [joinLoading, setJoinLoading] = useState(false);
 
-    // Handle already-authenticated users landing on /signup
+    // Handle already-authenticated users landing on /signup.
+    // We only auto-route from the 'method' step (the entry point). During the
+    // active multi-step flow the individual step handlers drive navigation —
+    // otherwise refreshUser() (which populates user.username after claimUsername)
+    // would trip the dashboard redirect and bypass the role picker / setup steps.
     useEffect(() => {
-        if (user) {
-            if (user.username && step !== 'setup') {
-                // User has fully completed signup — send to dashboard.
-                // Exception: if step === 'setup', they just claimed their username
-                // and need to complete classroom creation / joining before continuing.
-                navigate('/dashboard');
-            } else if (step === 'method') {
-                // User is auth'd but has no username and is still on the first step
-                // (e.g. existing session restored, or Google auth fired on the method screen).
-                // Jump forward to username.
-                // We deliberately exclude 'credentials' to avoid jumping ahead mid-registration
-                // when onAuthStateChanged fires before register() resolves.
-                setStep('username');
-            }
+        if (!user || step !== 'method') return;
+        if (user.username) {
+            // Fully onboarded already (e.g. restored session) — send to dashboard.
+            navigate('/dashboard');
+        } else {
+            // Authenticated but no username yet (e.g. Google auth fired on the
+            // method screen, or session restored mid-onboarding) — pick a username.
+            setStep('username');
         }
     }, [user, step, navigate]);
 
