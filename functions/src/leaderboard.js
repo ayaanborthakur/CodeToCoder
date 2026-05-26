@@ -4,7 +4,10 @@
  * Scheduled function that runs daily to update the leaderboard.
  */
 
-const {setGlobalOptions} = require("firebase-functions");
+// Use specific imports to avoid loading firebase-functions/v2/index.js, which
+// eagerly requires database.js — that tries to connect to Firebase RTDB and
+// takes 14+ seconds, causing the Firebase CLI analysis step to timeout.
+const {setGlobalOptions} = require("firebase-functions/v2/options");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 
