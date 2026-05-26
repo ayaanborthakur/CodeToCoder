@@ -10,13 +10,11 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { login, register, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,12 +27,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        if (!name.trim()) throw new Error("Name is required");
-        await register(email, password, name);
-      }
+      await login(email, password);
       onClose();
     } catch (err: any) {
       setError(err.message || "Authentication failed");
@@ -70,10 +63,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <div className="relative z-10">
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center tracking-tight">
-            {mode === 'login' ? 'Welcome Back' : 'Join Code2Coder'}
+            Welcome Back
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center mb-8">
-            {mode === 'login' ? 'Sign in to continue your coding journey' : 'Start your coding adventure today'}
+            Sign in to continue your coding journey
           </p>
 
           {error && (
@@ -100,24 +93,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             <div className="relative flex items-center py-2">
               <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-              <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase tracking-wider font-medium">Or continue with email</span>
+              <span className="flex-shrink-0 mx-4 text-gray-400 text-xs uppercase tracking-wider font-medium">Or sign in with email</span>
               <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'signup' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none text-gray-900 dark:text-white transition-all placeholder-gray-400"
-                    placeholder="Your Name"
-                  />
-                </div>
-              )}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 ml-1">Email</label>
                 <input
@@ -151,31 +131,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
+                    Signing in...
                   </span>
-                ) : (
-                  mode === 'login' ? 'Sign In' : 'Create Account'
-                )}
+                ) : 'Sign In'}
               </button>
             </form>
           </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
+              Don't have an account?{' '}
               <button
-                onClick={() => { 
-                    if (mode === 'login') {
-                        navigate('/signup');
-                        onClose();
-                    } else {
-                        setMode('login'); 
-                        setError(null); 
-                    }
-                }}
-                className="ml-2 font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors"
+                onClick={() => { navigate('/signup'); onClose(); }}
+                className="font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors"
               >
-                {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                Sign Up
               </button>
             </p>
           </div>

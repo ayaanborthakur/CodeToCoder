@@ -24,7 +24,7 @@ import { createClassroom, joinClassroom } from '../services/classroomService';
 import type { UserRole, Classroom } from '../types';
 import { Helmet } from 'react-helmet-async';
 
-type Step = 'role' | 'method' | 'credentials' | 'verification' | 'username' | 'setup';
+type Step = 'role' | 'method' | 'credentials' | 'username' | 'setup';
 
 export const SignupPage: React.FC = () => {
     const { loginWithGoogle, register, user, refreshUser } = useAuth();
@@ -96,7 +96,7 @@ export const SignupPage: React.FC = () => {
         setError(null);
         try {
             await register(email, password, name);
-            setStep('verification');
+            setStep('username');
         } catch (err: any) {
             const code = err?.code;
             if (code === 'auth/email-already-in-use') {
@@ -218,7 +218,7 @@ export const SignupPage: React.FC = () => {
             case 'role':        return 0;
             case 'method':
             case 'credentials':
-            case 'verification': return 1;
+            case 'credentials': return 1;
             case 'username':    return 2;
             case 'setup':       return 3;
         }
@@ -470,32 +470,6 @@ export const SignupPage: React.FC = () => {
                                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Account</span>}
                                 </button>
                             </form>
-                        )}
-
-                        {/* ── Step 2c: Email verification ──────────────────── */}
-                        {step === 'verification' && (
-                            <div className="text-center space-y-6 animate-fade-in-up">
-                                <div className="w-20 h-20 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan-600 dark:text-cyan-400">
-                                    <Mail className="w-10 h-10" />
-                                </div>
-                                <h2 className="text-3xl font-bold">Verify your Email</h2>
-                                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                                    We've sent a verification link to{' '}
-                                    <span className="font-bold text-gray-900 dark:text-white">{email}</span>.
-                                    Please click the link to verify your account.
-                                </p>
-                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl text-left text-sm text-yellow-800 dark:text-yellow-200">
-                                    <p className="font-bold mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4" /> Pro Tip:</p>
-                                    Check your spam folder if you don't see it within a few minutes.
-                                </div>
-                                <button onClick={() => window.location.reload()}
-                                    className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-opacity">
-                                    I've Verified My Email
-                                </button>
-                                <button onClick={() => setStep('username')} className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline">
-                                    Skip for now (Development)
-                                </button>
-                            </div>
                         )}
 
                         {/* ── Step 3: Username ─────────────────────────────── */}
