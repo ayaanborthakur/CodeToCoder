@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCompactNumber } from '../utils/formatters';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard';
+export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -22,7 +22,8 @@ import {
   Menu,
   X,
   Search,
-  HelpCircle
+  HelpCircle,
+  GraduationCap,
 } from 'lucide-react';
 import { FocusTimer } from './FocusTimer';
 
@@ -128,7 +129,21 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
 
           <nav className="hidden md:flex items-center gap-1 ml-3">
             {user && <NavLink view="home" label="Home" />}
-            <NavLink view="classroom" label="Classroom" />
+            {/* Teachers see "My Class" instead of the regular Classroom lesson link */}
+            {user?.role === 'teacher' ? (
+              <button
+                onClick={() => { onNavigate('teacher'); setIsMobileMenuOpen(false); }}
+                className={`nav-tab px-3 py-1.5 rounded-md text-sm font-semibold border flex items-center gap-1.5 ${currentView === 'teacher'
+                  ? 'bg-cyan-500/20 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400 border-cyan-500/30'
+                  : 'text-gray-600 dark:text-gray-300 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                My Class
+              </button>
+            ) : (
+              <NavLink view="classroom" label="Classroom" />
+            )}
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />
@@ -206,7 +221,9 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-800 p-3 space-y-1 shadow-lg animate-slide-up">
             {user && <NavLink view="home" label="Home" />}
-            <NavLink view="classroom" label="Classroom" />
+            {user?.role === 'teacher'
+              ? <NavLink view="teacher" label="My Class" />
+              : <NavLink view="classroom" label="Classroom" />}
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />

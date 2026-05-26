@@ -31,6 +31,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { UsernameModal } from './components/UsernameModal';
 import { SignupPage } from './components/SignupPage';
+import { TeacherDashboard } from './components/TeacherDashboard';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -139,6 +140,7 @@ const App: React.FC = () => {
         if (path.startsWith('/leaderboard')) return 'leaderboard';
         if (path.startsWith('/about')) return 'about';
         if (path.startsWith('/reference')) return 'reference';
+        if (path.startsWith('/teacher')) return 'teacher';
         return 'mission';
     }, [location.pathname]);
 
@@ -2065,6 +2067,13 @@ const App: React.FC = () => {
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
                         <Route path="/reference" element={<ReferencePanel />} />
                         <Route path="/reference/:itemId" element={<ReferencePanel />} />
+
+                        {/* Teacher dashboard — only shown to teachers */}
+                        <Route path="/teacher" element={
+                            user?.role === 'teacher'
+                                ? <TeacherDashboard />
+                                : <Navigate to="/dashboard" replace />
+                        } />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

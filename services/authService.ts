@@ -136,8 +136,9 @@ export const authService = {
           ...baseUser,
           username: data.username || undefined,
           avatar: data.avatar || undefined,
-          // Always return the value from Firestore if it exists (though we just set it if missing)
-          joinedAt: data.joinedAt || baseUser.joinedAt
+          joinedAt: data.joinedAt || baseUser.joinedAt,
+          role: data.role || undefined,
+          classId: data.classId || undefined,
         };
       }
     } catch (error) {

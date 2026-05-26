@@ -37,6 +37,33 @@ service cloud.firestore {
       allow write: if request.auth.token.admin == true;
     }
 
+    // --- Classrooms ---
+    // Teachers can create and update their own classroom.
+    // Students can read a classroom (to see the join code screen) and join it
+    // by adding themselves to studentIds — but cannot modify anything else.
+    match /classrooms/{classId} {
+      // Any signed-in user can read a classroom (needed to look up join codes)
+      allow read: if isSignedIn();
+
+      // Only the teacher who owns the classroom can create or fully update it
+      allow create: if isSignedIn() && request.resource.data.teacherId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        // Teacher can update anything about their classroom
+        resource.data.teacherId == request.auth.uid
+        ||
+        // Students can only append their own uid to studentIds (join)
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentIds'])
+          && request.resource.data.studentIds.hasAll(resource.data.studentIds)
+          && request.resource.data.studentIds.size() == resource.data.studentIds.size() + 1
+          && request.auth.uid in request.resource.data.studentIds
+        )
+      );
+
+      // Only the owning teacher can delete a classroom
+      allow delete: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+    }
+
     // --- AI Feedback Cache ---
     // Written exclusively by Cloud Functions (admin SDK bypasses these rules).
     // Clients have no direct access — feedback is always proxied through the function.

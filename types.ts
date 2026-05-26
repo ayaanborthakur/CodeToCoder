@@ -81,6 +81,18 @@ export interface FocusStats {
     totalFocusMinutes: number;
 }
 
+export type UserRole = 'student' | 'teacher';
+
+export interface Classroom {
+  classId: string;
+  className: string;
+  teacherId: string;
+  teacherName: string;
+  joinCode: string;      // 6 uppercase letters, unique
+  studentIds: string[];
+  createdAt: number;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -91,6 +103,8 @@ export interface User {
   achievements?: UserAchievements;
   net_value?: number; // Total value for leaderboard (e.g., total stars earned)
   focusStats?: FocusStats;
+  role?: UserRole;
+  classId?: string;   // for students: the classroom they joined; for teachers: the classroom they own
 }
 
 export interface StarTransaction {

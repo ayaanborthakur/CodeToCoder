@@ -1,31 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-    Mail, 
-    Lock, 
-    User, 
-    ArrowRight, 
-    Check, 
-    Loader2, 
-    AlertCircle, 
-    Sparkles, 
-    Code2, 
-    Terminal, 
-    Cpu 
+import {
+    Mail,
+    Lock,
+    User,
+    ArrowRight,
+    Check,
+    Loader2,
+    AlertCircle,
+    Sparkles,
+    Code2,
+    Terminal,
+    Cpu,
+    GraduationCap,
+    BookOpen,
+    Copy,
+    CheckCheck,
+    Users,
 } from 'lucide-react';
 import { isUsernameAvailable, claimUsername, validateUsername } from '../services/usernameService';
+import { createClassroom, joinClassroom } from '../services/classroomService';
+import type { UserRole, Classroom } from '../types';
 import { Helmet } from 'react-helmet-async';
 
-type Step = 'method' | 'credentials' | 'verification' | 'username';
+type Step = 'role' | 'method' | 'credentials' | 'verification' | 'username' | 'setup';
 
 export const SignupPage: React.FC = () => {
     const { loginWithGoogle, register, user, refreshUser } = useAuth();
     const navigate = useNavigate();
-    
-    const [step, setStep] = useState<Step>('method');
+
+    const [step, setStep] = useState<Step>('role');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Role state
+    const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
 
     // Form State
     const [name, setName] = useState('');
@@ -38,40 +48,42 @@ export const SignupPage: React.FC = () => {
     const [usernameError, setUsernameError] = useState<string | null>(null);
     const [isUsernameValid, setIsUsernameValid] = useState(false);
 
-    // Effect to handle navigation based on auth state
+    // Classroom setup state (teacher)
+    const [className, setClassName] = useState('');
+    const [createdClassroom, setCreatedClassroom] = useState<Classroom | null>(null);
+    const [codeCopied, setCodeCopied] = useState(false);
+
+    // Join code state (student)
+    const [joinCode, setJoinCode] = useState('');
+    const [joinError, setJoinError] = useState<string | null>(null);
+    const [joinLoading, setJoinLoading] = useState(false);
+
+    // Redirect already-logged-in users
     useEffect(() => {
         if (user) {
-            // If user already has a username, redirect to dashboard
-            // This handles returning users who sign in via Google
             if (user.username) {
                 navigate('/dashboard');
-            } else if (step !== 'username') {
-                // If logged in but no username, go to username step
+            } else if (step !== 'username' && step !== 'setup') {
                 setStep('username');
             }
         }
     }, [user, step, navigate]);
 
+    // ── Auth handlers ─────────────────────────────────────────────────────────
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
         setError(null);
         try {
             await loginWithGoogle();
-            // After Google sign-in succeeds, check if user already has a username (returning user)
-            // The useEffect will handle navigation - if user.username exists, it redirects to dashboard
-            // Otherwise, it advances to the username step
             setStep('username');
         } catch (err: any) {
-            // Check for specific Firebase error codes
-            const errorCode = err?.code;
-            if (errorCode === 'auth/account-exists-with-different-credential' || 
-                errorCode === 'auth/email-already-in-use') {
-                // Account exists with different credential
-                setError("An account already exists with this email. Redirecting to login...");
+            const code = err?.code;
+            if (code === 'auth/account-exists-with-different-credential' || code === 'auth/email-already-in-use') {
+                setError('An account already exists with this email. Redirecting to login...');
                 setTimeout(() => navigate('/login'), 2000);
             } else {
-                setError(err.message || "Failed to sign in with Google");
+                setError(err.message || 'Failed to sign in with Google');
             }
         } finally {
             setLoading(false);
@@ -84,24 +96,21 @@ export const SignupPage: React.FC = () => {
         setError(null);
         try {
             await register(email, password, name);
-            // After register, user is logged in. 
-            // We should ideally send verification email here if not done in register
-            // Assuming register handles basic creation.
             setStep('verification');
         } catch (err: any) {
-            // Check for specific Firebase error codes
-            const errorCode = err?.code;
-            if (errorCode === 'auth/email-already-in-use') {
-                // Email already has an account - redirect to login
-                setError("An account with this email already exists. Redirecting to login...");
+            const code = err?.code;
+            if (code === 'auth/email-already-in-use') {
+                setError('An account with this email already exists. Redirecting to login...');
                 setTimeout(() => navigate('/login'), 2000);
             } else {
-                setError(err.message || "Failed to create account");
+                setError(err.message || 'Failed to create account');
             }
         } finally {
             setLoading(false);
         }
     };
+
+    // ── Username submit ───────────────────────────────────────────────────────
 
     const handleUsernameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -109,65 +118,113 @@ export const SignupPage: React.FC = () => {
 
         setLoading(true);
         setError(null);
-
         try {
             await claimUsername(user.id, username);
             await refreshUser();
-            navigate('/dashboard');
+            // Move to role-specific setup step
+            setStep('setup');
         } catch (err: any) {
-            setError(err.message || "Failed to set username");
+            setError(err.message || 'Failed to set username');
         } finally {
             setLoading(false);
         }
     };
-    
-    // Debounced username check
+
+    // ── Teacher: create classroom ─────────────────────────────────────────────
+
+    const handleCreateClassroom = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user || !className.trim()) return;
+
+        setLoading(true);
+        setError(null);
+        try {
+            const classroom = await createClassroom(user.id, user.name, className.trim());
+            setCreatedClassroom(classroom);
+        } catch (err: any) {
+            setError(err.message || 'Failed to create classroom');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const copyJoinCode = () => {
+        if (!createdClassroom) return;
+        navigator.clipboard.writeText(createdClassroom.joinCode).catch(() => {});
+        setCodeCopied(true);
+        setTimeout(() => setCodeCopied(false), 2000);
+    };
+
+    // ── Student: join classroom ───────────────────────────────────────────────
+
+    const handleJoinClassroom = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user || !joinCode.trim()) return;
+
+        setJoinLoading(true);
+        setJoinError(null);
+        try {
+            await joinClassroom(user.id, joinCode.trim());
+            await refreshUser();
+            navigate('/dashboard');
+        } catch (err: any) {
+            setJoinError(err.message || 'Invalid join code');
+        } finally {
+            setJoinLoading(false);
+        }
+    };
+
+    // ── Debounced username check ──────────────────────────────────────────────
+
     useEffect(() => {
-        const checkUsername = async () => {
+        const check = async () => {
             if (!username) {
                 setUsernameError(null);
                 setIsUsernameValid(false);
                 return;
             }
-
-            // Client-side format validation
-            const formatValidation = validateUsername(username);
-            if (!formatValidation.valid) {
-                 setUsernameError(formatValidation.error || "Invalid username");
-                 setIsUsernameValid(false);
-                 return;
+            const fmt = validateUsername(username);
+            if (!fmt.valid) {
+                setUsernameError(fmt.error || 'Invalid username');
+                setIsUsernameValid(false);
+                return;
             }
-
             setIsCheckingUsername(true);
             setUsernameError(null);
-            
             try {
                 const available = await isUsernameAvailable(username);
                 if (!available) {
-                    setUsernameError("Username is already taken");
+                    setUsernameError('Username is already taken');
                     setIsUsernameValid(false);
                 } else {
-                    // Start Gemini Safety Check (simulated or real if exposed)
-                    // Currently usernameService.claimUsername does the safety check. 
-                    // To give feedback early, strictly we should call the check here if possible or just rely on 'available' 
-                    // and let the final submit do the heavy AI check to avoid rate limits?
-                    // User asked for "Gemini Safety Check" in Step 4. 
-                    // Let's rely on submit for the heavy AI check to save tokens/latency, but show "Available" 
                     setIsUsernameValid(true);
                 }
-            } catch (err) {
-                console.error(err);
-                setUsernameError("Error checking availability");
+            } catch {
+                setUsernameError('Error checking availability');
                 setIsUsernameValid(false);
             } finally {
                 setIsCheckingUsername(false);
             }
         };
-
-        const timeout = setTimeout(checkUsername, 500);
-        return () => clearTimeout(timeout);
+        const t = setTimeout(check, 500);
+        return () => clearTimeout(t);
     }, [username]);
 
+    // ── Progress bar ─────────────────────────────────────────────────────────
+
+    // Map internal step names to progress-bar indices (0-3)
+    const stepIndex = (() => {
+        switch (step) {
+            case 'role':        return 0;
+            case 'method':
+            case 'credentials':
+            case 'verification': return 1;
+            case 'username':    return 2;
+            case 'setup':       return 3;
+        }
+    })();
+
+    // ── Render ────────────────────────────────────────────────────────────────
 
     return (
         <div className="min-h-screen w-full flex bg-white dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden font-sans">
@@ -175,28 +232,24 @@ export const SignupPage: React.FC = () => {
                 <title>Sign Up - Code2Coder</title>
             </Helmet>
 
-            {/* Vibe Zone (Left) */}
+            {/* ── Left panel ─────────────────────────────────────────── */}
             <div className="hidden lg:flex w-1/2 relative bg-gray-900 overflow-hidden items-center justify-center">
-                {/* Animated Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-cyan-900/40 z-0"></div>
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay"></div>
-                
-                {/* Floating Elements Animation */}
-                <div className="absolute inset-0 z-0 overflow-hidden perspective-1000">
-                     <div className="absolute top-1/4 left-1/4 animate-float-slow">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-purple-900/40 to-cyan-900/40 z-0" />
+                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay" />
+                <div className="absolute inset-0 z-0 overflow-hidden">
+                    <div className="absolute top-1/4 left-1/4 animate-float-slow">
                         <Terminal className="w-24 h-24 text-cyan-500/20" />
-                     </div>
-                     <div className="absolute bottom-1/3 right-1/4 animate-float-delayed">
+                    </div>
+                    <div className="absolute bottom-1/3 right-1/4 animate-float-delayed">
                         <Code2 className="w-32 h-32 text-purple-500/20" />
-                     </div>
-                     <div className="absolute top-1/3 right-1/3 animate-pulse-slow">
+                    </div>
+                    <div className="absolute top-1/3 right-1/3 animate-pulse-slow">
                         <Sparkles className="w-16 h-16 text-yellow-500/10" />
-                     </div>
-                     <div className="absolute bottom-1/4 left-1/3 animate-float-slow">
+                    </div>
+                    <div className="absolute bottom-1/4 left-1/3 animate-float-slow">
                         <Cpu className="w-20 h-20 text-blue-500/20" />
-                     </div>
+                    </div>
                 </div>
-
                 <div className="relative z-10 p-12 max-w-lg">
                     <h1 className="text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-sm">
                         Build your future in code.
@@ -204,7 +257,6 @@ export const SignupPage: React.FC = () => {
                     <p className="text-xl text-gray-300 leading-relaxed mb-8">
                         Join thousands of developers mastering Python through AI-powered interactive lessons and real-time feedback.
                     </p>
-                    
                     <div className="space-y-4">
                         <div className="flex items-center gap-4 text-gray-400">
                             <div className="w-12 h-12 rounded-full bg-cyan-900/30 flex items-center justify-center border border-cyan-800">
@@ -224,48 +276,112 @@ export const SignupPage: React.FC = () => {
                                 <p className="text-sm">Run code directly in your browser.</p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-4 text-gray-400">
+                            <div className="w-12 h-12 rounded-full bg-green-900/30 flex items-center justify-center border border-green-800">
+                                <GraduationCap className="w-6 h-6 text-green-400" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-white">Classroom Tools</h3>
+                                <p className="text-sm">Teachers create classes. Students join with a code.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Action Zone (Right) */}
+            {/* ── Right panel ────────────────────────────────────────── */}
             <div className="w-full lg:w-1/2 flex flex-col relative z-10 bg-white dark:bg-gray-950">
                 <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-24 max-w-2xl mx-auto w-full">
-                    
-                    {/* Header for Mobile */}
+
+                    {/* Mobile header */}
                     <div className="lg:hidden mb-8 text-center">
                         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-purple-600">Code2Coder</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-2">Master Python with AI</p>
                     </div>
 
-                    {/* Progress Steps - 2 steps: Choose method, then set username */}
+                    {/* Progress bar — 4 steps */}
                     <div className="flex gap-2 mb-10">
-                        {['method', 'username'].map((s) => {
-                            const steps = ['method', 'username'];
-                            // Map credentials/verification to 'method' step for progress display
-                            const effectiveStep = (step === 'credentials' || step === 'verification') ? 'method' : step;
-                            const currentIndex = steps.indexOf(effectiveStep);
-                            const stepIndex = steps.indexOf(s);
-                            const isActive = stepIndex === currentIndex;
-                            const isCompleted = stepIndex < currentIndex;
-                            
-                            return (
-                                <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                                    isActive ? 'bg-cyan-500' : isCompleted ? 'bg-cyan-200 dark:bg-cyan-900' : 'bg-gray-100 dark:bg-gray-800'
-                                }`} />
-                            );
-                        })}
+                        {[0, 1, 2, 3].map((i) => (
+                            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                                i < stepIndex  ? 'bg-cyan-200 dark:bg-cyan-900' :
+                                i === stepIndex ? 'bg-cyan-500' :
+                                                  'bg-gray-100 dark:bg-gray-800'
+                            }`} />
+                        ))}
                     </div>
 
                     <div className="animate-fade-in-up">
+
+                        {/* ── Step 1: Role selection ───────────────────────── */}
+                        {step === 'role' && (
+                            <div className="space-y-6">
+                                <div className="text-center mb-8">
+                                    <h2 className="text-3xl font-bold mb-2">Who are you?</h2>
+                                    <p className="text-gray-500 dark:text-gray-400">Choose your role to get started</p>
+                                </div>
+
+                                <button
+                                    onClick={() => { setSelectedRole('teacher'); setStep('method'); }}
+                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl transition-all group text-left"
+                                >
+                                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/70 transition-colors">
+                                        <GraduationCap className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold">I'm a Teacher</h3>
+                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-cyan-500 transition-colors" />
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Create a classroom and share a join code with your students. Track their progress.
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => { setSelectedRole('student'); setStep('method'); }}
+                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
+                                >
+                                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
+                                        <BookOpen className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold">I'm a Student</h3>
+                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Learn Python with AI-powered lessons. Join a classroom with a code from your teacher.
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <p className="text-center text-sm text-gray-500 mt-4">
+                                    Already have an account?{' '}
+                                    <button onClick={() => navigate('/login')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
+                                        Log in
+                                    </button>
+                                </p>
+                            </div>
+                        )}
+
+                        {/* ── Step 2: Auth method ──────────────────────────── */}
                         {step === 'method' && (
                             <div className="space-y-6">
                                 <div className="text-center mb-8">
+                                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${
+                                        selectedRole === 'teacher'
+                                            ? 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300'
+                                            : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                                    }`}>
+                                        {selectedRole === 'teacher' ? <GraduationCap className="w-3 h-3" /> : <BookOpen className="w-3 h-3" />}
+                                        {selectedRole === 'teacher' ? 'Teacher' : 'Student'}
+                                    </div>
                                     <h2 className="text-3xl font-bold mb-2">Get Started</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Choose how would you like to sign up</p>
+                                    <p className="text-gray-500 dark:text-gray-400">Choose how you'd like to sign up</p>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={handleGoogleSignIn}
                                     disabled={loading}
                                     className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl text-lg font-semibold transition-all transform hover:-translate-y-1 hover:shadow-lg group"
@@ -281,11 +397,11 @@ export const SignupPage: React.FC = () => {
                                 </button>
 
                                 <div className="relative py-4">
-                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800"></div></div>
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800" /></div>
                                     <div className="relative flex justify-center"><span className="bg-white dark:bg-gray-950 px-4 text-sm text-gray-500">or</span></div>
                                 </div>
 
-                                <button 
+                                <button
                                     onClick={() => setStep('credentials')}
                                     className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700 dark:hover:to-gray-800 rounded-2xl text-lg font-semibold transition-all"
                                 >
@@ -293,17 +409,21 @@ export const SignupPage: React.FC = () => {
                                     <span>Sign up with Email</span>
                                 </button>
 
-                                <p className="text-center text-sm text-gray-500 mt-6">
-                                    Already have an account? <button onClick={() => navigate('/login')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">Log in</button>
-                                </p>
+                                <button
+                                    onClick={() => setStep('role')}
+                                    className="text-sm text-gray-500 hover:text-cyan-500 flex items-center gap-1 mx-auto mt-2"
+                                >
+                                    ← Change role
+                                </button>
                             </div>
                         )}
 
+                        {/* ── Step 2b: Email credentials ───────────────────── */}
                         {step === 'credentials' && (
                             <form onSubmit={handleEmailSignup} className="space-y-5">
                                 <div className="mb-6">
-                                    <button type="button" onClick={() => setStep('method')} className="text-sm text-gray-500 hover:text-cyan-500 flex items-center gap-1 mb-2">
-                                        ← Back to methods
+                                    <button type="button" onClick={() => setStep('method')} className="text-sm text-gray-500 hover:text-cyan-500 flex items-center gap-1 mb-4">
+                                        ← Back
                                     </button>
                                     <h2 className="text-3xl font-bold">Create Profile</h2>
                                     <p className="text-gray-500 dark:text-gray-400">Enter your details to create an account</p>
@@ -313,14 +433,9 @@ export const SignupPage: React.FC = () => {
                                     <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Full Name</label>
                                     <div className="relative">
                                         <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input 
-                                            type="text" 
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
+                                        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                                             className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="John Doe"
-                                            required
-                                        />
+                                            placeholder="John Doe" required />
                                     </div>
                                 </div>
 
@@ -328,14 +443,9 @@ export const SignupPage: React.FC = () => {
                                     <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Email Address</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input 
-                                            type="email" 
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
+                                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                                             className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="john@example.com"
-                                            required
-                                        />
+                                            placeholder="john@example.com" required />
                                     </div>
                                 </div>
 
@@ -343,70 +453,55 @@ export const SignupPage: React.FC = () => {
                                     <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Password</label>
                                     <div className="relative">
                                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input 
-                                            type="password" 
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
+                                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                                             className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="••••••••"
-                                            required
-                                            minLength={6}
-                                        />
+                                            placeholder="••••••••" required minLength={6} />
                                     </div>
                                 </div>
 
                                 {error && (
                                     <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
-                                        <AlertCircle className="w-5 h-5 shrink-0" />
-                                        {error}
+                                        <AlertCircle className="w-5 h-5 shrink-0" />{error}
                                     </div>
                                 )}
 
-                                <button 
-                                    type="submit" 
-                                    disabled={loading}
-                                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 mt-4 disabled:opacity-70 flex items-center justify-center gap-2"
-                                >
+                                <button type="submit" disabled={loading}
+                                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
                                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Account</span>}
                                 </button>
                             </form>
                         )}
 
+                        {/* ── Step 2c: Email verification ──────────────────── */}
                         {step === 'verification' && (
-                             <div className="text-center space-y-6 animate-fade-in-up">
+                            <div className="text-center space-y-6 animate-fade-in-up">
                                 <div className="w-20 h-20 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-cyan-600 dark:text-cyan-400">
                                     <Mail className="w-10 h-10" />
                                 </div>
                                 <h2 className="text-3xl font-bold">Verify your Email</h2>
                                 <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                                    We've sent a verification link to <span className="font-bold text-gray-900 dark:text-white">{email}</span>. 
+                                    We've sent a verification link to{' '}
+                                    <span className="font-bold text-gray-900 dark:text-white">{email}</span>.
                                     Please click the link to verify your account.
                                 </p>
-                                
                                 <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl text-left text-sm text-yellow-800 dark:text-yellow-200">
-                                    <p className="font-bold mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4"/> Pro Tip:</p>
+                                    <p className="font-bold mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4" /> Pro Tip:</p>
                                     Check your spam folder if you don't see it within a few minutes.
                                 </div>
-
-                                <button 
-                                    onClick={() => window.location.reload()}
-                                    className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-opacity"
-                                >
+                                <button onClick={() => window.location.reload()}
+                                    className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-opacity">
                                     I've Verified My Email
                                 </button>
-
-                                <button 
-                                    onClick={() => setStep('username')} // Allow skip for now if verification is optional or handled later
-                                    className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline"
-                                >
+                                <button onClick={() => setStep('username')} className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline">
                                     Skip for now (Development)
                                 </button>
-                             </div>
+                            </div>
                         )}
 
+                        {/* ── Step 3: Username ─────────────────────────────── */}
                         {step === 'username' && (
-                             <div className="space-y-6 animate-fade-in-up">
-                                 <div className="text-center mb-8">
+                            <div className="space-y-6 animate-fade-in-up">
+                                <div className="text-center mb-8">
                                     <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
                                         <Sparkles className="w-8 h-8" />
                                     </div>
@@ -419,33 +514,27 @@ export const SignupPage: React.FC = () => {
                                         <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Username</label>
                                         <div className="relative">
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">@</span>
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 value={username}
                                                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                                className={`w-full pl-10 pr-12 py-4 text-lg font-mono rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 outline-none transition-all ${
-                                                    usernameError ? 'focus:ring-red-500 focus:border-red-500 border-red-200' : 
-                                                    isUsernameValid ? 'focus:ring-green-500 focus:border-green-500 border-green-200' : 
-                                                    'focus:ring-cyan-500 focus:border-cyan-500'
-                                                }`}
+                                                className={`w-full pl-10 pr-12 py-4 text-lg font-mono rounded-xl bg-gray-50 dark:bg-gray-900 border outline-none transition-all ${
+                                                    usernameError ? 'focus:ring-red-500 focus:border-red-500 border-red-200' :
+                                                    isUsernameValid ? 'focus:ring-green-500 focus:border-green-500 border-green-200 dark:border-green-800' :
+                                                    'border-gray-200 dark:border-gray-800 focus:ring-cyan-500 focus:border-cyan-500'
+                                                } focus:ring-2`}
                                                 placeholder="python_wizard"
                                                 maxLength={20}
                                                 minLength={3}
                                                 autoFocus
                                             />
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                {isCheckingUsername ? (
-                                                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                                                ) : isUsernameValid ? (
-                                                    <Check className="w-5 h-5 text-green-500" />
-                                                ) : usernameError ? (
-                                                    <AlertCircle className="w-5 h-5 text-red-500" />
-                                                ) : null}
+                                                {isCheckingUsername ? <Loader2 className="w-5 h-5 text-gray-400 animate-spin" /> :
+                                                 isUsernameValid  ? <Check className="w-5 h-5 text-green-500" /> :
+                                                 usernameError    ? <AlertCircle className="w-5 h-5 text-red-500" /> : null}
                                             </div>
                                         </div>
-                                        {usernameError && (
-                                            <p className="mt-2 text-sm text-red-500 ml-1">{usernameError}</p>
-                                        )}
+                                        {usernameError && <p className="mt-2 text-sm text-red-500 ml-1">{usernameError}</p>}
                                         {isUsernameValid && (
                                             <p className="mt-2 text-sm text-green-600 dark:text-green-400 ml-1 flex items-center gap-1">
                                                 <Sparkles className="w-3 h-3" /> Username available!
@@ -459,21 +548,161 @@ export const SignupPage: React.FC = () => {
                                         </div>
                                     )}
 
-                                    <button 
-                                        type="submit" 
-                                        disabled={loading || !isUsernameValid}
-                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                    >
-                                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Complete Setup"}
+                                    <button type="submit" disabled={loading || !isUsernameValid}
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Continue →'}
                                     </button>
                                 </form>
-                             </div>
+                            </div>
                         )}
-                    </div>
 
+                        {/* ── Step 4: Role-specific setup ──────────────────── */}
+                        {step === 'setup' && selectedRole === 'teacher' && (
+                            <div className="space-y-6 animate-fade-in-up">
+                                <div className="text-center mb-8">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-cyan-500/20">
+                                        <GraduationCap className="w-8 h-8" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold">Create your Classroom</h2>
+                                    <p className="text-gray-500 dark:text-gray-400">Give your class a name — we'll generate a join code your students can use</p>
+                                </div>
+
+                                {!createdClassroom ? (
+                                    <form onSubmit={handleCreateClassroom} className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Class Name</label>
+                                            <div className="relative">
+                                                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    value={className}
+                                                    onChange={(e) => setClassName(e.target.value)}
+                                                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
+                                                    placeholder="e.g. Grade 8 Python, Period 3"
+                                                    required
+                                                    maxLength={60}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {error && (
+                                            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
+                                                <AlertCircle className="w-5 h-5 shrink-0" />{error}
+                                            </div>
+                                        )}
+
+                                        <button type="submit" disabled={loading || !className.trim()}
+                                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Create Classroom <ArrowRight className="w-5 h-5" /></>}
+                                        </button>
+
+                                        <button type="button" onClick={() => navigate('/dashboard')}
+                                            className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                                            Skip for now
+                                        </button>
+                                    </form>
+                                ) : (
+                                    /* ── Join code reveal ─── */
+                                    <div className="space-y-6">
+                                        <div className="p-6 rounded-2xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-800 text-center">
+                                            <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-3 uppercase tracking-wider">
+                                                Class Join Code
+                                            </p>
+                                            <div className="flex items-center justify-center gap-3 mb-4">
+                                                <span className="text-5xl font-black font-mono tracking-[0.3em] text-gray-900 dark:text-white">
+                                                    {createdClassroom.joinCode}
+                                                </span>
+                                                <button
+                                                    onClick={copyJoinCode}
+                                                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
+                                                    title="Copy code"
+                                                >
+                                                    {codeCopied ? <CheckCheck className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-gray-500" />}
+                                                </button>
+                                            </div>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                Share this code with your students. They'll enter it when they sign up.
+                                            </p>
+                                        </div>
+
+                                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                <span className="font-semibold text-gray-900 dark:text-white">Class:</span> {createdClassroom.className}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={() => navigate('/dashboard')}
+                                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                            Go to Dashboard <ArrowRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {step === 'setup' && selectedRole === 'student' && (
+                            <div className="space-y-6 animate-fade-in-up">
+                                <div className="text-center mb-8">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
+                                        <BookOpen className="w-8 h-8" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold">Join a Classroom</h2>
+                                    <p className="text-gray-500 dark:text-gray-400">Enter the 6-letter code your teacher gave you</p>
+                                </div>
+
+                                <form onSubmit={handleJoinClassroom} className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Join Code</label>
+                                        <input
+                                            type="text"
+                                            value={joinCode}
+                                            onChange={(e) => {
+                                                setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''));
+                                                setJoinError(null);
+                                            }}
+                                            className={`w-full px-4 py-4 text-3xl font-black font-mono tracking-[0.4em] text-center rounded-xl bg-gray-50 dark:bg-gray-900 border focus:ring-2 outline-none transition-all ${
+                                                joinError
+                                                    ? 'border-red-400 focus:ring-red-500'
+                                                    : 'border-gray-200 dark:border-gray-800 focus:ring-purple-500 focus:border-purple-500'
+                                            }`}
+                                            placeholder="ABCDEF"
+                                            maxLength={6}
+                                            autoFocus
+                                            autoCapitalize="characters"
+                                        />
+                                        {joinError && (
+                                            <p className="mt-2 text-sm text-red-500 ml-1 flex items-center gap-1">
+                                                <AlertCircle className="w-4 h-4" /> {joinError}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <button type="submit" disabled={joinLoading || joinCode.length !== 6}
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                                        {joinLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Join Classroom <ArrowRight className="w-5 h-5" /></>}
+                                    </button>
+
+                                    <button type="button" onClick={() => navigate('/dashboard')}
+                                        className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
+                                        I don't have a code — skip for now
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* Fallback: setup step reached without a role (shouldn't happen) */}
+                        {step === 'setup' && !selectedRole && (
+                            <div className="text-center">
+                                <p className="text-gray-500 mb-4">Something went wrong. Please start over.</p>
+                                <button onClick={() => setStep('role')} className="text-cyan-500 underline">Start over</button>
+                            </div>
+                        )}
+
+                    </div>
                 </div>
-                
-                {/* Footer */}
+
                 <div className="p-6 text-center text-xs text-gray-400 border-t border-gray-100 dark:border-gray-900">
                     &copy; 2024 Code2Coder. All rights reserved.
                 </div>
