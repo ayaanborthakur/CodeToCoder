@@ -1514,7 +1514,9 @@ const App: React.FC = () => {
         return () => clearTimeout(timer);
     }, [isProgressLoaded, isPlaygroundLoaded, isQuizzesLoaded]);
 
-    if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson)) {
+    // Signup page has its own self-contained flow — don't let the global loading screen
+    // interrupt it when data hooks reinitialise after the new user is created.
+    if (currentView !== 'signup' && (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson))) {
         if (showReloadOption) {
             return (
                 <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
