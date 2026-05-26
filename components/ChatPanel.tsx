@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
 import { CollapseIcon } from './CollapseIcon';
 import { TypewriterText } from './TypewriterText';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../services/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 declare let marked: { parse: (markdown: string) => string } | undefined;
 
@@ -18,14 +21,20 @@ interface ChatPanelProps {
     isLoading: boolean;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
-    onOpenFlowchart?: () => void; // Callback to open flowchart builder
+    onOpenFlowchart?: () => void;
+    /** Called whenever the AI credits remaining changes — lets parent sync the hint button counter */
+    onCreditsChange?: (creditsLeft: number) => void;
+    /** Optimistic credit count from parent — overrides the Firestore-derived count
+     *  for immediate UI feedback before the onSnapshot round-trip completes */
+    optimisticCredits?: number;
 }
 
 import { 
     Sparkles, 
     Send, 
     X, 
-    Workflow // For flowchart
+    Workflow, // For flowchart
+    Lock
 } from 'lucide-react';
 
 
@@ -36,13 +45,78 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, isLoading, isCollapsed, onToggleCollapse, onOpenFlowchart, onCreditsChange, optimisticCredits }) => {
+    const { user } = useAuth();
+    const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
+    const [secondsUntilNext, setSecondsUntilNext] = useState<number>(0);
     const [isInputOpen, setIsInputOpen] = useState(false);
     const [input, setInput] = useState('');
     const [lastAnimatedIndex, setLastAnimatedIndex] = useState(-1);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const prevMessagesLengthRef = useRef(messages.length);
+
+    // Subscribe to rate limit document in real time
+    useEffect(() => {
+        if (!user) return;
+        const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
+        const unsubscribe = onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data && Array.isArray(data.requestTimestamps)) {
+                    setRequestTimestamps(data.requestTimestamps);
+                }
+            } else {
+                setRequestTimestamps([]);
+            }
+        }, (error) => {
+            console.error("Error reading AI usage statistics:", error);
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    // Compute remaining requests and countdown
+    const windowMs = 3600000;
+    const maxRequests = 5;
+    const activeTimestamps = requestTimestamps.filter(t => t > Date.now() - windowMs);
+    const questionsLeft = Math.max(0, maxRequests - activeTimestamps.length);
+    const isLocked = questionsLeft === 0;
+
+    // Notify parent (App.tsx) whenever credits change so the hint button stays in sync
+    useEffect(() => {
+        onCreditsChange?.(questionsLeft);
+    }, [questionsLeft, onCreditsChange]);
+
+    useEffect(() => {
+        if (!isLocked || activeTimestamps.length === 0) {
+            setSecondsUntilNext(0);
+            return;
+        }
+
+        // Close input field if rate limited
+        setIsInputOpen(false);
+
+        const oldest = activeTimestamps[0];
+        const updateTimer = () => {
+            const currentNow = Date.now();
+            const remainingMs = oldest + windowMs - currentNow;
+            if (remainingMs <= 0) {
+                setSecondsUntilNext(0);
+            } else {
+                setSecondsUntilNext(Math.ceil(remainingMs / 1000));
+            }
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [isLocked, activeTimestamps]);
+
+    const formatCountdown = (totalSeconds: number) => {
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${m}m ${s.toString().padStart(2, '0')}s`;
+    };
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -102,7 +176,27 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
             {/* Header */}
             <div className={`h-12 px-4 flex items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 ${isCollapsed ? 'justify-end' : 'justify-between'} flex-shrink-0 z-10`}>
                 {!isCollapsed && (
-                    <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">AI Guidance</h3>
+                    <div className="flex items-center justify-between w-full pr-2">
+                        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">AI Guidance</h3>
+                        {user && (
+                            <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border flex items-center gap-1.5 transition-all ${
+                                isLocked 
+                                    ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50' 
+                                    : questionsLeft <= 2
+                                        ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50'
+                                        : 'bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/20 dark:text-cyan-400 dark:border-cyan-900/50'
+                            }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                    isLocked 
+                                        ? 'bg-red-500 animate-pulse' 
+                                        : questionsLeft <= 2
+                                            ? 'bg-amber-500 animate-pulse'
+                                            : 'bg-cyan-500'
+                                }`} />
+                                {isLocked ? `Locked: ${formatCountdown(secondsUntilNext)}` : `${optimisticCredits ?? questionsLeft} / ${maxRequests} Left`}
+                            </div>
+                        )}
+                    </div>
                 )}
                 <button
                     onClick={onToggleCollapse}
@@ -157,7 +251,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
 
                     {/* Footer Action Area */}
                     <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-                        {!isInputOpen ? (
+                        {isLocked ? (
+                            <div className="p-4 bg-red-50/50 dark:bg-red-950/10 border border-red-100 dark:border-red-900/30 rounded-xl flex flex-col items-center justify-center text-center gap-2 shadow-inner">
+                                <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full animate-bounce">
+                                    <Lock className="w-5 h-5" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <h4 className="text-xs font-bold text-red-700 dark:text-red-400">AI Limit Reached</h4>
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-[260px]">
+                                        You have asked 5 questions this hour. Your next question will unlock in <span className="font-bold text-gray-700 dark:text-gray-200">{formatCountdown(secondsUntilNext)}</span>.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : !isInputOpen ? (
                             <div className="flex gap-2">
                                 {onOpenFlowchart && (
                                     <button

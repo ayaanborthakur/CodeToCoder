@@ -58,34 +58,55 @@ export const AnalyticsDashboard: React.FC = () => {
     const [dueReviews, setDueReviews] = useState<ReviewItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const loadData = async (isSilent = false) => {
+    // ── Skill radar cache key ─────────────────────────────────────────────────
+    // The AI skill radar (PRO_MODEL) is expensive. We cache the result in
+    // localStorage with a 24-hour TTL so it only re-runs once per day, not on
+    // every dashboard open or every Firestore activity write.
+    const RADAR_CACHE_KEY = user ? `skill_radar_${user.id}` : 'skill_radar';
+    const RADAR_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    const getCachedRadar = (): { data: typeof radarData; ts: number } | null => {
+        try {
+            const raw = localStorage.getItem(RADAR_CACHE_KEY);
+            if (!raw) return null;
+            return JSON.parse(raw);
+        } catch { return null; }
+    };
+
+    const setCachedRadar = (data: typeof radarData) => {
+        try {
+            localStorage.setItem(RADAR_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+        } catch { /* ignore quota errors */ }
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // loadChartData: cheap Firestore reads only — no AI calls.
+    // Called on mount, time-range change, and every real-time snapshot.
+    const loadChartData = async (isSilent = false) => {
         if (!user) return;
         if (!isSilent) setIsLoading(true);
         try {
-            // Determine days based on range
             let days = 14;
             if (timeRange === '7d') days = 7;
             if (timeRange === '30d') days = 30;
             if (timeRange === '90d') days = 90;
             if (timeRange === 'all') days = 365;
 
-            const [daily, category, recent, hours, accuracy, radar, heatmap, reviews] = await Promise.all([
+            const [daily, category, recent, hours, accuracy, heatmap, reviews] = await Promise.all([
                 getDailyActivityStats(user.id, days),
                 getCategoryStats(user.id),
                 getRecentActivity(user.id, 5),
                 getProductivityByHour(user.id),
                 getAccuracyStats(user.id),
-                getSkillRadarData(user.id),
                 getActivityHeatmap(user.id),
                 getDueReviews(user.id)
             ]);
-            
+
             setDailyStats(daily);
             setCategoryStats(category);
             setRecentActivity(recent);
             setHourStats(hours);
             setAccuracyStats(accuracy);
-            setRadarData(radar);
             setHeatmapData(heatmap);
             setDueReviews(reviews);
         } catch (error) {
@@ -95,15 +116,34 @@ export const AnalyticsDashboard: React.FC = () => {
         }
     };
 
+    // loadRadarData: calls the AI skill radar function — guarded by a 24-hour
+    // localStorage cache so it only fires once per day.
+    const loadRadarData = async () => {
+        if (!user) return;
+        const cached = getCachedRadar();
+        if (cached && Date.now() - cached.ts < RADAR_TTL_MS) {
+            setRadarData(cached.data);
+            return;
+        }
+        try {
+            const radar = await getSkillRadarData(user.id);
+            setRadarData(radar);
+            setCachedRadar(radar);
+        } catch (error) {
+            console.error("Failed to load skill radar:", error);
+        }
+    };
+
     useEffect(() => {
-        loadData();
+        loadChartData();
+        loadRadarData(); // AI call — rate-limited to once per 24 h via localStorage cache
 
         if (!user) return;
 
-        // 🟢 Real-time listener for "Instant Updates"
+        // Real-time listener only refreshes cheap chart data, NOT the AI radar.
         const activityRef = userPaths.activity(user.id);
         const unsubscribe = onSnapshot(activityRef, () => {
-             loadData(true);
+            loadChartData(true);
         }, (error) => {
             console.error("Real-time listener failed:", error);
         });

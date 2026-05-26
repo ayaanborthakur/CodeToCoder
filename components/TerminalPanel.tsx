@@ -1,17 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Lightbulb, Loader2 } from 'lucide-react';
+
+/** Returns true if the terminal output contains a Python error. */
+function outputHasError(output: string): boolean {
+    return /Traceback|Error:/i.test(output);
+}
 
 interface TerminalPanelProps {
     output: string;
     isLoading: boolean;
     isWaitingForInput: boolean;
     onInputSubmit: (text: string) => void;
+    // Hint button
+    onRequestHint?: () => void;
+    isHintLoading?: boolean;
+    aiCreditsLeft?: number;
 }
 
 export const TerminalPanel: React.FC<TerminalPanelProps> = ({
     output,
     isLoading,
     isWaitingForInput,
-    onInputSubmit
+    onInputSubmit,
+    onRequestHint,
+    isHintLoading = false,
+    aiCreditsLeft = 5,
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +64,7 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({
             {/* Output Display */}
             <div className="whitespace-pre-wrap break-words flex-1">
                 {output}
-                
+
                 {/* Input Field (Inline) */}
                 {isWaitingForInput && (
                     <div className="inline-flex items-center ml-1 w-full max-w-md align-top">
@@ -68,7 +81,36 @@ export const TerminalPanel: React.FC<TerminalPanelProps> = ({
                         />
                     </div>
                 )}
-                
+
+                {/* ── Hint Button ─────────────────────────────────────────── */}
+                {/* Appears below the error. Response is sent to the AI chat panel. */}
+                {!isLoading && !isWaitingForInput && onRequestHint && outputHasError(output) && (
+                    <div className="mt-3 border-t border-gray-700 pt-3 flex items-center gap-3">
+                        <button
+                            onClick={onRequestHint}
+                            disabled={isHintLoading || aiCreditsLeft <= 0}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                                ${aiCreditsLeft <= 0
+                                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                    : isHintLoading
+                                        ? 'bg-yellow-500/20 text-yellow-400 cursor-wait'
+                                        : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25 active:scale-95'
+                                }`}
+                            title={aiCreditsLeft <= 0 ? 'No AI hints left this hour' : 'Get an AI hint — response will appear in the chat panel'}
+                        >
+                            {isHintLoading
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : <Lightbulb className="w-3.5 h-3.5" />
+                            }
+                            {isHintLoading ? 'Getting hint…' : aiCreditsLeft <= 0 ? 'No hints left' : 'Get Hint'}
+                        </button>
+                        <span className={`text-xs font-mono ${aiCreditsLeft <= 1 ? 'text-red-400' : 'text-gray-500'}`}>
+                            {aiCreditsLeft} / 5 AI credits left this hour
+                        </span>
+                    </div>
+                )}
+                {/* ─────────────────────────────────────────────────────────── */}
+
                 <div ref={bottomRef} />
             </div>
         </div>

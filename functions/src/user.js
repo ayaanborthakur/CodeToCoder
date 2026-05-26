@@ -6,23 +6,37 @@
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
-const {GoogleGenAI, Type} = require("@google/genai");
 
-// Initialize Admin SDK if not already done (shared instance)
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+let _adminApp = null;
+function getAdminApp() {
+  if (!_adminApp) {
+    const { initializeApp, getApps } = require("firebase-admin/app");
+    _adminApp = getApps().length > 0 ? getApps()[0] : initializeApp();
+  }
+  return _adminApp;
 }
-const db = admin.firestore();
 
-// Initialize Vertex AI for profanity checking
-const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "code2coder-a324f";
-const LOCATION = "us-central1";
-const ai = new GoogleGenAI({ 
-  vertexai: true,
-  project: PROJECT_ID,
-  location: LOCATION
-});
+let _db = null;
+function getDb() {
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    _db = getFirestore(getAdminApp(), "code2coder-india");
+  }
+  return _db;
+}
+
+let _ai = null;
+function getAI() {
+  if (!_ai) {
+    const { GoogleGenAI } = require("@google/genai");
+    _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return _ai;
+}
+
+function getType() {
+  return require("@google/genai").Type;
+}
 
 /**
  * Check if a username is available AND safe (combines availability + profanity check).
@@ -30,8 +44,10 @@ const ai = new GoogleGenAI({
  * new users from querying the users collection.
  */
 exports.checkUsernameAvailability = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   timeoutSeconds: 20,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   // Authentication check
   if (!request.auth) {
@@ -70,7 +86,7 @@ exports.checkUsernameAvailability = onCall({
     }
 
     // 2. Query users collection for availability
-    const usersRef = db.collection('users');
+    const usersRef = getDb().collection('users');
     const snapshot = await usersRef
       .where('username', '==', normalizedUsername)
       .limit(1)
@@ -101,16 +117,16 @@ async function checkUsernameSafety(username) {
 Check if it contains profanity, hate speech, sexually explicit references, or harmful content.
 Respond with JSON: { "isSafe": boolean, "reason": "optional string" }`;
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-2.5-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            isSafe: { type: Type.BOOLEAN },
-            reason: { type: Type.STRING }
+            isSafe: { type: getType().BOOLEAN },
+            reason: { type: getType().STRING }
           },
           required: ['isSafe']
         }

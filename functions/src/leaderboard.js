@@ -4,16 +4,30 @@
  * Scheduled function that runs daily to update the leaderboard.
  */
 
-const {setGlobalOptions} = require("firebase-functions");
+// Use specific imports to avoid loading firebase-functions/v2/index.js, which
+// eagerly requires database.js — that tries to connect to Firebase RTDB and
+// takes 14+ seconds, causing the Firebase CLI analysis step to timeout.
+const {setGlobalOptions} = require("firebase-functions/v2/options");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
 
-// Initialize only if not already initialized
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+let _adminApp = null;
+function getAdminApp() {
+  if (!_adminApp) {
+    const { initializeApp, getApps } = require("firebase-admin/app");
+    _adminApp = getApps().length > 0 ? getApps()[0] : initializeApp();
+  }
+  return _adminApp;
 }
-const db = admin.firestore();
+
+let _db = null;
+function getDb() {
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    _db = getFirestore(getAdminApp(), "code2coder-india");
+  }
+  return _db;
+}
 
 // For cost control, we limit max instances.
 setGlobalOptions({ maxInstances: 10 });
@@ -24,6 +38,7 @@ setGlobalOptions({ maxInstances: 10 });
  * assigns them a rank, and updates the 'leaderboard' collection.
  */
 exports.updateLeaderboard = onSchedule({
+  region: "asia-south1",
   schedule: "0 0 * * *",
   timeZone: "America/Los_Angeles",
 }, async (event) => {
@@ -31,7 +46,7 @@ exports.updateLeaderboard = onSchedule({
 
   try {
     // 1. Fetch all users with net_value > 0
-    const usersSnapshot = await db.collection("users")
+    const usersSnapshot = await getDb().collection("users")
         .where("net_value", ">", 0)
         .where("shown", "==", true)
         .orderBy("net_value", "desc")
@@ -45,8 +60,8 @@ exports.updateLeaderboard = onSchedule({
       return;
     }
 
-    const batch = db.batch();
-    const leaderboardRef = db.collection("leaderboard");
+    const batch = getDb().batch();
+    const leaderboardRef = getDb().collection("leaderboard");
 
     // 2. Clear existing leaderboard
     const existingLeaderboard = await leaderboardRef.get();
@@ -73,7 +88,7 @@ exports.updateLeaderboard = onSchedule({
         net_value: userData.net_value || 0,
         rank: rank++,
         createdAt: userData.createdAt || null,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: require("firebase-admin/firestore").FieldValue.serverTimestamp(),
       });
       
       logger.debug(`Adding user to leaderboard: ${userDoc.id} -> @${username}`);

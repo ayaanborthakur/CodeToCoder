@@ -208,7 +208,38 @@ const App: React.FC = () => {
 
     const [isWaitingForInput, setIsWaitingForInput] = useState(false);
     const [inputPromiseResolve, setInputPromiseResolve] = useState<((val: string) => void) | null>(null);
-    
+
+    // ── Hint Button State ─────────────────────────────────────────────────────
+    const [isHintLoading, setIsHintLoading] = useState(false);
+    // Stores the last run's context so the hint button can reference it without re-running
+    const lastRunContextRef = useRef<{ code: string; output: string; objective?: string; lessonId?: string } | null>(null);
+
+    // ── AI Credits (driven by ChatPanel's Firestore subscription via callback) ──
+    // ChatPanel already subscribes to users/{uid}/stats/aiUsage. Rather than a
+    // second subscription here, ChatPanel calls onCreditsChange whenever the
+    // count changes so the hint button counter stays in sync automatically.
+    // Seeded from localStorage so the counter is correct immediately on reload
+    // (before the first Firestore snapshot arrives). Firestore always wins once
+    // the snapshot fires and overwrites the cached value.
+    const [aiCreditsLeft, setAiCreditsLeft] = useState<number>(() => {
+        try {
+            const stored = localStorage.getItem('ai_credits_left');
+            return stored !== null ? parseInt(stored, 10) : 5;
+        } catch {
+            return 5;
+        }
+    });
+
+    // Keep localStorage in sync so the value survives page reloads
+    useEffect(() => {
+        try {
+            localStorage.setItem('ai_credits_left', String(aiCreditsLeft));
+        } catch {
+            // localStorage unavailable (e.g. private-browsing with strict settings)
+        }
+    }, [aiCreditsLeft]);
+    // ─────────────────────────────────────────────────────────────────────────
+
     // Analytics: Track attempts/runs per session
     const [sessionRunCount, setSessionRunCount] = useState(0);
     const [lessonStartTime, setLessonStartTime] = useState(Date.now());
@@ -566,26 +597,13 @@ const App: React.FC = () => {
         setIsFlowchartMode(false);
     }, []);
 
-    useEffect(() => {
-        if (currentView === 'home' || (currentView === 'playground' && playgroundView === 'dashboard') || (currentView === 'practice' && !activePracticeItem) || (currentView === 'practice' && activePracticeItem?.type === 'quiz')) return;
-
-        // Increased debounce to 15000ms to enforce strict rate limit (6 requests/min = 10s/request + safety margin)
-        const handler = setTimeout(async () => {
-            if (!activeCode.trim()) {
-                setLintIssues([]);
-                return;
-            }
-            if (isTerminalLoadingRef.current) return;
-
-            try {
-                const issues = await lintCodeWithAI(activeCode);
-                if (isTerminalLoadingRef.current) return;
-                setLintIssues(issues);
-            } catch { /* Silently fail in background */ }
-        }, 15000);
-
-        return () => clearTimeout(handler);
-    }, [activeCode, currentView, playgroundView, activePracticeItem]);
+    // ── AI Lint removed from background polling ──────────────────────────────
+    // The automatic 15-second debounce lint was triggering 5-15 Gemini API
+    // calls per session silently. Pyodide already surfaces all runtime errors
+    // the moment the student clicks Run, so the background lint was redundant.
+    // Lint results are now cleared when the view/lesson changes (below) and
+    // lintCodeWithAI can still be called explicitly if needed in the future.
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => { setLintIssues([]); }, [currentView, currentLessonId, activePlaygroundFileId]);
 
@@ -998,18 +1016,15 @@ const App: React.FC = () => {
                 }
             });
 
-            // 2. Get AI Feedback (Async, if assistance level > 5)
-            if (aiAssistanceLevel > 5) {
-                const objective = (contextItem as any).objective || contextItem?.objective;
-                import('./services/geminiService').then(async ({ getFeedback }) => {
-                    const feedback = await getFeedback(code, result.output, objective, aiAssistanceLevel <= 5);
-                    if (feedback) {
-                        setChatHistory(prev => [...prev, { role: 'model', content: feedback }]);
-                        if (!isMobile) {
-                            setPanelsCollapsed(prev => ({ ...prev, chat: false }));
-                        }
-                    }
-                });
+            // 2. Store context for the Hint button (no auto AI call — student requests hints explicitly)
+            {
+                const objective = (contextItem as any)?.objective;
+                lastRunContextRef.current = {
+                    code,
+                    output: result.output,
+                    objective,
+                    lessonId: (contextItem as any)?.id,
+                };
             }
 
             // 3. Check Success (Simple check based on stderr for now, can be enhanced)
@@ -1159,23 +1174,61 @@ const App: React.FC = () => {
             // 2. Update Output Immediately
             updateFile(activePlaygroundFileId, { terminalOutput: result.output });
 
-            // 3. Get Feedback (Async)
-            if (aiAssistanceLevel > 5) {
-                import('./services/geminiService').then(async ({ getFeedback }) => {
-                    const feedback = await getFeedback(playgroundEditorCode, result.output, undefined, aiAssistanceLevel <= 5);
-                    if (feedback) {
-                        const newChatHistory = activePlaygroundFile?.chatHistory ? [...activePlaygroundFile.chatHistory] : [];
-                        newChatHistory.push({ role: 'model', content: feedback });
-                        updateFile(activePlaygroundFileId, { chatHistory: newChatHistory });
-                    }
-                });
-            }
+            // 3. Store context for Hint button (student requests hints explicitly — no auto AI call)
+            lastRunContextRef.current = { code: playgroundEditorCode, output: result.output };
         } catch {
             updateFile(activePlaygroundFileId, { terminalOutput: "An error occurred while running the playground code." });
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [playgroundEditorCode, isTerminalLoading, aiAssistanceLevel, activePlaygroundFileId, updateFile, activePlaygroundFile?.chatHistory]);
+    }, [playgroundEditorCode, isTerminalLoading, activePlaygroundFileId, updateFile]);
+
+    // ── Hint Button Handler ────────────────────────────────────────────────────
+    // Routes through aiChat (not aiFeedback) so the existing deployed rate-limit
+    // logic fires and the credit counter stays in sync with the chat panel.
+    const handleRequestHint = useCallback(async () => {
+        if (!lastRunContextRef.current || isHintLoading || aiCreditsLeft <= 0) return;
+        setIsHintLoading(true);
+
+        // Optimistic decrement — update the counter immediately without waiting for
+        // the Firestore round-trip. onCreditsChange will correct it once the server
+        // responds (usually ~1-2s later).
+        setAiCreditsLeft(prev => Math.max(0, prev - 1));
+
+        // Open the chat panel immediately so the student sees the response arrive
+        if (!isMobile) {
+            setPanelsCollapsed(prev => ({ ...prev, chat: false }));
+        }
+
+        const { code: hCode, output: hOutput } = lastRunContextRef.current;
+        try {
+            const { getChatResponse } = await import('./services/geminiService');
+
+            // Phrase as a question so aiChat's Socratic tutor system prompt applies
+            const hintPrompt = `I ran my code and got this error:\n\`\`\`\n${hOutput}\n\`\`\`\n\nCan you give me a brief hint about what's causing this? Please don't give me the full solution.`;
+
+            const response = await getChatResponse(
+                [{ role: 'user', content: hintPrompt }],
+                currentLesson,  // lesson context feeds the tutor system prompt
+                hCode,
+                false           // never hard-mode for hints
+            );
+
+            setChatHistory(prev => [
+                ...prev,
+                { role: 'model', content: `💡 **Hint**\n\n${response}` }
+            ]);
+        } catch (err: any) {
+            const msg: string = err?.message ?? '';
+            const errorContent = (msg.includes('resource-exhausted') || msg.includes('hourly'))
+                ? '⏳ You\'ve used all 5 AI credits for this hour. Try again later!'
+                : 'Could not load hint — please check your connection and try again.';
+            setChatHistory(prev => [...prev, { role: 'model', content: errorContent }]);
+        } finally {
+            setIsHintLoading(false);
+        }
+    }, [isHintLoading, aiCreditsLeft, isMobile, currentLesson]);
+    // ─────────────────────────────────────────────────────────────────────────
 
 
     const handleSendMessage = useCallback(async (message: string) => {
@@ -1764,6 +1817,9 @@ const App: React.FC = () => {
                                         showReference={true}
                                         isWaitingForInput={isWaitingForInput}
                                         onInputSubmit={handleInputSubmit}
+                                        onRequestHint={handleRequestHint}
+                                        isHintLoading={isHintLoading}
+                                        aiCreditsLeft={aiCreditsLeft}
                                     />
                                 </div>
                             </>
@@ -1825,9 +1881,11 @@ const App: React.FC = () => {
                                         messages={activeChatHistory}
                                         onSendMessage={handleSendMessage}
                                         isLoading={isChatLoading}
-                                        isCollapsed={isMobile ? false : panelsCollapsed.chat} // Always show content if drawer is open on mobile
+                                        isCollapsed={isMobile ? false : panelsCollapsed.chat}
                                         onToggleCollapse={() => handleToggleCollapse('chat')}
                                         onOpenFlowchart={handleOpenFlowchart}
+                                        onCreditsChange={setAiCreditsLeft}
+                                        optimisticCredits={aiCreditsLeft}
                                     />
                                 )}
                             </aside>

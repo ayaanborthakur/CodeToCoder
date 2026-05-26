@@ -20,6 +20,10 @@ interface BottomPanelProps {
     activeTab: 'lesson' | 'terminal' | 'reference';
     onTabChange: (tab: 'lesson' | 'terminal' | 'reference') => void;
     showReference?: boolean;
+    // Hint button
+    onRequestHint?: () => void;
+    isHintLoading?: boolean;
+    aiCreditsLeft?: number;
 }
 
 import { CheckCircle2, BookOpen } from 'lucide-react';
@@ -64,9 +68,9 @@ const parseMarkdown = (content: string) => {
     return content;
 }
 
-export const BottomPanel: React.FC<BottomPanelProps & { 
-    isWaitingForInput?: boolean; 
-    onInputSubmit?: (text: string) => void; 
+export const BottomPanel: React.FC<BottomPanelProps & {
+    isWaitingForInput?: boolean;
+    onInputSubmit?: (text: string) => void;
 }> = ({
     lesson,
     isCompleted,
@@ -78,7 +82,10 @@ export const BottomPanel: React.FC<BottomPanelProps & {
     onTabChange,
     showReference,
     isWaitingForInput = false,
-    onInputSubmit = () => {}
+    onInputSubmit = () => {},
+    onRequestHint,
+    isHintLoading = false,
+    aiCreditsLeft = 5,
 }) => {
 
     const isTerminal = activeTab === 'terminal';
@@ -169,11 +176,14 @@ export const BottomPanel: React.FC<BottomPanelProps & {
 
 
                     {activeTab === 'terminal' && (
-                        <TerminalPanel 
+                        <TerminalPanel
                             output={terminalOutput}
                             isLoading={isTerminalLoading}
                             isWaitingForInput={isWaitingForInput}
                             onInputSubmit={onInputSubmit}
+                            onRequestHint={onRequestHint}
+                            isHintLoading={isHintLoading}
+                            aiCreditsLeft={aiCreditsLeft}
                         />
                     )}
                 </div>

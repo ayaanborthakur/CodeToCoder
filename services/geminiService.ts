@@ -18,7 +18,7 @@ const aiFlowchartFn = httpsCallable(functions, 'aiFlowchart');
 const aiUsernameCheckFn = httpsCallable(functions, 'aiUsernameCheck');
 
 // Export model names for reference (used by other services)
-export const PRO_MODEL = 'gemini-2.5-pro';
+export const PRO_MODEL = 'gemini-2.5-flash';
 export const LITE_MODEL = 'gemini-2.5-flash-lite';
 
 /**
@@ -36,9 +36,9 @@ export const getChatResponse = async (
     return data.response;
   } catch (error: unknown) {
     console.error("Error fetching chat response:", error);
-    const err = error as { code?: string };
-    if (err.code === 'functions/resource-exhausted') {
-      return "I'm receiving too many requests right now. Please try again in a few seconds.";
+    const err = error as { code?: string; message?: string };
+    if (err.code === 'functions/resource-exhausted' || err.code === 'resource-exhausted') {
+      return err.message || "You have reached your limit of 5 AI questions per hour. Please wait a bit before asking again.";
     }
     return "I encountered an error while trying to think. Please check your internet connection.";
   }
@@ -54,21 +54,24 @@ export interface RunCodeResult {
  * Get feedback on code execution
  */
 export const getFeedback = async (
-  code: string, 
-  output: string, 
-  objective?: string, 
-  isHardMode: boolean = false
+  code: string,
+  output: string,
+  objective?: string,
+  isHardMode: boolean = false,
+  lessonId?: string
 ): Promise<string | null> => {
   if (isHardMode) return null;
-  
-  try {
-    const result = await aiFeedbackFn({ code, output, objective, isHardMode });
-    const data = result.data as { feedback: string | null };
-    return data.feedback;
-  } catch (error) {
-    console.error("Error getting feedback:", error);
-    return null;
+
+  // Intentionally NOT catching errors here — callers (handleRequestHint) have
+  // their own catch blocks with user-friendly messages. Swallowing errors here
+  // caused the hint button to always show "No hint available" instead of the
+  // real failure reason (rate limit, network, etc.).
+  const result = await aiFeedbackFn({ code, output, objective, isHardMode, lessonId });
+  const data = result.data as { feedback: string | null; fromCache?: boolean };
+  if (data.fromCache) {
+    console.debug('[getFeedback] Served from cache for lessonId:', lessonId);
   }
+  return data.feedback;
 };
 
 // DEPRECATED: Kept for reference but should be replaced by pyodideService + getFeedback

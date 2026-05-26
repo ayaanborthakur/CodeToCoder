@@ -1,33 +1,50 @@
 /**
  * AI Proxy Cloud Function
  * 
- * Proxies AI requests to Vertex AI (Google Cloud) for the Code2Coder frontend.
- * This enables enterprise Vertex AI features while keeping authentication secure.
+ * Proxies AI requests to Google AI Studio (Free Tier) for the Code2Coder frontend.
+ * Uses gemini-2.5-flash-lite for most operations to minimize costs.
  */
 
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
-const admin = require("firebase-admin");
-const {GoogleGenAI, Type} = require("@google/genai");
+const crypto = require("crypto");
 
-// Initialize Firebase Admin if not already done
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+// Nothing runs at module load time — all initialization is deferred until first use.
+// This prevents the Firebase CLI analysis from timing out locally.
+
+let _adminApp = null;
+function getAdminApp() {
+  if (!_adminApp) {
+    const { initializeApp, getApps } = require("firebase-admin/app");
+    _adminApp = getApps().length > 0 ? getApps()[0] : initializeApp();
+  }
+  return _adminApp;
 }
 
-// Get project ID from environment (automatically set in Cloud Functions)
-const PROJECT_ID = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "code2coder-a324f";
-const LOCATION = "us-central1";
+let _db = null;
+function getDb() {
+  if (!_db) {
+    const { getFirestore } = require("firebase-admin/firestore");
+    _db = getFirestore(getAdminApp(), "code2coder-india");
+  }
+  return _db;
+}
 
-// Initialize Vertex AI client with explicit project and location
-const ai = new GoogleGenAI({ 
-  vertexai: true,
-  project: PROJECT_ID,
-  location: LOCATION
-});
+let _ai = null;
+function getAI() {
+  if (!_ai) {
+    const { GoogleGenAI } = require("@google/genai");
+    _ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return _ai;
+}
+
+function getType() {
+  return require("@google/genai").Type;
+}
 
 // Model constants
-const PRO_MODEL = 'gemini-2.5-pro';
+const PRO_MODEL = 'gemini-2.5-flash';
 const LITE_MODEL = 'gemini-2.5-flash-lite';
 
 /**
@@ -41,14 +58,65 @@ function verifyAuth(request) {
 }
 
 /**
+ * Verify and rate limit user's AI requests (sliding window)
+ * Returns the uid if successful, otherwise throws HttpsError
+ */
+async function verifyAndRateLimitUsage(request, maxRequests = 5, windowMs = 3600000) {
+  const uid = verifyAuth(request);
+  const now = Date.now();
+  const limitTime = now - windowMs;
+
+  const usageRef = getDb().collection('users').doc(uid).collection('stats').doc('aiUsage');
+  
+  try {
+    const doc = await usageRef.get();
+    let timestamps = [];
+    
+    if (doc.exists) {
+      const data = doc.data();
+      if (data && Array.isArray(data.requestTimestamps)) {
+        // Filter out timestamps older than the window
+        timestamps = data.requestTimestamps.filter(t => t > limitTime);
+      }
+    }
+    
+    if (timestamps.length >= maxRequests) {
+      // Calculate minutes until the oldest request falls out of the window
+      const oldestTimestamp = timestamps[0];
+      const waitMs = oldestTimestamp + windowMs - now;
+      const waitMinutes = Math.ceil(waitMs / 60000);
+      throw new HttpsError(
+        'resource-exhausted',
+        `You have used your ${maxRequests} AI questions for this hour. Please wait ${waitMinutes} minute(s) before asking again.`
+      );
+    }
+    
+    // Add current timestamp and save
+    timestamps.push(now);
+    await usageRef.set({ requestTimestamps: timestamps }, { merge: true });
+    
+    return uid;
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Rate limit verification error:", error);
+    // Fail-open in case of Firestore issues so students aren't blocked from learning
+    return uid;
+  }
+}
+
+/**
  * AI Chat - Tutor mode for lessons or playground
  */
 exports.aiChat = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
-  verifyAuth(request);
+  await verifyAndRateLimitUsage(request, 5, 3600000);
   const { history, lesson, code, isHardMode } = request.data;
 
   let systemInstruction = '';
@@ -125,7 +193,7 @@ exports.aiChat = onCall({
       historyForApi.shift();
     }
 
-    const chat = ai.chats.create({
+    const chat = getAI().chats.create({
       model: PRO_MODEL,
       config: { systemInstruction },
       history: historyForApi
@@ -141,41 +209,98 @@ exports.aiChat = onCall({
 });
 
 /**
+ * Extract the stable error signature from Python terminal output.
+ * Returns the error type + message line (e.g. "NameError: name 'x' is not defined")
+ * so the cache key is resilient to whitespace/line-number differences.
+ * Returns null if the output contains no recognisable Python error.
+ */
+function extractErrorSignature(output) {
+  if (!output) return null;
+  const lines = output.split('\n').map(l => l.trim()).filter(Boolean);
+  // Walk backwards — the actual error line is usually last
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    // Matches "SyntaxError: ...", "NameError: ...", "TypeError: ...", etc.
+    if (/^[A-Z][a-zA-Z]+Error:\s/.test(line)) return line;
+    // Bare "Traceback (most recent call last):" tells us there IS an error even
+    // if the specific type wasn't caught above.
+    if (line.startsWith('Traceback')) return lines[lines.length - 1] || line;
+  }
+  return null;
+}
+
+/**
+ * Build a deterministic cache key for a (lessonId, errorSignature) pair.
+ * The key is a short hex digest safe to use as a Firestore document ID.
+ */
+function buildFeedbackCacheKey(lessonId, errorSignature) {
+  const raw = `${lessonId || '__playground__'}:${errorSignature}`;
+  return crypto.createHash('sha256').update(raw).digest('hex').slice(0, 40);
+}
+
+/**
  * AI Feedback - Code execution feedback
  */
 exports.aiFeedback = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "256MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
-  verifyAuth(request);
-  const { code, output, objective, isHardMode } = request.data;
+  // Verify auth and consume one credit FIRST (before cache check).
+  // Every hint button click costs 1 credit — the cache still saves the Gemini
+  // API call (money), but the student's rate limit always ticks down by 1.
+  // This keeps the counter in sync with what the student sees on-screen.
+  await verifyAndRateLimitUsage(request, 5, 3600000);
+
+  const { code, output, objective, isHardMode, lessonId } = request.data;
 
   if (isHardMode) return { feedback: null };
 
   const finalObjective = objective || "The user is exploring freely.";
 
+  // ── Cached Feedback ───────────────────────────────────────────────────────
+  // Cache hit → instant response, no Gemini call (credit was already deducted above).
+  const errorSignature = extractErrorSignature(output);
+  let cacheKey = null;
+  if (errorSignature && lessonId) {
+    cacheKey = buildFeedbackCacheKey(lessonId, errorSignature);
+    try {
+      const cacheRef = getDb().collection('feedbackCache').doc(cacheKey);
+      const cached = await cacheRef.get();
+      if (cached.exists) {
+        logger.info(`[aiFeedback] Cache HIT for key ${cacheKey}`);
+        return { feedback: cached.data().feedback, fromCache: true };
+      }
+    } catch (cacheReadError) {
+      // Non-fatal — fall through to LLM
+      logger.warn('[aiFeedback] Cache read failed, proceeding to LLM:', cacheReadError);
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const prompt = `
     You are a Python tutor. The user has run some code.
-    
+
     **User's Code:**
     \`\`\`python
     ${code}
     \`\`\`
-    
+
     **Execution Output:**
     \`\`\`text
     ${output}
     \`\`\`
-    
+
     **Objective:** ${finalObjective}
-    
+
     **Task:**
     Provide brief, helpful feedback.
     1. If the code failed (error in output), explain *why* it failed in simple terms.
     2. If the code succeeded but didn't meet the objective, give a hint.
     3. If it succeeded and met the objective, say "Great job!" and maybe a small tip.
-    
+
     **Constraints:**
     - MAX 2-3 sentences.
     - NO direct code solutions.
@@ -183,11 +308,25 @@ exports.aiFeedback = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
     });
-    return { feedback: response.text || null };
+    const feedback = response.text || null;
+
+    // ── Populate cache ──────────────────────────────────────────────────────
+    // Write asynchronously — don't block the response on a cache write failure.
+    if (feedback && cacheKey) {
+      getDb().collection('feedbackCache').doc(cacheKey).set({
+        feedback,
+        lessonId: lessonId || null,
+        errorSignature,
+        createdAt: Date.now(),
+      }).catch(err => logger.warn('[aiFeedback] Cache write failed (non-fatal):', err));
+    }
+    // ───────────────────────────────────────────────────────────────────────
+
+    return { feedback };
   } catch (error) {
     logger.error("AI Feedback error:", error);
     return { feedback: null };
@@ -198,9 +337,11 @@ exports.aiFeedback = onCall({
  * AI Lint - Code linting
  */
 exports.aiLint = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "256MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code } = request.data;
@@ -220,22 +361,22 @@ ${code}
 `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
             issues: {
-              type: Type.ARRAY,
+              type: getType().ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: getType().OBJECT,
                 properties: {
-                  line: { type: Type.INTEGER },
-                  message: { type: Type.STRING },
-                  type: { type: Type.STRING, enum: ["error", "warning"] }
+                  line: { type: getType().INTEGER },
+                  message: { type: getType().STRING },
+                  type: { type: getType().STRING, enum: ["error", "warning"] }
                 },
                 required: ["line", "message", "type"]
               }
@@ -260,9 +401,11 @@ ${code}
  * AI Reference - Generate reference documentation
  */
 exports.aiReference = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { query, difficulty, size } = request.data;
@@ -293,16 +436,16 @@ exports.aiReference = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING }
+            title: { type: getType().STRING },
+            content: { type: getType().STRING }
           },
           required: ['title', 'content']
         }
@@ -322,9 +465,11 @@ exports.aiReference = onCall({
  * AI Quiz - Generate practice quiz
  */
 exports.aiQuiz = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { topic, difficulty } = request.data;
@@ -336,24 +481,24 @@ exports.aiQuiz = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
+            title: { type: getType().STRING },
+            description: { type: getType().STRING },
             quizQuestions: {
-              type: Type.ARRAY,
+              type: getType().ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: getType().OBJECT,
                 properties: {
-                  text: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctAnswerIndex: { type: Type.INTEGER }
+                  text: { type: getType().STRING },
+                  options: { type: getType().ARRAY, items: { type: getType().STRING } },
+                  correctAnswerIndex: { type: getType().INTEGER }
                 },
                 required: ['text', 'options', 'correctAnswerIndex']
               }
@@ -391,9 +536,11 @@ exports.aiQuiz = onCall({
  * AI Flowchart - Generate code from flowchart
  */
 exports.aiFlowchart = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { flowchart } = request.data;
@@ -449,8 +596,8 @@ exports.aiFlowchart = onCall({
   description += "\n\nOutput ONLY valid, executable Python code. No markdown, no explanation.";
 
   try {
-    const response = await ai.models.generateContent({
-      model: PRO_MODEL,
+    const response = await getAI().models.generateContent({
+      model: LITE_MODEL, // Flowchart→code conversion doesn't need PRO
       contents: description,
     });
 
@@ -474,9 +621,11 @@ exports.aiFlowchart = onCall({
  * AI Username Check - Check if username is safe
  */
 exports.aiUsernameCheck = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "256MiB",
   timeoutSeconds: 15,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { username } = request.data;
@@ -488,16 +637,16 @@ exports.aiUsernameCheck = onCall({
     `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: LITE_MODEL,
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
         responseSchema: {
-          type: Type.OBJECT,
+          type: getType().OBJECT,
           properties: {
-            isSafe: { type: Type.BOOLEAN },
-            reason: { type: Type.STRING }
+            isSafe: { type: getType().BOOLEAN },
+            reason: { type: getType().STRING }
           },
           required: ['isSafe']
         }
@@ -517,9 +666,11 @@ exports.aiUsernameCheck = onCall({
  * AI Validate Output - Validate lesson output
  */
 exports.aiValidateOutput = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 30,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { actualOutput, lesson } = request.data;
@@ -550,8 +701,8 @@ Determine if the output satisfies the lesson requirements.
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: PRO_MODEL,
+    const result = await getAI().models.generateContent({
+      model: LITE_MODEL, // Simple output comparison — LITE is sufficient
       contents: prompt,
       config: { temperature: 0 }
     });
@@ -568,9 +719,11 @@ Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
  * AI Validate Methodology - Validate code methodology
  */
 exports.aiValidateMethodology = onCall({
+  region: "asia-south1",
   maxInstances: 20,
   memory: "512MiB",
   timeoutSeconds: 45,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code, lesson, durationSeconds, attempts } = request.data;
@@ -578,6 +731,26 @@ exports.aiValidateMethodology = onCall({
   if (!code || !code.trim()) {
     return { isValid: false, reason: 'Code is empty' };
   }
+
+  // ── Methodology cache ───────────────────────────────────────────────────────
+  // Cache key = sha256(lessonId:normalizedCode). Duration/attempts are NOT
+  // included — same code + same lesson should always get the same verdict.
+  // This prevents re-validating identical submissions (e.g. student runs the
+  // correct code 3 times before advancing).
+  const normalizedCode = (code || '').trim().replace(/\s+/g, ' ');
+  const methodCacheRaw = `${lesson.id || lesson.title}:${normalizedCode}`;
+  const methodCacheKey = 'method_' + crypto.createHash('sha256').update(methodCacheRaw).digest('hex').slice(0, 40);
+
+  try {
+    const cached = await getDb().collection('feedbackCache').doc(methodCacheKey).get();
+    if (cached.exists) {
+      logger.info(`[aiValidateMethodology] Cache HIT for key ${methodCacheKey}`);
+      return cached.data().result;
+    }
+  } catch (cacheReadErr) {
+    logger.warn('[aiValidateMethodology] Cache read failed (non-fatal):', cacheReadErr);
+  }
+  // ───────────────────────────────────────────────────────────────────────────
 
   const prompt = `You are an expert Python tutor validating a student's code.
 
@@ -594,7 +767,7 @@ Context:
 - Duration: ${durationSeconds || 'unknown'} seconds
 - Attempts: ${attempts || 'unknown'}
 
-Task: 
+Task:
 1. Identify core concepts required by the lesson.
 2. Verify the code actually uses these concepts.
 3. Reject if it just hardcodes the expected output.
@@ -608,14 +781,23 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: PRO_MODEL,
+    const result = await getAI().models.generateContent({
+      model: LITE_MODEL, // Methodology check — LITE is sufficient; PRO saved for chat/projects
       contents: prompt,
       config: { temperature: 0, responseMimeType: "application/json" }
     });
 
     const responseText = (result.text ?? '').trim();
-    return JSON.parse(responseText);
+    const parsed = JSON.parse(responseText);
+
+    // Cache the result asynchronously (don't block the response)
+    getDb().collection('feedbackCache').doc(methodCacheKey).set({
+      result: parsed,
+      lessonId: lesson.id || lesson.title,
+      createdAt: Date.now(),
+    }).catch(err => logger.warn('[aiValidateMethodology] Cache write failed (non-fatal):', err));
+
+    return parsed;
   } catch (error) {
     logger.error("AI Validate Methodology error:", error);
     return { isValid: true };
@@ -626,9 +808,11 @@ Respond with JSON:
  * AI Validate Project - Validate final project
  */
 exports.aiValidateProject = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { code, output, lesson, durationSeconds } = request.data;
@@ -665,7 +849,7 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
+    const result = await getAI().models.generateContent({
       model: PRO_MODEL,
       contents: prompt,
       config: { temperature: 0.1, responseMimeType: "application/json" }
@@ -682,9 +866,11 @@ Respond with JSON:
  * AI Skill Radar - Get AI skill assessment
  */
 exports.aiSkillRadar = onCall({
+  region: "asia-south1",
   maxInstances: 10,
   memory: "512MiB",
   timeoutSeconds: 60,
+  secrets: ["GEMINI_API_KEY"]
 }, async (request) => {
   verifyAuth(request);
   const { metrics } = request.data;
@@ -713,8 +899,8 @@ Respond with JSON:
 }`;
 
   try {
-    const result = await ai.models.generateContent({
-      model: PRO_MODEL,
+    const result = await getAI().models.generateContent({
+      model: LITE_MODEL, // Skill scoring from aggregate numbers — LITE is plenty
       contents: prompt,
       config: { temperature: 0.1, responseMimeType: "application/json" }
     });
