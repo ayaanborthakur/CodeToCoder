@@ -24,13 +24,13 @@ import { createClassroom, joinClassroom } from '../services/classroomService';
 import type { UserRole, Classroom } from '../types';
 import { Helmet } from 'react-helmet-async';
 
-type Step = 'role' | 'method' | 'credentials' | 'username' | 'setup';
+type Step = 'method' | 'credentials' | 'username' | 'role' | 'setup';
 
 export const SignupPage: React.FC = () => {
     const { loginWithGoogle, register, user, refreshUser } = useAuth();
     const navigate = useNavigate();
 
-    const [step, setStep] = useState<Step>('role');
+    const [step, setStep] = useState<Step>('method');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -66,12 +66,12 @@ export const SignupPage: React.FC = () => {
                 // Exception: if step === 'setup', they just claimed their username
                 // and need to complete classroom creation / joining before continuing.
                 navigate('/dashboard');
-            } else if (step === 'role' || step === 'method') {
-                // User is auth'd but has no username AND is on an early pre-registration step
-                // (e.g. they navigated to /signup with an existing session, or Google auth
-                // fired while still on the method screen). Jump them forward to username.
-                // We deliberately do NOT fire for step === 'credentials' to avoid jumping
-                // ahead mid-registration when onAuthStateChanged fires before register() resolves.
+            } else if (step === 'method') {
+                // User is auth'd but has no username and is still on the first step
+                // (e.g. existing session restored, or Google auth fired on the method screen).
+                // Jump forward to username.
+                // We deliberately exclude 'credentials' to avoid jumping ahead mid-registration
+                // when onAuthStateChanged fires before register() resolves.
                 setStep('username');
             }
         }
@@ -129,8 +129,8 @@ export const SignupPage: React.FC = () => {
         try {
             await claimUsername(user.id, username);
             await refreshUser();
-            // Move to role-specific setup step
-            setStep('setup');
+            // Ask user what type of account they want next
+            setStep('role');
         } catch (err: any) {
             setError(err.message || 'Failed to set username');
         } finally {
@@ -223,10 +223,10 @@ export const SignupPage: React.FC = () => {
     // Map internal step names to progress-bar indices (0-3)
     const stepIndex = (() => {
         switch (step) {
-            case 'role':        return 0;
             case 'method':
-            case 'credentials': return 1;
-            case 'username':    return 2;
+            case 'credentials': return 0;
+            case 'username':    return 1;
+            case 'role':        return 2;
             case 'setup':       return 3;
         }
     })();
@@ -319,73 +319,12 @@ export const SignupPage: React.FC = () => {
 
                     <div className="animate-fade-in-up">
 
-                        {/* ── Step 1: Role selection ───────────────────────── */}
-                        {step === 'role' && (
-                            <div className="space-y-6">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-bold mb-2">Who are you?</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Choose your role to get started</p>
-                                </div>
-
-                                <button
-                                    onClick={() => { setSelectedRole('teacher'); setStep('method'); }}
-                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/70 transition-colors">
-                                        <GraduationCap className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold">I'm a Teacher</h3>
-                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-cyan-500 transition-colors" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Create a classroom and share a join code with your students. Track their progress.
-                                        </p>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => { setSelectedRole('student'); setStep('method'); }}
-                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
-                                        <BookOpen className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold">I'm a Student</h3>
-                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Learn Python with AI-powered lessons. Join a classroom with a code from your teacher.
-                                        </p>
-                                    </div>
-                                </button>
-
-                                <p className="text-center text-sm text-gray-500 mt-4">
-                                    Already have an account?{' '}
-                                    <button onClick={() => navigate('/?login=1')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
-                                        Log in
-                                    </button>
-                                </p>
-                            </div>
-                        )}
-
-                        {/* ── Step 2: Auth method ──────────────────────────── */}
+                        {/* ── Step 1: Sign-up method ───────────────────────── */}
                         {step === 'method' && (
                             <div className="space-y-6">
                                 <div className="text-center mb-8">
-                                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4 ${
-                                        selectedRole === 'teacher'
-                                            ? 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300'
-                                            : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                                    }`}>
-                                        {selectedRole === 'teacher' ? <GraduationCap className="w-3 h-3" /> : <BookOpen className="w-3 h-3" />}
-                                        {selectedRole === 'teacher' ? 'Teacher' : 'Student'}
-                                    </div>
                                     <h2 className="text-3xl font-bold mb-2">Get Started</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Choose how you'd like to sign up</p>
+                                    <p className="text-gray-500 dark:text-gray-400">Create your free account</p>
                                 </div>
 
                                 <button
@@ -416,12 +355,12 @@ export const SignupPage: React.FC = () => {
                                     <span>Sign up with Email</span>
                                 </button>
 
-                                <button
-                                    onClick={() => setStep('role')}
-                                    className="text-sm text-gray-500 hover:text-cyan-500 flex items-center gap-1 mx-auto mt-2"
-                                >
-                                    ← Change role
-                                </button>
+                                <p className="text-center text-sm text-gray-500 mt-4">
+                                    Already have an account?{' '}
+                                    <button onClick={() => navigate('/?login=1')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
+                                        Log in
+                                    </button>
+                                </p>
                             </div>
                         )}
 
@@ -537,7 +476,60 @@ export const SignupPage: React.FC = () => {
                             </div>
                         )}
 
-                        {/* ── Step 4: Role-specific setup ──────────────────── */}
+                        {/* ── Step 4: Account type ─────────────────────────── */}
+                        {step === 'role' && (
+                            <div className="space-y-6 animate-fade-in-up">
+                                <div className="text-center mb-8">
+                                    <h2 className="text-3xl font-bold mb-2">What's your role?</h2>
+                                    <p className="text-gray-500 dark:text-gray-400">This helps us personalise your experience</p>
+                                </div>
+
+                                <button
+                                    onClick={() => { setSelectedRole('teacher'); setStep('setup'); }}
+                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl transition-all group text-left"
+                                >
+                                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/70 transition-colors">
+                                        <GraduationCap className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold">I'm a Teacher</h3>
+                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-cyan-500 transition-colors" />
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Create a classroom and share a join code with your students. Track their progress.
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => { setSelectedRole('student'); setStep('setup'); }}
+                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
+                                >
+                                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
+                                        <BookOpen className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-bold">I'm a Student</h3>
+                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            Learn Python with AI-powered lessons. Join a classroom with a code from your teacher.
+                                        </p>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => navigate('/dashboard')}
+                                    className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-center"
+                                >
+                                    Skip for now
+                                </button>
+                            </div>
+                        )}
+
+                        {/* ── Step 5: Role-specific setup ──────────────────── */}
                         {step === 'setup' && selectedRole === 'teacher' && (
                             <div className="space-y-6 animate-fade-in-up">
                                 <div className="text-center mb-8">
@@ -673,11 +665,11 @@ export const SignupPage: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Fallback: setup step reached without a role (shouldn't happen) */}
+                        {/* Fallback: setup reached without a role selected */}
                         {step === 'setup' && !selectedRole && (
                             <div className="text-center">
-                                <p className="text-gray-500 mb-4">Something went wrong. Please start over.</p>
-                                <button onClick={() => setStep('role')} className="text-cyan-500 underline">Start over</button>
+                                <p className="text-gray-500 mb-4">Something went wrong. Please pick your account type.</p>
+                                <button onClick={() => setStep('role')} className="text-cyan-500 underline">Choose role</button>
                             </div>
                         )}
 
