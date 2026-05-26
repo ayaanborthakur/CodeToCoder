@@ -58,12 +58,20 @@ export const SignupPage: React.FC = () => {
     const [joinError, setJoinError] = useState<string | null>(null);
     const [joinLoading, setJoinLoading] = useState(false);
 
-    // Redirect already-logged-in users
+    // Handle already-authenticated users landing on /signup
     useEffect(() => {
         if (user) {
-            if (user.username) {
+            if (user.username && step !== 'setup') {
+                // User has fully completed signup — send to dashboard.
+                // Exception: if step === 'setup', they just claimed their username
+                // and need to complete classroom creation / joining before continuing.
                 navigate('/dashboard');
-            } else if (step !== 'username' && step !== 'setup') {
+            } else if (step === 'role' || step === 'method') {
+                // User is auth'd but has no username AND is on an early pre-registration step
+                // (e.g. they navigated to /signup with an existing session, or Google auth
+                // fired while still on the method screen). Jump them forward to username.
+                // We deliberately do NOT fire for step === 'credentials' to avoid jumping
+                // ahead mid-registration when onAuthStateChanged fires before register() resolves.
                 setStep('username');
             }
         }
