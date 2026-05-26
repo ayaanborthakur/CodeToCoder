@@ -81,7 +81,7 @@ export const SignupPage: React.FC = () => {
             const code = err?.code;
             if (code === 'auth/account-exists-with-different-credential' || code === 'auth/email-already-in-use') {
                 setError('An account already exists with this email. Redirecting to login...');
-                setTimeout(() => navigate('/login'), 2000);
+                setTimeout(() => navigate('/?login=1'), 2000);
             } else {
                 setError(err.message || 'Failed to sign in with Google');
             }
@@ -101,7 +101,7 @@ export const SignupPage: React.FC = () => {
             const code = err?.code;
             if (code === 'auth/email-already-in-use') {
                 setError('An account with this email already exists. Redirecting to login...');
-                setTimeout(() => navigate('/login'), 2000);
+                setTimeout(() => navigate('/?login=1'), 2000);
             } else {
                 setError(err.message || 'Failed to create account');
             }
@@ -217,7 +217,6 @@ export const SignupPage: React.FC = () => {
         switch (step) {
             case 'role':        return 0;
             case 'method':
-            case 'credentials':
             case 'credentials': return 1;
             case 'username':    return 2;
             case 'setup':       return 3;
@@ -358,7 +357,7 @@ export const SignupPage: React.FC = () => {
 
                                 <p className="text-center text-sm text-gray-500 mt-4">
                                     Already have an account?{' '}
-                                    <button onClick={() => navigate('/login')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
+                                    <button onClick={() => navigate('/?login=1')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
                                         Log in
                                     </button>
                                 </p>

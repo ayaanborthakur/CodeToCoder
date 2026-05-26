@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Lock } from 'lucide-react';
-import { Routes, Route, Navigate, useNavigate, useLocation, useMatch } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, useMatch, useSearchParams } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
@@ -126,6 +126,7 @@ const App: React.FC = () => {
 
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const currentView = useMemo(() => {
         const path = location.pathname;
@@ -448,6 +449,14 @@ const App: React.FC = () => {
         console.warn("Opening Auth Modal");
         setIsAuthModalOpen(true);
     }, []);
+
+    // Open auth modal when ?login=1 is in the URL (e.g. redirected from SignupPage)
+    useEffect(() => {
+        if (searchParams.get('login') === '1') {
+            setIsAuthModalOpen(true);
+            setSearchParams(prev => { prev.delete('login'); return prev; }, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
 
     const prevCompletedLessons = prevCompletedLessonsRef.current;
     const prevCompletedPractice = prevCompletedPracticeRef.current;

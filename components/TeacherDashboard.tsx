@@ -7,7 +7,6 @@ import {
     CheckCheck,
     BookOpen,
     CheckCircle2,
-    Circle,
     RefreshCw,
     Loader2,
     AlertCircle,
