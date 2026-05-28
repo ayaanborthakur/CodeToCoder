@@ -71,26 +71,22 @@ export const CoursePage: React.FC<CoursePageProps> = ({
                 </button>
 
                 {/* Course header */}
-                <div className={`rounded-2xl p-6 mb-6 bg-gradient-to-br ${course.accentColor} text-white shadow-md`}>
-                    <div className="flex items-center gap-4 mb-3">
-                        <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-3xl">
-                            {course.icon}
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold">{course.title}</h1>
-                            <p className="text-white/85 text-sm mt-0.5">{course.description}</p>
-                        </div>
+                <div className={`rounded-xl mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden`}>
+                    <div className={`h-1.5 bg-gradient-to-r ${course.accentColor}`} />
+                    <div className="p-6">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{course.title}</h1>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{course.description}</p>
+                        {!course.comingSoon && unlocked && progress.total > 0 && (
+                            <div className="mt-4">
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                    <div className={`h-full bg-gradient-to-r ${course.accentColor} transition-all duration-500`} style={{ width: `${pct}%` }} />
+                                </div>
+                                <div className="text-xs mt-2 text-gray-500 dark:text-gray-400">
+                                    {progress.completed} / {progress.total} lessons · {pct}%
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {!course.comingSoon && unlocked && progress.total > 0 && (
-                        <>
-                            <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-                                <div className="h-full bg-white transition-all duration-500" style={{ width: `${pct}%` }} />
-                            </div>
-                            <div className="text-xs mt-2 text-white/85">
-                                {progress.completed} / {progress.total} lessons · {pct}%
-                            </div>
-                        </>
-                    )}
                 </div>
 
                 {/* Locked or coming soon empty states */}

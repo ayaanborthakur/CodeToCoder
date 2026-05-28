@@ -1606,6 +1606,9 @@ const App: React.FC = () => {
     const isClassroom = currentView === 'classroom';
     const isPlayground = currentView === 'playground';
     const isPractice = currentView === 'practice';
+    // Only the actual lesson IDE (a specific lesson selected) gets the optional sidebar.
+    // The course catalog and course pages have no sidebar/hamburger at all.
+    const isLessonIDE = isClassroom && !!currentLessonId;
 
 
     const activeSetCode = (isClassroom || isPractice) ? setCode : setPlaygroundEditorCode;
@@ -1629,7 +1632,8 @@ const App: React.FC = () => {
     const activeContentItem = isClassroom ? activeLesson : practiceLessonLike;
 
     // Sidebar visibility logic for mobile vs desktop
-    const showSidebar = isClassroom && isNavOpen;
+    // Sidebar (with hamburger) only exists in the actual lesson IDE — never on catalog/course pages.
+    const showSidebar = isLessonIDE && isNavOpen;
 
     const isQuizMode = (isClassroom && activeLesson?.type === 'quiz') || (isPractice && activePracticeItem?.type === 'quiz');
     const isLearnMode = isClassroom && activeLesson?.type === 'learn';
@@ -1726,7 +1730,7 @@ const App: React.FC = () => {
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
                         {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
-                        {isClassroom && !isNavOpen && (
+                        {isLessonIDE && !isNavOpen && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
