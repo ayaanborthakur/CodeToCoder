@@ -2107,6 +2107,7 @@ const App: React.FC = () => {
 
                         {/* IDE Views — lessons/curriculum live under /lessons */}
                         <Route path="/lessons/*" element={renderIdeView()} />
+                        <Route path="/courses/*" element={renderIdeView()} />
                         <Route path="/playground/:fileId" element={renderIdeView()} />
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
                         <Route path="/reference" element={<ReferencePanel />} />
