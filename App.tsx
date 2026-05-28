@@ -1784,6 +1784,7 @@ const App: React.FC = () => {
                                 onNextLesson={handleNextLessonNav}
                                 hasNextLesson={navigationState.hasNext}
                                 runCount={sessionRunCount}
+                                onBackToCourse={selectedCourseId ? () => navigate(`/courses/${selectedCourseId}`) : undefined}
                             />
                         ) : isQuizMode && activeContentItem ? (
                             <div className="h-full flex flex-col">

@@ -17,17 +17,19 @@ interface LearnPanelProps {
     hasPreviousLesson?: boolean;
     hasNextLesson?: boolean;
     runCount?: number;
+    onBackToCourse?: () => void;   // navigate back to course page (lesson list)
 }
 
-export const LearnPanel: React.FC<LearnPanelProps> = ({ 
-    lesson, 
-    onComplete, 
+export const LearnPanel: React.FC<LearnPanelProps> = ({
+    lesson,
+    onComplete,
     isCompleted,
     onPreviousLesson,
     onNextLesson,
     hasPreviousLesson = false,
     hasNextLesson = false,
-    runCount = 0
+    runCount = 0,
+    onBackToCourse,
 }) => {
     const startTimeRef = React.useRef(Date.now());
 
@@ -84,14 +86,21 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
         <div className="flex flex-col h-full w-full bg-gray-50 dark:bg-gray-900">
             {/* Header */}
             <div className="h-16 px-6 flex justify-between items-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 flex-shrink-0 shadow-sm z-10">
-                <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-cyan-600 dark:text-cyan-400">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                        </svg>
-                    </div>
-                    <div className="flex flex-col">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{lesson.title}</h3>
+                <div className="flex items-center gap-3 min-w-0">
+                    {onBackToCourse && (
+                        <button
+                            onClick={onBackToCourse}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
+                            title="Back to lessons"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                            Lessons
+                        </button>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight truncate">{lesson.title}</h3>
                         <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Interactive Lesson</span>
                     </div>
                 </div>

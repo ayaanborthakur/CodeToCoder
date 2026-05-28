@@ -162,13 +162,14 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
                    <span className="font-bold text-xs whitespace-nowrap">Lost {showLost.current} stars! (Total: {showLost.total})</span>
                </div>
             ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-lg">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="font-mono font-bold text-cyan-700 dark:text-cyan-400">{formatTime(timeLeft)}</span>
-                    <button 
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800 rounded-lg flex-shrink-0 whitespace-nowrap">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
+                    <span className="font-mono font-bold text-cyan-700 dark:text-cyan-400 flex-shrink-0">{formatTime(timeLeft)}</span>
+                    <button
                         onClick={handleStop}
-                        className="ml-2 hover:text-red-500 transition-colors"
+                        className="ml-1 p-0.5 rounded hover:bg-cyan-100 dark:hover:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 hover:text-red-500 transition-colors flex-shrink-0"
                         title="Stop"
+                        aria-label="Stop focus session"
                     >
                         <Square className="w-3 h-3 fill-current" />
                     </button>
