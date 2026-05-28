@@ -324,3 +324,41 @@ export interface CodeReviewLog {
   timestamp: number;
   relatedLessonId?: string;
 }
+
+// Courses are a local-only grouping over remote modules.
+// "Python Basics" wraps all existing modules; future courses are
+// placeholders (empty moduleIds, comingSoon:true) until their
+// content is added to the remote manifest.
+export interface Course {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;           // emoji
+  accentColor: string;    // tailwind gradient classes, e.g. "from-cyan-500 to-blue-600"
+  order: number;
+  comingSoon: boolean;
+  // Module IDs (matching the remote manifest) that belong to this course.
+  // Empty for placeholder courses.
+  moduleIds: string[];
+  // Which course must be completed (>= unlockThreshold) before this one unlocks.
+  // null = always unlocked.
+  prerequisiteCourseId: string | null;
+  unlockThreshold: number; // 0..1, fraction of prerequisite course lessons completed
+}
+
+// Teacher-assigned lesson for a classroom.
+// Stored under classrooms/{classroomId}/assignments/{assignmentId}.
+export interface Assignment {
+  id: string;
+  classroomId: string;
+  teacherId: string;
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  lessonTitle: string;     // denormalized for student-side display without re-fetch
+  courseTitle: string;     // denormalized
+  assignedAt: number;
+  dueAt: number | null;    // unix ms; null = no due date
+  // Whole class (null) or specific student IDs. Empty array means none assigned (shouldn't happen).
+  studentIds: string[] | null;
+}

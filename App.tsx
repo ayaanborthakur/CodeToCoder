@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Lock } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useMatch, useSearchParams } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
+import { CoursesCatalog } from './components/CoursesCatalog';
+import { CoursePage } from './components/CoursePage';
+import { findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
 import { BottomPanel } from './components/BottomPanel';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
@@ -37,7 +40,7 @@ import { ClassroomHub } from './components/ClassroomHub';
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
 // PRACTICE_ITEMS removed - loaded dynamically
-import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity } from './types';
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity, Classroom } from './types';
 import { contentService } from './services/contentService';
 import { generateCodeFromFlowchart, getChatResponse, lintCodeWithAI } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
@@ -135,6 +138,7 @@ const App: React.FC = () => {
         if (path === '/dashboard') return 'home';
         if (path === '/signup') return 'signup';
         if (path.startsWith('/lessons')) return 'classroom';
+        if (path.startsWith('/courses')) return 'classroom';
         if (path.startsWith('/classroom')) return 'classhub';
         if (path.startsWith('/playground')) return 'playground';
         if (path.startsWith('/practice')) return 'practice';
@@ -149,6 +153,9 @@ const App: React.FC = () => {
 
     const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
+
+    // Teacher's classroom (loaded lazily so the Lessons-tab assign button can use it).
+    const [teacherClassroom, setTeacherClassroom] = useState<Classroom | null>(null);
 
     const [starBalance, setStarBalance] = useState(0);
     const [netWorth, setNetWorth] = useState<number | undefined>(undefined);
@@ -195,7 +202,7 @@ const App: React.FC = () => {
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     const [isTerminalLoading, setIsTerminalLoading] = useState<boolean>(false);
-    const [isNavOpen, setIsNavOpen] = useState<boolean>(true);
+    const [isNavOpen, setIsNavOpen] = useState<boolean>(false);
     const [showTutorial, setShowTutorial] = useState<boolean>(false);
     const [isFlowchartMode, setIsFlowchartMode] = useState(false);
 
@@ -276,15 +283,11 @@ const App: React.FC = () => {
     }, []);
 
     const [isMobile, setIsMobile] = useState(false);
-    // On Mobile, default sidebars to closed
+    // Curriculum sidebar starts closed on every viewport — user must explicitly open it
+    // via the hamburger trigger. Only collapse the AI chat panel on mobile.
     useEffect(() => {
-        if (isMobile) {
-            setIsNavOpen(false);
-            setPanelsCollapsed(prev => ({ ...prev, chat: true }));
-        } else {
-            setIsNavOpen(true);
-            setPanelsCollapsed(prev => ({ ...prev, chat: false }));
-        }
+        setIsNavOpen(false);
+        setPanelsCollapsed(prev => ({ ...prev, chat: isMobile }));
     }, [isMobile]);
 
     useEffect(() => {
@@ -296,6 +299,17 @@ const App: React.FC = () => {
             setUserActivities([]);
         }
     }, [user, currentView, location.pathname]); // Refresh when user changes, view changes, or path changes (to catch newly logged activities)
+
+    // Load teacher's classroom for the Lessons-tab assign button + student assignments lookup.
+    useEffect(() => {
+        if (!user?.classId) {
+            setTeacherClassroom(null);
+            return;
+        }
+        import('./services/classroomService').then(({ getClassroom }) => {
+            getClassroom(user.classId!).then(setTeacherClassroom).catch(() => setTeacherClassroom(null));
+        });
+    }, [user?.classId, user?.role]);
 
     const isTerminalLoadingRef = useRef(isTerminalLoading);
     useEffect(() => { isTerminalLoadingRef.current = isTerminalLoading; }, [isTerminalLoading]);
@@ -717,8 +731,28 @@ const App: React.FC = () => {
 
     // URL Matchers
     const classroomMatch = useMatch('/lessons/:moduleId/:lessonId');
+    const coursePageMatch = useMatch('/courses/:courseId');
     const playgroundMatch = useMatch('/playground/:fileId');
     const practiceMatch = useMatch('/practice/:category/:itemId');
+
+    // Course currently selected in the Lessons tab (catalog → drill-in).
+    // Derived from URL: either /courses/:courseId, or computed from /lessons/:moduleId/:lessonId.
+    const allModuleIdsList = useMemo(() => modules.map(m => m.id), [modules]);
+    const selectedCourseId = useMemo<string | null>(() => {
+        if (coursePageMatch?.params.courseId) return coursePageMatch.params.courseId;
+        if (classroomMatch?.params.moduleId && allModuleIdsList.length > 0) {
+            return findCourseIdForModule(classroomMatch.params.moduleId, allModuleIdsList);
+        }
+        return null;
+    }, [coursePageMatch, classroomMatch, allModuleIdsList]);
+
+    // Modules belonging to the currently selected course (for the sidebar in IDE view).
+    const courseModules = useMemo(() => {
+        if (!selectedCourseId) return modules;
+        const courseModuleIds = resolveCourseModuleIds(selectedCourseId, allModuleIdsList);
+        const idSet = new Set(courseModuleIds);
+        return modules.filter(m => idSet.has(m.id));
+    }, [selectedCourseId, modules, allModuleIdsList]);
 
     // Sync Playground URL
     useEffect(() => {
@@ -1676,7 +1710,7 @@ const App: React.FC = () => {
                                     <div className="flex-1 relative min-w-[200px] overflow-hidden flex flex-col">
                                         <div className="flex-1 overflow-y-auto">
                                             <NavigationPanel
-                                                modules={modules}
+                                                modules={courseModules}
                                                 currentLessonId={currentLessonId || ''}
                                                 onSelectLesson={handleSelectLesson}
                                                 completedLessons={completedLessons}
@@ -1705,35 +1739,21 @@ const App: React.FC = () => {
                             </button>
                         )}
 
-                        {(isClassroom && !currentLessonId) ? (
-                            <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 p-8 text-center animate-fade-in h-full">
-                                <div className="max-w-md space-y-6">
-                                    <div className="w-24 h-24 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center mx-auto text-cyan-600 dark:text-cyan-400 mb-6">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-                                        </svg>
-                                    </div>
-                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to the Classroom</h2>
-                                    <p className="text-lg">
-                                        Select a module from the sidebar on the left to start your lesson.
-                                    </p>
-                                    <div className="flex justify-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 font-medium items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 animate-bounce-x">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                                        </svg>
-                                        <span>Pick a lesson</span>
-                                    </div>
-                                </div>
-                                <style>{`
-            @keyframes bounce-x {
-                0%, 100% { transform: translateX(0); }
-                50% { transform: translateX(-25%); }
-            }
-            .animate-bounce-x {
-                animation: bounce-x 1s infinite;
-            }
-        `}</style>
-                            </div>
+                        {(isClassroom && !currentLessonId && !coursePageMatch) ? (
+                            <CoursesCatalog
+                                modules={modules}
+                                completedLessons={completedLessons}
+                                onSelectCourse={(courseId) => navigate(`/courses/${courseId}`)}
+                            />
+                        ) : (isClassroom && !currentLessonId && coursePageMatch) ? (
+                            <CoursePage
+                                courseId={coursePageMatch.params.courseId!}
+                                modules={modules}
+                                completedLessons={completedLessons}
+                                onBackToCatalog={() => navigate('/lessons')}
+                                teacherId={user?.role === 'teacher' ? user.id : undefined}
+                                teacherClassroom={user?.role === 'teacher' ? teacherClassroom : null}
+                            />
                         ) : isLearnMode && activeLesson ? (
                             <LearnPanel
                                 lesson={activeLesson}

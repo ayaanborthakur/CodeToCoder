@@ -15,6 +15,7 @@ import {
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { AIChatPage } from './AIChatPage';
 import { ReviewTab } from './ReviewTab';
+import { AssignmentsCard } from './AssignmentsCard';
 import { useAuth } from '../contexts/AuthContext';
 import { getDueReviews } from '../services/learningService';
 import { formatCompactNumber } from '../utils/formatters';
@@ -166,6 +167,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {activeTab === 'overview' ? (
           <div className="space-y-6 flex-1">
+            {/* Assignments — only renders when student has a class and has assignments */}
+            {user?.classId && (
+              <AssignmentsCard studentId={user.id} classroomId={user.classId} />
+            )}
+
             {/* Continue Learning — the primary action */}
             {(recentLesson || mostRecentPlaygroundFile) && (
               <div className="grid sm:grid-cols-2 gap-4">
