@@ -32,6 +32,7 @@ import { LeaderboardPage } from './components/LeaderboardPage';
 import { UsernameModal } from './components/UsernameModal';
 import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
+import { ClassroomHub } from './components/ClassroomHub';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -133,7 +134,8 @@ const App: React.FC = () => {
         if (path === '/') return 'mission';
         if (path === '/dashboard') return 'home';
         if (path === '/signup') return 'signup';
-        if (path.startsWith('/classroom')) return 'classroom';
+        if (path.startsWith('/lessons')) return 'classroom';
+        if (path.startsWith('/classroom')) return 'classhub';
         if (path.startsWith('/playground')) return 'playground';
         if (path.startsWith('/practice')) return 'practice';
         if (path.startsWith('/profile')) return 'profile';
@@ -714,7 +716,7 @@ const App: React.FC = () => {
     }, [currentView, activePracticeItem]);
 
     // URL Matchers
-    const classroomMatch = useMatch('/classroom/:moduleId/:lessonId');
+    const classroomMatch = useMatch('/lessons/:moduleId/:lessonId');
     const playgroundMatch = useMatch('/playground/:fileId');
     const practiceMatch = useMatch('/practice/:category/:itemId');
 
@@ -823,7 +825,7 @@ const App: React.FC = () => {
         }
 
         // Navigate to the new URL - the useEffect above will handle loading the data
-        navigate(`/classroom/${moduleId}/${lessonId}`);
+        navigate(`/lessons/${moduleId}/${lessonId}`);
 
         // On mobile, close nav after selection
         if (isMobile) {
@@ -833,9 +835,16 @@ const App: React.FC = () => {
 
     const handleNavigate = useCallback((view: ViewState) => {
         if (view === 'classroom') {
+            // 'classroom' view = the lessons/curriculum IDE (URL: /lessons).
             // Reset to landing page state
             setCurrentLessonId(null);
             setCurrentLesson(null);
+            navigate('/lessons');
+            return;
+        }
+
+        if (view === 'classhub') {
+            // 'classhub' view = the classroom management tab (join/create a class).
             navigate('/classroom');
             return;
         }
@@ -2072,12 +2081,19 @@ const App: React.FC = () => {
                             />
                         } />
 
-                        {/* IDE Views */}
-                        <Route path="/classroom/*" element={renderIdeView()} />
+                        {/* IDE Views — lessons/curriculum live under /lessons */}
+                        <Route path="/lessons/*" element={renderIdeView()} />
                         <Route path="/playground/:fileId" element={renderIdeView()} />
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
                         <Route path="/reference" element={<ReferencePanel />} />
                         <Route path="/reference/:itemId" element={<ReferencePanel />} />
+
+                        {/* Classroom hub — join/create a classroom, pick a role */}
+                        <Route path="/classroom" element={
+                            user
+                                ? <ClassroomHub onNavigate={handleNavigate} />
+                                : <Navigate to="/dashboard" replace />
+                        } />
 
                         {/* Teacher dashboard — only shown to teachers */}
                         <Route path="/teacher" element={

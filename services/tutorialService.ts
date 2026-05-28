@@ -39,9 +39,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // Classroom Introduction
     {
         id: 'classroom-intro',
-        title: 'The Classroom 📚',
+        title: 'Your Lessons 📚',
         description: 'This is where you\'ll learn Python through interactive lessons. Let\'s check it out!',
-        route: '/classroom',
+        route: '/lessons',
         position: 'center',
         action: 'navigate'
     },
@@ -51,7 +51,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'lesson-nav',
         title: 'Lesson Navigation',
         description: 'We\'ve opened the first lesson for you! This sidebar shows all available modules and lessons.',
-        route: '/classroom/module-1/m1-lp1',
+        route: '/lessons/module-1/m1-lp1',
         targetElement: 'aside',
         position: 'right',
         action: 'highlight'
@@ -62,7 +62,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'code-editor',
         title: 'Code Editor ⌨️',
         description: 'Write your Python code here! The editor features syntax highlighting and auto-completion. Try modifying the code!',
-        route: '/classroom/module-1/m1-lp1',
+        route: '/lessons/module-1/m1-lp1',
         targetElement: '.monaco-editor',
         position: 'top',
         action: 'highlight'
@@ -73,7 +73,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'lesson-content',
         title: 'Lesson Content 📖',
         description: 'Read the lesson instructions here. Each lesson includes clear objectives and examples.',
-        route: '/classroom/module-1/m1-lp1',
+        route: '/lessons/module-1/m1-lp1',
         targetElement: 'button[data-tab="lesson"]',
         position: 'top',
         action: 'highlight'
@@ -84,7 +84,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'terminal',
         title: 'Terminal Output 💻',
         description: 'Click "Run Code" to see your program\'s output here! The terminal displays results, errors, and print statements.',
-        route: '/classroom/module-1/m1-lp1',
+        route: '/lessons/module-1/m1-lp1',
         targetElement: 'button[data-tab="terminal"]',
         position: 'top',
         action: 'highlight'
@@ -95,7 +95,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'ai-chatbot',
         title: 'AI Tutor 🤖',
         description: 'Your personal AI tutor is here to help! Ask questions, get hints, or request explanations anytime.',
-        route: '/classroom/module-1/m1-lp1',
+        route: '/lessons/module-1/m1-lp1',
         targetElement: '.chat-panel',
         position: 'left',
         action: 'highlight'

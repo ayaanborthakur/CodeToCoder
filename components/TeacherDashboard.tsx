@@ -15,7 +15,7 @@ import {
     Trophy,
     Star,
 } from 'lucide-react';
-import { getClassroom } from '../services/classroomService';
+import { getClassroom, createClassroom } from '../services/classroomService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import type { Classroom } from '../types';
@@ -49,9 +49,11 @@ const timeAgo = (ts: number | null): string => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const TeacherDashboard: React.FC = () => {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
 
     const [classroom, setClassroom] = useState<Classroom | null>(null);
+    const [newClassName, setNewClassName] = useState('');
+    const [creating, setCreating] = useState(false);
     const [students, setStudents] = useState<StudentProgress[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -153,15 +155,57 @@ export const TeacherDashboard: React.FC = () => {
     }
 
     if (!user?.classId || !classroom) {
+        const handleCreate = async (e: React.FormEvent) => {
+            e.preventDefault();
+            if (!user || !newClassName.trim()) return;
+            setCreating(true);
+            setError(null);
+            try {
+                await createClassroom(user.id, user.name, newClassName.trim());
+                await refreshUser();
+                await loadData();
+            } catch (err: any) {
+                setError(err.message ?? 'Failed to create classroom.');
+            } finally {
+                setCreating(false);
+            }
+        };
+
         return (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8">
                 <div className="w-16 h-16 rounded-2xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
                     <GraduationCap className="w-8 h-8 text-cyan-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">No Classroom Yet</h2>
-                <p className="text-gray-500 dark:text-gray-400 max-w-sm">
-                    You haven't created a classroom. Go to your profile settings to create one and get a join code for your students.
-                </p>
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create your Classroom</h2>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mt-1">
+                        Give your class a name — we'll generate a join code you can share with your students.
+                    </p>
+                </div>
+
+                <form onSubmit={handleCreate} className="w-full max-w-sm space-y-4">
+                    <input
+                        type="text"
+                        value={newClassName}
+                        onChange={(e) => setNewClassName(e.target.value)}
+                        className="w-full px-4 py-3.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all text-gray-900 dark:text-white"
+                        placeholder="e.g. Grade 8 Python, Period 3"
+                        maxLength={60}
+                        autoFocus
+                    />
+                    {error && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 shrink-0" />{error}
+                        </div>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={creating || !newClassName.trim()}
+                        className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Classroom'}
+                    </button>
+                </form>
             </div>
         );
     }

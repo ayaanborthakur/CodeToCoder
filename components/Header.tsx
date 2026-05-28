@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCompactNumber } from '../utils/formatters';
 
-export type ViewState = 'home' | 'classroom' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher';
+// Note: the 'classroom' view is the lessons/curriculum IDE (URL /lessons, labelled "Lessons").
+// 'classhub' is the classroom-management tab (URL /classroom, labelled "Classroom").
+export type ViewState = 'home' | 'classroom' | 'classhub' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -81,7 +83,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
               {searchQuery.length > 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-50">
                   {[
-                    { view: 'classroom' as ViewState, label: 'Classroom', icon: '📚', keywords: ['learn', 'lesson', 'module', 'classroom', 'course'] },
+                    { view: 'classroom' as ViewState, label: 'Lessons', icon: '📚', keywords: ['learn', 'lesson', 'module', 'curriculum', 'course'] },
+                    { view: 'classhub' as ViewState, label: 'Classroom', icon: '🏫', keywords: ['classroom', 'class', 'join', 'code', 'teacher', 'student'] },
                     { view: 'practice' as ViewState, label: 'Practice', icon: '🎯', keywords: ['quiz', 'problem', 'project', 'practice', 'exercise'] },
                     { view: 'playground' as ViewState, label: 'Playground', icon: '🎮', keywords: ['code', 'playground', 'editor', 'python', 'run'] },
                     { view: 'reference' as ViewState, label: 'Reference', icon: '📖', keywords: ['docs', 'reference', 'guide', 'help', 'documentation'] },
@@ -106,7 +109,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                       </button>
                     ))}
                   {searchQuery.length > 0 && [
-                    { view: 'classroom' as ViewState, label: 'Classroom', icon: '📚', keywords: ['learn', 'lesson', 'module', 'classroom', 'course'] },
+                    { view: 'classroom' as ViewState, label: 'Lessons', icon: '📚', keywords: ['learn', 'lesson', 'module', 'curriculum', 'course'] },
+                    { view: 'classhub' as ViewState, label: 'Classroom', icon: '🏫', keywords: ['classroom', 'class', 'join', 'code', 'teacher', 'student'] },
                     { view: 'practice' as ViewState, label: 'Practice', icon: '🎯', keywords: ['quiz', 'problem', 'project', 'practice', 'exercise'] },
                     { view: 'playground' as ViewState, label: 'Playground', icon: '🎮', keywords: ['code', 'playground', 'editor', 'python', 'run'] },
                     { view: 'reference' as ViewState, label: 'Reference', icon: '📖', keywords: ['docs', 'reference', 'guide', 'help', 'documentation'] },
@@ -129,7 +133,9 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
 
           <nav className="hidden md:flex items-center gap-1 ml-3">
             {user && <NavLink view="home" label="Home" />}
-            {/* Teachers see "My Class" instead of the regular Classroom lesson link */}
+            <NavLink view="classroom" label="Lessons" />
+            {/* Teachers get the "My Class" dashboard; everyone else gets the Classroom hub
+                (join a class, or pick a teacher/student role). */}
             {user?.role === 'teacher' ? (
               <button
                 onClick={() => { onNavigate('teacher'); setIsMobileMenuOpen(false); }}
@@ -142,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                 My Class
               </button>
             ) : (
-              <NavLink view="classroom" label="Classroom" />
+              <NavLink view="classhub" label="Classroom" />
             )}
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
@@ -221,9 +227,10 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b-2 border-gray-200 dark:border-gray-800 p-3 space-y-1 shadow-lg animate-slide-up">
             {user && <NavLink view="home" label="Home" />}
+            <NavLink view="classroom" label="Lessons" />
             {user?.role === 'teacher'
               ? <NavLink view="teacher" label="My Class" />
-              : <NavLink view="classroom" label="Classroom" />}
+              : <NavLink view="classhub" label="Classroom" />}
             <NavLink view="practice" label="Practice" />
             <NavLink view="playground" label="Playground" />
             <NavLink view="marketplace" label="Market" />

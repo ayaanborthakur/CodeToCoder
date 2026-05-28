@@ -99,7 +99,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                     return (
                       <li key={lesson.id}>
                         <Link
-                          to={`/classroom/${module.id}/${lesson.id}`}
+                          to={`/lessons/${module.id}/${lesson.id}`}
                           id={`nav-lesson-${lesson.id}`}
                           onClick={(e) => {
                             e.preventDefault();

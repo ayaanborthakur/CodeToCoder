@@ -4,15 +4,24 @@ import {
     getDoc,
     updateDoc,
     arrayUnion,
+    arrayRemove,
     collection,
     query,
     where,
     getDocs,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Classroom } from '../types';
+import type { Classroom, UserRole } from '../types';
 
 const CLASSROOMS_COLLECTION = 'classrooms';
+
+/**
+ * Set (or change) a user's role. Used by the in-app role chooser for accounts
+ * that never picked a role at signup. Does not touch classId.
+ */
+export const setUserRole = async (userId: string, role: UserRole): Promise<void> => {
+    await setDoc(doc(db, 'users', userId), { role }, { merge: true });
+};
 
 /**
  * Generate a random 6-letter uppercase join code.
@@ -108,6 +117,16 @@ export const joinClassroom = async (studentId: string, joinCode: string): Promis
     await setDoc(doc(db, 'users', studentId), { classId: classroom.classId, role: 'student' }, { merge: true });
 
     return { ...classroom, studentIds: [...classroom.studentIds, studentId] };
+};
+
+/**
+ * Remove a student from a classroom and clear the classId on their user doc.
+ */
+export const leaveClassroom = async (studentId: string, classId: string): Promise<void> => {
+    await updateDoc(doc(db, CLASSROOMS_COLLECTION, classId), {
+        studentIds: arrayRemove(studentId),
+    });
+    await setDoc(doc(db, 'users', studentId), { classId: '' }, { merge: true });
 };
 
 /**
