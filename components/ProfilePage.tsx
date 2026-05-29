@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthContext';
 import { useProgress } from '../hooks/useProgress';
-import { 
+import {
     ArrowLeft, Lock, AlertTriangle, RotateCw, Pencil, Camera, X,
-    Settings, Shield, Moon, Award, Layers, BarChart3, Star, Trophy, Layout, Code, Mail, Calendar, LogOut, Zap, FileCode
+    Settings, Shield, Moon, Award, Layers, BarChart3, Star, Trophy, Layout, Code, Mail, Calendar, LogOut, Zap, FileCode,
+    GraduationCap, BookOpen
 } from 'lucide-react';
 import { uploadProfilePicture, deleteProfilePicture } from '../services/profilePictureService';
 import { getMarketplaceData, getOwnedCollectibles } from '../services/marketplaceService';
@@ -305,9 +306,24 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
 
                                 <div className="mt-8 text-center space-y-1">
                                     <h2 className="text-3xl font-black tracking-tight">{user.name}</h2>
+                                    {user.role && (
+                                        <div className="flex items-center justify-center pt-1">
+                                            <span
+                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                    user.role === 'teacher'
+                                                        ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400'
+                                                        : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'
+                                                }`}
+                                                title="Your account type"
+                                            >
+                                                {user.role === 'teacher' ? <GraduationCap className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                                                {user.role === 'teacher' ? 'Teacher account' : 'Student account'}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-center gap-2">
                                         <p className="text-cyan-600 dark:text-cyan-400 font-bold">@{user.username || 'username'}</p>
-                                        <button 
+                                        <button
                                             onClick={() => setIsUsernameModalOpen(true)}
                                             className="p-1 text-gray-400 hover:text-cyan-500 transition-colors"
                                             title="Edit Username"
