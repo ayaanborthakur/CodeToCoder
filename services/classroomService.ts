@@ -9,6 +9,7 @@ import {
     query,
     where,
     getDocs,
+    orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Classroom, UserRole } from '../types';
@@ -54,8 +55,10 @@ const getUniqueJoinCode = async (): Promise<string> => {
 };
 
 /**
- * Create a new classroom for a teacher.
- * Returns the created Classroom document.
+ * Create a new classroom for a teacher. Appends to the teacher's classIds
+ * array so a single teacher can manage multiple sections. Sets classId to
+ * this new room only if the teacher didn't already have one (keeps the
+ * legacy single-class field pointing at *something* sensible).
  */
 export const createClassroom = async (
     teacherId: string,
@@ -75,10 +78,43 @@ export const createClassroom = async (
     };
     await setDoc(classRef, classroom);
 
-    // Write classId back onto the teacher's user doc
-    await setDoc(doc(db, 'users', teacherId), { classId: classRef.id, role: 'teacher' }, { merge: true });
+    // Append to teacher's classIds. Also set classId if absent (back-compat
+    // for any code still reading the single-classroom field).
+    const teacherSnap = await getDoc(doc(db, 'users', teacherId));
+    const existingClassId = teacherSnap.exists() ? (teacherSnap.data().classId as string | undefined) : undefined;
+    const update: Record<string, unknown> = {
+        role: 'teacher',
+        classIds: arrayUnion(classRef.id),
+    };
+    if (!existingClassId) update.classId = classRef.id;
+    await setDoc(doc(db, 'users', teacherId), update, { merge: true });
 
     return classroom;
+};
+
+/**
+ * All classrooms owned by a teacher, oldest first. Used to populate the
+ * teacher's classroom switcher.
+ */
+export const listTeacherClassrooms = async (teacherId: string): Promise<Classroom[]> => {
+    const q = query(
+        collection(db, CLASSROOMS_COLLECTION),
+        where('teacherId', '==', teacherId),
+        orderBy('createdAt', 'asc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data() as Classroom);
+};
+
+/**
+ * Teacher grants/revokes course access for a single student in their class.
+ * Stored on the student's user doc as unlockedCourseIds.
+ */
+export const setStudentUnlockedCourses = async (
+    studentId: string,
+    unlockedCourseIds: string[]
+): Promise<void> => {
+    await setDoc(doc(db, 'users', studentId), { unlockedCourseIds }, { merge: true });
 };
 
 /**

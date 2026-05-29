@@ -1748,6 +1748,7 @@ const App: React.FC = () => {
                                 modules={modules}
                                 completedLessons={completedLessons}
                                 onSelectCourse={(courseId) => navigate(`/courses/${courseId}`)}
+                                unlockedCourseIds={user?.unlockedCourseIds ?? null}
                             />
                         ) : (isClassroom && !currentLessonId && coursePageMatch) ? (
                             <CoursePage
@@ -1757,6 +1758,7 @@ const App: React.FC = () => {
                                 onBackToCatalog={() => navigate('/lessons')}
                                 teacherId={user?.role === 'teacher' ? user.id : undefined}
                                 teacherClassroom={user?.role === 'teacher' ? teacherClassroom : null}
+                                unlockedCourseIds={user?.unlockedCourseIds ?? null}
                             />
                         ) : isLearnMode && activeLesson ? (
                             <LearnPanel
@@ -2124,7 +2126,7 @@ const App: React.FC = () => {
                         {/* Teacher dashboard — only shown to teachers */}
                         <Route path="/teacher" element={
                             user?.role === 'teacher'
-                                ? <TeacherDashboard />
+                                ? <TeacherDashboard modules={modules} />
                                 : <Navigate to="/dashboard" replace />
                         } />
 

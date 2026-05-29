@@ -14,11 +14,37 @@ service cloud.firestore {
 
  
     match /users/{userId} {
-  allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
-  match /{allSubcollections=**} {
-    allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
-  }
-}
+      // Owner: full access to their own user doc and subcollections.
+      allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
+
+      // Teacher of this student's classroom: can READ the student's user doc
+      // (so the dashboard can show name, role, classId, unlockedCourseIds).
+      allow read: if isSignedIn()
+        && resource.data.classId is string
+        && exists(/databases/$(database)/documents/classrooms/$(resource.data.classId))
+        && get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid;
+
+      // Teacher of this student's classroom: can UPDATE ONLY the
+      // unlockedCourseIds field on the student's user doc (per-student
+      // course access overrides). Nothing else.
+      allow update: if isSignedIn()
+        && resource.data.classId is string
+        && exists(/databases/$(database)/documents/classrooms/$(resource.data.classId))
+        && get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlockedCourseIds']);
+
+      // Subcollections (progress, economy, etc.):
+      match /{document=**} {
+        // Owner: full access.
+        allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
+        // Teacher of the user's classroom: read-only (dashboard needs lessons + stars).
+        allow read: if isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && get(/databases/$(database)/documents/users/$(userId)).data.classId is string
+          && exists(/databases/$(database)/documents/classrooms/$(get(/databases/$(database)/documents/users/$(userId)).data.classId))
+          && get(/databases/$(database)/documents/classrooms/$(get(/databases/$(database)/documents/users/$(userId)).data.classId)).data.teacherId == request.auth.uid;
+      }
+    }
 		
     // --- Legacy / Root Support ---
     // Keeps support for any direct root-level collections if still in use

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Users,
@@ -12,11 +12,25 @@ import {
     ChevronDown,
     ChevronUp,
     Star,
+    Plus,
+    Trash2,
+    ClipboardList,
+    Calendar,
+    Lock,
+    Unlock,
 } from 'lucide-react';
-import { getClassroom, createClassroom } from '../services/classroomService';
+import {
+    getClassroom,
+    createClassroom,
+    listTeacherClassrooms,
+    setStudentUnlockedCourses,
+} from '../services/classroomService';
+import { listAssignmentsForClassroom, deleteAssignment } from '../services/assignmentsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import type { Classroom } from '../types';
+import type { Classroom, Module, Assignment } from '../types';
+import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
+import { AssignLessonModal } from './AssignLessonModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +42,13 @@ interface StudentProgress {
     totalStars: number;
     currentStreak: number;
     lastActive: number | null;
+    unlockedCourseIds: string[];
+}
+
+type Tab = 'students' | 'lessons' | 'assignments';
+
+interface TeacherDashboardProps {
+    modules: Module[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,41 +65,65 @@ const timeAgo = (ts: number | null): string => {
     return `${days}d ago`;
 };
 
+const formatDue = (dueAt: number | null): string => {
+    if (dueAt === null) return 'No due date';
+    const now = Date.now();
+    const d = dueAt - now;
+    const day = 24 * 60 * 60 * 1000;
+    if (d < 0) return 'Overdue';
+    if (d < day) return 'Due today';
+    if (d < 3 * day) return `Due in ${Math.ceil(d / day)} days`;
+    return `Due ${new Date(dueAt).toLocaleDateString()}`;
+};
+
+// Courses other than Python Basics — those a teacher might grant early access to.
+const GRANTABLE_COURSES = COURSES.filter(c => c.prerequisiteCourseId !== null);
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const TeacherDashboard: React.FC = () => {
+export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) => {
     const { user, refreshUser } = useAuth();
 
-    const [classroom, setClassroom] = useState<Classroom | null>(null);
-    const [newClassName, setNewClassName] = useState('');
-    const [creating, setCreating] = useState(false);
+    const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+    const [activeClassId, setActiveClassId] = useState<string | null>(null);
     const [students, setStudents] = useState<StudentProgress[]>([]);
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [tab, setTab] = useState<Tab>('students');
+    const [classroomMenuOpen, setClassroomMenuOpen] = useState(false);
+    const [creatingNew, setCreatingNew] = useState(false);
+    const [newClassName, setNewClassName] = useState('');
+    const [createSubmitting, setCreateSubmitting] = useState(false);
     const [codeCopied, setCodeCopied] = useState(false);
     const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+    const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string; courseId: string; courseTitle: string } | null>(null);
+    const [expandedCourseInLessons, setExpandedCourseInLessons] = useState<string | null>(null);
+
+    const activeClassroom = useMemo(
+        () => classrooms.find(c => c.classId === activeClassId) ?? null,
+        [classrooms, activeClassId]
+    );
 
     // ── Data fetching ─────────────────────────────────────────────────────────
 
     const fetchStudentData = useCallback(async (classroom: Classroom): Promise<StudentProgress[]> => {
         if (classroom.studentIds.length === 0) return [];
-
         const results = await Promise.all(
             classroom.studentIds.map(async (uid): Promise<StudentProgress> => {
                 try {
-                    const userSnap = await getDoc(doc(db, 'users', uid));
+                    const [userSnap, progressSnap, starsSnap] = await Promise.all([
+                        getDoc(doc(db, 'users', uid)),
+                        getDoc(doc(db, 'users', uid, 'progress', 'classroom')),
+                        getDoc(doc(db, 'users', uid, 'economy', 'stars')),
+                    ]);
                     const userData = userSnap.exists() ? userSnap.data() : {};
-
-                    const progressSnap = await getDoc(doc(db, 'users', uid, 'progress', 'classroom'));
                     const completedLessons: string[] = progressSnap.exists()
                         ? (progressSnap.data().completedLessons ?? [])
                         : [];
-
-                    const starsSnap = await getDoc(doc(db, 'users', uid, 'economy', 'stars'));
                     const totalStars: number = starsSnap.exists() ? (starsSnap.data().totalEarned ?? 0) : 0;
                     const currentStreak: number = starsSnap.exists() ? (starsSnap.data().currentStreak ?? 0) : 0;
-
                     return {
                         uid,
                         username: userData.username ?? uid.slice(0, 8),
@@ -87,6 +132,7 @@ export const TeacherDashboard: React.FC = () => {
                         totalStars,
                         currentStreak,
                         lastActive: userData.lastActive ?? null,
+                        unlockedCourseIds: Array.isArray(userData.unlockedCourseIds) ? userData.unlockedCourseIds : [],
                     };
                 } catch {
                     return {
@@ -97,45 +143,119 @@ export const TeacherDashboard: React.FC = () => {
                         totalStars: 0,
                         currentStreak: 0,
                         lastActive: null,
+                        unlockedCourseIds: [],
                     };
                 }
             })
         );
-
         return results.sort((a, b) => b.completedLessons.length - a.completedLessons.length);
     }, []);
 
-    const loadData = useCallback(async (showSpinner = false) => {
-        if (!user?.classId) { setLoading(false); return; }
-        if (showSpinner) setRefreshing(true);
-
+    // Initial: load all classrooms owned by this teacher.
+    const loadClassrooms = useCallback(async () => {
+        if (!user) return;
         try {
-            const cls = await getClassroom(user.classId);
+            const list = await listTeacherClassrooms(user.id);
+            setClassrooms(list);
+            // Pick a sensible active class: previously-active if still there,
+            // else user.classId, else the first one.
+            setActiveClassId(prev => {
+                if (prev && list.some(c => c.classId === prev)) return prev;
+                if (user.classId && list.some(c => c.classId === user.classId)) return user.classId;
+                return list[0]?.classId ?? null;
+            });
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Failed to load classrooms.');
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    // Load students + assignments for the active classroom.
+    const loadClassroomData = useCallback(async (showSpinner = false) => {
+        if (!activeClassroom) return;
+        if (showSpinner) setRefreshing(true);
+        try {
+            // Re-fetch the classroom doc so studentIds is fresh.
+            const cls = await getClassroom(activeClassroom.classId);
             if (!cls) { setError('Classroom not found.'); return; }
-            setClassroom(cls);
-            const studentData = await fetchStudentData(cls);
+            // Update in-place inside classrooms list.
+            setClassrooms(prev => prev.map(c => c.classId === cls.classId ? cls : c));
+            const [studentData, assignmentList] = await Promise.all([
+                fetchStudentData(cls),
+                listAssignmentsForClassroom(cls.classId),
+            ]);
             setStudents(studentData);
+            setAssignments(assignmentList);
             setError(null);
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to load classroom data.');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
-    }, [user?.classId, fetchStudentData]);
+    }, [activeClassroom, fetchStudentData]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { loadClassrooms(); }, [loadClassrooms]);
+    useEffect(() => { if (activeClassroom) loadClassroomData(); }, [activeClassroom?.classId, loadClassroomData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!user || !newClassName.trim()) return;
+        setCreateSubmitting(true);
+        setError(null);
+        try {
+            const created = await createClassroom(user.id, user.name, newClassName.trim());
+            await refreshUser();
+            // Optimistically add + activate.
+            setClassrooms(prev => [...prev, created]);
+            setActiveClassId(created.classId);
+            setNewClassName('');
+            setCreatingNew(false);
+            setClassroomMenuOpen(false);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to create classroom.');
+        } finally {
+            setCreateSubmitting(false);
+        }
+    };
+
     const copyJoinCode = () => {
-        if (!classroom) return;
-        navigator.clipboard.writeText(classroom.joinCode).catch(() => {});
+        if (!activeClassroom) return;
+        navigator.clipboard.writeText(activeClassroom.joinCode).catch(() => {});
         setCodeCopied(true);
         setTimeout(() => setCodeCopied(false), 2000);
     };
 
-    // ── Loading ───────────────────────────────────────────────────────────────
+    const toggleCourseUnlock = async (studentId: string, courseId: string) => {
+        const student = students.find(s => s.uid === studentId);
+        if (!student) return;
+        const next = student.unlockedCourseIds.includes(courseId)
+            ? student.unlockedCourseIds.filter(c => c !== courseId)
+            : [...student.unlockedCourseIds, courseId];
+        // Optimistic update.
+        setStudents(prev => prev.map(s => s.uid === studentId ? { ...s, unlockedCourseIds: next } : s));
+        try {
+            await setStudentUnlockedCourses(studentId, next);
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Failed to update unlocks.');
+            // Revert.
+            setStudents(prev => prev.map(s => s.uid === studentId ? { ...s, unlockedCourseIds: student.unlockedCourseIds } : s));
+        }
+    };
+
+    const handleDeleteAssignment = async (a: Assignment) => {
+        if (!activeClassroom) return;
+        try {
+            await deleteAssignment(activeClassroom.classId, a.id);
+            setAssignments(prev => prev.filter(x => x.id !== a.id));
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Failed to delete assignment.');
+        }
+    };
+
+    // ── No-classroom-yet empty state ──────────────────────────────────────────
 
     if (loading) {
         return (
@@ -145,25 +265,7 @@ export const TeacherDashboard: React.FC = () => {
         );
     }
 
-    // ── No classroom yet — compact inline form, not a hero ────────────────────
-
-    if (!user?.classId || !classroom) {
-        const handleCreate = async (e: React.FormEvent) => {
-            e.preventDefault();
-            if (!user || !newClassName.trim()) return;
-            setCreating(true);
-            setError(null);
-            try {
-                await createClassroom(user.id, user.name, newClassName.trim());
-                await refreshUser();
-                await loadData();
-            } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : 'Failed to create classroom.');
-            } finally {
-                setCreating(false);
-            }
-        };
-
+    if (classrooms.length === 0) {
         return (
             <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -174,11 +276,8 @@ export const TeacherDashboard: React.FC = () => {
                             You don't have a classroom yet. Create one to get a join code for your students.
                         </p>
                     </header>
-
                     <form onSubmit={handleCreate} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-2">
-                            Class name
-                        </label>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-2">Class name</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
@@ -189,12 +288,9 @@ export const TeacherDashboard: React.FC = () => {
                                 maxLength={60}
                                 autoFocus
                             />
-                            <button
-                                type="submit"
-                                disabled={creating || !newClassName.trim()}
-                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
+                            <button type="submit" disabled={createSubmitting || !newClassName.trim()}
+                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                                {createSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'}
                             </button>
                         </div>
                         {error && (
@@ -208,166 +304,453 @@ export const TeacherDashboard: React.FC = () => {
         );
     }
 
-    // ── Main render ───────────────────────────────────────────────────────────
+    if (!activeClassroom) return null;
+
+    // ── Main hub render ──────────────────────────────────────────────────────
 
     const avgLessons = students.length
         ? Math.round(students.reduce((sum, s) => sum + s.completedLessons.length, 0) / students.length)
         : 0;
-    const topStudent = students[0];
 
     return (
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                        <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Teacher</div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
-                    </div>
+        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0">
+            {/* Top bar: classroom switcher + actions */}
+            <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 flex-shrink-0 flex-wrap">
+                <div className="relative">
                     <button
-                        onClick={() => loadData(true)}
-                        disabled={refreshing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        onClick={() => setClassroomMenuOpen(o => !o)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold text-gray-900 dark:text-white"
                     >
-                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                        Refresh
+                        <span className="truncate max-w-[200px]">{activeClassroom.className}</span>
+                        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${classroomMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
-                </div>
-
-                {error && (
-                    <div className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-                    </div>
-                )}
-
-                {/* Join code — compact inline row, not a hero */}
-                <div className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4">
-                    <div className="min-w-0 flex-1">
-                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Join Code</div>
-                        <div className="font-mono font-black text-2xl tracking-[0.3em] text-gray-900 dark:text-white mt-0.5">
-                            {classroom.joinCode}
-                        </div>
-                    </div>
-                    <button
-                        onClick={copyJoinCode}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors flex-shrink-0"
-                    >
-                        {codeCopied ? <><CheckCheck className="w-4 h-4" /> Copied</> : <><Copy className="w-4 h-4" /> Copy</>}
-                    </button>
-                </div>
-
-                {/* Stats — inline strip inside one card, not a 3-col grid of boxes */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 grid grid-cols-3 gap-4">
-                    <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Students</div>
-                        <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{students.length}</div>
-                    </div>
-                    <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg. Lessons</div>
-                        <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{avgLessons}</div>
-                    </div>
-                    <div className="border-l border-gray-100 dark:border-gray-700 pl-4 min-w-0">
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Top Student</div>
-                        <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 truncate">
-                            {topStudent ? `@${topStudent.username}` : '—'}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Student list */}
-                <div>
-                    <div className="flex items-baseline justify-between mb-3">
-                        <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">All Students</h2>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{students.length} total</span>
-                    </div>
-
-                    {students.length === 0 ? (
-                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-8 text-center">
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No students yet.</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Share the join code above; students appear here once they join.
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-                            {students.map((s, idx) => {
-                                const isExpanded = expandedStudent === s.uid;
-                                return (
-                                    <div key={s.uid}>
-                                        <button
-                                            onClick={() => setExpandedStudent(isExpanded ? null : s.uid)}
-                                            className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors text-left"
-                                        >
-                                            <span className="w-5 text-xs font-bold text-gray-400 flex-shrink-0">
-                                                {idx + 1}
-                                            </span>
-                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                {s.name.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{s.name}</div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{s.username}</div>
-                                            </div>
-                                            <div className="hidden sm:flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                                                <div className="flex items-center gap-1">
-                                                    <BookOpen className="w-3.5 h-3.5 text-purple-400" />
-                                                    <span className="font-semibold">{s.completedLessons.length}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Star className="w-3.5 h-3.5 text-yellow-400" />
-                                                    <span className="font-semibold">{s.totalStars}</span>
-                                                </div>
-                                                <div className="text-xs text-gray-400 w-14 text-right">
-                                                    {timeAgo(s.lastActive)}
-                                                </div>
-                                            </div>
-                                            {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                    {classroomMenuOpen && (
+                        <div className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-1">
+                            {classrooms.map(c => (
+                                <button
+                                    key={c.classId}
+                                    onClick={() => { setActiveClassId(c.classId); setClassroomMenuOpen(false); setCreatingNew(false); }}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center justify-between transition-colors ${
+                                        c.classId === activeClassId
+                                            ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-400 font-semibold'
+                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200'
+                                    }`}
+                                >
+                                    <span className="truncate">{c.className}</span>
+                                    {c.classId === activeClassId && <CheckCheck className="w-4 h-4 flex-shrink-0" />}
+                                </button>
+                            ))}
+                            <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                            {!creatingNew ? (
+                                <button
+                                    onClick={() => setCreatingNew(true)}
+                                    className="w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 font-semibold"
+                                >
+                                    <Plus className="w-4 h-4" /> New classroom
+                                </button>
+                            ) : (
+                                <form onSubmit={handleCreate} className="p-2 space-y-2">
+                                    <input
+                                        type="text"
+                                        value={newClassName}
+                                        onChange={(e) => setNewClassName(e.target.value)}
+                                        className="w-full px-2 py-1.5 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                                        placeholder="Class name"
+                                        maxLength={60}
+                                        autoFocus
+                                    />
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => { setCreatingNew(false); setNewClassName(''); }}
+                                            className="flex-1 px-2 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                                            Cancel
                                         </button>
-
-                                        {isExpanded && (
-                                            <div className="px-5 pb-4 pt-1 bg-gray-50/60 dark:bg-gray-900/30">
-                                                <div className="sm:hidden flex items-center gap-4 py-2 text-xs text-gray-600 dark:text-gray-300">
-                                                    <span><BookOpen className="inline w-3 h-3 mr-1 text-purple-400" /><span className="font-semibold">{s.completedLessons.length}</span> lessons</span>
-                                                    <span><Star className="inline w-3 h-3 mr-1 text-yellow-400" /><span className="font-semibold">{s.totalStars}</span></span>
-                                                    <span className="text-gray-400">{timeAgo(s.lastActive)}</span>
-                                                </div>
-                                                <div className="mt-2">
-                                                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-                                                        Completed Lessons
-                                                    </div>
-                                                    {s.completedLessons.length === 0 ? (
-                                                        <p className="text-sm text-gray-400">None yet.</p>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {s.completedLessons.slice(0, 20).map(id => (
-                                                                <span key={id}
-                                                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs">
-                                                                    <CheckCircle2 className="w-3 h-3" />
-                                                                    {id}
-                                                                </span>
-                                                            ))}
-                                                            {s.completedLessons.length > 20 && (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs">
-                                                                    +{s.completedLessons.length - 20} more
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                {s.currentStreak > 0 && (
-                                                    <div className="mt-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
-                                                        {s.currentStreak}-day streak
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                        <button type="submit" disabled={createSubmitting || !newClassName.trim()}
+                                            className="flex-1 px-2 py-1 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded">
+                                            {createSubmitting ? '…' : 'Create'}
+                                        </button>
                                     </div>
-                                );
-                            })}
+                                </form>
+                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Compact join code */}
+                <div className="flex items-center gap-2 ml-auto">
+                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold">Join</span>
+                        <span className="font-mono font-bold text-sm text-gray-900 dark:text-white tracking-widest">{activeClassroom.joinCode}</span>
+                        <button onClick={copyJoinCode} className="text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400" title="Copy join code">
+                            {codeCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => loadClassroomData(true)}
+                        disabled={refreshing}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                        <span className="hidden sm:inline">Refresh</span>
+                    </button>
+                </div>
             </div>
+
+            {error && (
+                <div className="mx-4 sm:mx-6 mt-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                </div>
+            )}
+
+            {/* Tabs */}
+            <div className="flex gap-1 px-4 sm:px-6 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 flex-shrink-0">
+                {([
+                    { id: 'students', label: 'Students', count: students.length },
+                    { id: 'lessons', label: 'Lessons', count: undefined },
+                    { id: 'assignments', label: 'Assignments', count: assignments.length },
+                ] as { id: Tab; label: string; count?: number }[]).map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setTab(t.id)}
+                        className={`relative px-4 py-3 text-sm font-semibold transition-colors ${
+                            tab === t.id
+                                ? 'text-cyan-600 dark:text-cyan-400'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`}
+                    >
+                        {t.label}
+                        {t.count !== undefined && (
+                            <span className="ml-1.5 text-xs text-gray-400">{t.count}</span>
+                        )}
+                        {tab === t.id && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 rounded-t-full" />}
+                    </button>
+                ))}
+            </div>
+
+            {/* Tab content fills remaining space */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
+                {tab === 'students' && (
+                    <StudentsTab
+                        students={students}
+                        avgLessons={avgLessons}
+                        expandedStudent={expandedStudent}
+                        onExpand={(id) => setExpandedStudent(p => p === id ? null : id)}
+                        onToggleCourseUnlock={toggleCourseUnlock}
+                    />
+                )}
+                {tab === 'lessons' && (
+                    <LessonsTab
+                        modules={modules}
+                        expandedCourse={expandedCourseInLessons}
+                        onToggleCourse={(id) => setExpandedCourseInLessons(p => p === id ? null : id)}
+                        onAssign={(t) => setAssignTarget(t)}
+                    />
+                )}
+                {tab === 'assignments' && (
+                    <AssignmentsTab
+                        assignments={assignments}
+                        onDelete={handleDeleteAssignment}
+                    />
+                )}
+            </div>
+
+            {assignTarget && user && (
+                <AssignLessonModal
+                    classroom={activeClassroom}
+                    teacherId={user.id}
+                    courseId={assignTarget.courseId}
+                    courseTitle={assignTarget.courseTitle}
+                    moduleId={assignTarget.moduleId}
+                    lessonId={assignTarget.lessonId}
+                    lessonTitle={assignTarget.lessonTitle}
+                    onClose={() => setAssignTarget(null)}
+                    onAssigned={() => loadClassroomData()}
+                />
+            )}
+        </div>
+    );
+};
+
+// ─── Tab components ──────────────────────────────────────────────────────────
+
+const StudentsTab: React.FC<{
+    students: StudentProgress[];
+    avgLessons: number;
+    expandedStudent: string | null;
+    onExpand: (id: string) => void;
+    onToggleCourseUnlock: (studentId: string, courseId: string) => void;
+}> = ({ students, avgLessons, expandedStudent, onExpand, onToggleCourseUnlock }) => {
+    const topStudent = students[0];
+    return (
+        <div className="space-y-4">
+            {/* Stats strip */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 grid grid-cols-3 gap-4">
+                <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Students</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{students.length}</div>
+                </div>
+                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Avg. Lessons</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{avgLessons}</div>
+                </div>
+                <div className="border-l border-gray-100 dark:border-gray-700 pl-4 min-w-0">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Top Student</div>
+                    <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 truncate">
+                        {topStudent ? `@${topStudent.username}` : '—'}
+                    </div>
+                </div>
+            </div>
+
+            {/* Student list */}
+            {students.length === 0 ? (
+                <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-8 text-center">
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No students yet.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Share the join code above; students appear here once they join.
+                    </p>
+                </div>
+            ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+                    {students.map((s, idx) => {
+                        const isExpanded = expandedStudent === s.uid;
+                        return (
+                            <div key={s.uid}>
+                                <button
+                                    onClick={() => onExpand(s.uid)}
+                                    className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors text-left"
+                                >
+                                    <span className="w-5 text-xs font-bold text-gray-400 flex-shrink-0">{idx + 1}</span>
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                        {s.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{s.name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">@{s.username}</div>
+                                    </div>
+                                    <div className="hidden md:flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                        <div className="flex items-center gap-1">
+                                            <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                                            <span className="font-semibold">{s.completedLessons.length}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Star className="w-3.5 h-3.5 text-yellow-400" />
+                                            <span className="font-semibold">{s.totalStars}</span>
+                                        </div>
+                                        {s.unlockedCourseIds.length > 0 && (
+                                            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title={`${s.unlockedCourseIds.length} unlocked course(s)`}>
+                                                <Unlock className="w-3.5 h-3.5" />
+                                                <span className="font-semibold">{s.unlockedCourseIds.length}</span>
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-gray-400 w-14 text-right">{timeAgo(s.lastActive)}</div>
+                                    </div>
+                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                                </button>
+
+                                {isExpanded && (
+                                    <div className="px-5 pb-4 pt-1 bg-gray-50/60 dark:bg-gray-900/30 space-y-4">
+                                        {/* Mobile stats */}
+                                        <div className="md:hidden flex items-center gap-4 py-2 text-xs text-gray-600 dark:text-gray-300">
+                                            <span><BookOpen className="inline w-3 h-3 mr-1 text-purple-400" /><span className="font-semibold">{s.completedLessons.length}</span> lessons</span>
+                                            <span><Star className="inline w-3 h-3 mr-1 text-yellow-400" /><span className="font-semibold">{s.totalStars}</span></span>
+                                            <span className="text-gray-400">{timeAgo(s.lastActive)}</span>
+                                        </div>
+
+                                        {/* Per-student course unlocks */}
+                                        <div>
+                                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                                                Course access
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                Toggle on to give this student early access to a course without finishing the prerequisite. Python Basics is always available.
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {GRANTABLE_COURSES.map(c => {
+                                                    const granted = s.unlockedCourseIds.includes(c.id);
+                                                    return (
+                                                        <button
+                                                            key={c.id}
+                                                            onClick={() => onToggleCourseUnlock(s.uid, c.id)}
+                                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                                granted
+                                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                            }`}
+                                                            title={granted ? `Click to revoke access to ${c.title}` : `Click to grant access to ${c.title}`}
+                                                        >
+                                                            {granted ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                                                            {c.title}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Completed lessons */}
+                                        <div>
+                                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                                                Completed Lessons
+                                            </div>
+                                            {s.completedLessons.length === 0 ? (
+                                                <p className="text-sm text-gray-400">None yet.</p>
+                                            ) : (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {s.completedLessons.slice(0, 20).map(id => (
+                                                        <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs">
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            {id}
+                                                        </span>
+                                                    ))}
+                                                    {s.completedLessons.length > 20 && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 text-xs">
+                                                            +{s.completedLessons.length - 20} more
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {s.currentStreak > 0 && (
+                                            <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                                                {s.currentStreak}-day streak
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const LessonsTab: React.FC<{
+    modules: Module[];
+    expandedCourse: string | null;
+    onToggleCourse: (id: string) => void;
+    onAssign: (target: { moduleId: string; lessonId: string; lessonTitle: string; courseId: string; courseTitle: string }) => void;
+}> = ({ modules, expandedCourse, onToggleCourse, onAssign }) => {
+    const allModuleIds = modules.map(m => m.id);
+    return (
+        <div className="space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+                Browse the curriculum. Tap "Assign" on any lesson to push it to the class.
+            </p>
+            {COURSES.map(course => {
+                const moduleIds = resolveCourseModuleIds(course.id, allModuleIds);
+                const courseModules = moduleIds.map(id => modules.find(m => m.id === id)).filter((m): m is Module => !!m);
+                const expanded = expandedCourse === course.id;
+                const isAssignable = !course.comingSoon && courseModules.length > 0;
+                return (
+                    <div key={course.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <button
+                            onClick={() => isAssignable && onToggleCourse(course.id)}
+                            disabled={!isAssignable}
+                            className={`w-full flex items-center justify-between px-5 py-3 transition-colors ${
+                                isAssignable
+                                    ? 'hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer'
+                                    : 'cursor-not-allowed opacity-60'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-1 h-8 rounded-full bg-gradient-to-b ${course.accentColor}`} />
+                                <div className="min-w-0 text-left">
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{course.title}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {course.comingSoon
+                                            ? 'Material coming soon'
+                                            : `${courseModules.length} module${courseModules.length === 1 ? '' : 's'}`}
+                                    </div>
+                                </div>
+                            </div>
+                            {isAssignable && (expanded
+                                ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                                : <ChevronDown className="w-4 h-4 text-gray-400" />)}
+                        </button>
+
+                        {expanded && isAssignable && (
+                            <div className="border-t border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
+                                {courseModules.map(module => (
+                                    <div key={module.id} className="px-5 py-3">
+                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                                            {module.title}
+                                        </div>
+                                        <div className="space-y-1">
+                                            {module.lessons.map((lesson, lessonIndex) => (
+                                                <div key={lesson.id} className="flex items-center gap-3 py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                    <span className="w-6 text-center text-xs font-bold text-gray-400">{lessonIndex + 1}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-sm text-gray-900 dark:text-white truncate">{lesson.title}</div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => onAssign({
+                                                            moduleId: module.id,
+                                                            lessonId: lesson.id,
+                                                            lessonTitle: lesson.title,
+                                                            courseId: course.id,
+                                                            courseTitle: course.title,
+                                                        })}
+                                                        className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-200 dark:hover:bg-cyan-900/50"
+                                                    >
+                                                        <ClipboardList className="w-3.5 h-3.5" />
+                                                        Assign
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+};
+
+const AssignmentsTab: React.FC<{
+    assignments: Assignment[];
+    onDelete: (a: Assignment) => void;
+}> = ({ assignments, onDelete }) => {
+    if (assignments.length === 0) {
+        return (
+            <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-10 text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No assignments yet.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Open the Lessons tab and click Assign on a lesson to push it to your class.
+                </p>
+            </div>
+        );
+    }
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {assignments.map(a => (
+                <div key={a.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
+                            <span className="truncate">{a.courseTitle}</span>
+                            <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {formatDue(a.dueAt)}
+                            </span>
+                            <span>
+                                {a.studentIds === null ? 'Whole class' : `${a.studentIds.length} student${a.studentIds.length === 1 ? '' : 's'}`}
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => onDelete(a)}
+                        className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="Delete assignment"
+                        aria-label="Delete assignment"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            ))}
         </div>
     );
 };

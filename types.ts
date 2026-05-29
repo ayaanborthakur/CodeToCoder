@@ -104,7 +104,17 @@ export interface User {
   net_value?: number; // Total value for leaderboard (e.g., total stars earned)
   focusStats?: FocusStats;
   role?: UserRole;
-  classId?: string;   // for students: the classroom they joined; for teachers: the classroom they own
+  // Student: a single classroom they joined.
+  // Teachers historically had this too; new code uses classIds[] but keep this
+  // populated to the first classroom for backwards compatibility.
+  classId?: string;
+  // Teacher only: all classrooms they own. Allows a teacher to manage multiple
+  // sections from one account. Students stay on classId.
+  classIds?: string[];
+  // Student only: course IDs the teacher has explicitly unlocked for this
+  // student (overrides the prerequisite gate). Python Basics is always
+  // unlocked; this is for granting early access to later courses.
+  unlockedCourseIds?: string[];
 }
 
 export interface StarTransaction {

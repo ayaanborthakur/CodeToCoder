@@ -113,15 +113,18 @@ export function getCourseProgress(
   return { completed, total, fraction: total === 0 ? 0 : completed / total };
 }
 
-// Is a course unlocked? Always true for Python Basics; for others, requires
-// the prerequisite course to be ≥ unlockThreshold complete.
+// Is a course unlocked? Always true for Python Basics; teacher-granted
+// overrides (unlockedCourseIds on the student's user doc) always unlock too;
+// otherwise the prerequisite course must be ≥ unlockThreshold complete.
 export function isCourseUnlocked(
   course: Course,
   allModuleIds: string[],
   modulesById: Map<string, { lessons: { id: string }[] }>,
   completedLessons: Set<string>,
+  unlockedCourseIds?: string[] | null,
 ): boolean {
   if (!course.prerequisiteCourseId) return true;
+  if (unlockedCourseIds && unlockedCourseIds.includes(course.id)) return true;
   const prereq = getCourseProgress(course.prerequisiteCourseId, allModuleIds, modulesById, completedLessons);
   return prereq.fraction >= course.unlockThreshold;
 }

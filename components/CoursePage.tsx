@@ -18,6 +18,7 @@ interface CoursePageProps {
     // gets an "Assign" button.
     teacherId?: string;
     teacherClassroom?: Classroom | null;
+    unlockedCourseIds?: string[] | null;
 }
 
 export const CoursePage: React.FC<CoursePageProps> = ({
@@ -27,6 +28,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
     onBackToCatalog,
     teacherId,
     teacherClassroom,
+    unlockedCourseIds,
 }) => {
     const course = COURSES.find(c => c.id === courseId);
     const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string } | null>(null);
@@ -39,7 +41,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
         const moduleIds = resolveCourseModuleIds(courseId, allIds);
         const courseMods = moduleIds.map(id => byId.get(id)).filter((m): m is Module => !!m);
         const prog = getCourseProgress(courseId, allIds, byId, completedLessons);
-        const u = course ? isCourseUnlocked(course, allIds, byId, completedLessons) : false;
+        const u = course ? isCourseUnlocked(course, allIds, byId, completedLessons, unlockedCourseIds) : false;
         return { allModuleIds: allIds, modulesById: byId, courseModules: courseMods, progress: prog, unlocked: u };
     }, [courseId, modules, completedLessons, course]);
 

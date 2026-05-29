@@ -11,12 +11,14 @@ interface CoursesCatalogProps {
     modules: Module[];
     completedLessons: Set<string>;
     onSelectCourse: (courseId: string) => void;
+    unlockedCourseIds?: string[] | null;
 }
 
 export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
     modules,
     completedLessons,
     onSelectCourse,
+    unlockedCourseIds,
 }) => {
     const { allModuleIds, modulesById } = useMemo(() => {
         const ids = modules.map(m => m.id);
@@ -37,7 +39,7 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
                 <div className="space-y-3">
                     {COURSES.map(course => {
                         const progress = getCourseProgress(course.id, allModuleIds, modulesById, completedLessons);
-                        const unlocked = isCourseUnlocked(course, allModuleIds, modulesById, completedLessons);
+                        const unlocked = isCourseUnlocked(course, allModuleIds, modulesById, completedLessons, unlockedCourseIds);
                         const complete = progress.total > 0 && progress.completed === progress.total;
                         const interactive = unlocked && !course.comingSoon;
                         const pct = progress.total > 0 ? Math.round(progress.fraction * 100) : 0;
