@@ -219,13 +219,16 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
         if (classroom) {
             return (
                 <Shell>
-                    <header className="mb-4">
-                        <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Your Classroom</div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
+                    <header className="mb-5">
+                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5">Classroom</div>
+                        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                            {classroom.teacherName} · {classroom.studentIds.length} {classroom.studentIds.length === 1 ? 'student' : 'students'}
+                        </div>
                     </header>
 
                     {/* Student tabs */}
-                    <div className="flex gap-1 mb-4 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex gap-0 mb-5 border-b border-gray-200 dark:border-gray-800">
                         {([
                             { id: 'stream' as StudentTab, label: 'Stream', count: posts.length + assignments.length },
                             { id: 'assignments' as StudentTab, label: 'Assignments', count: assignments.length },
@@ -234,18 +237,22 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             <button
                                 key={t.id}
                                 onClick={() => setStudentTab(t.id)}
-                                className={`relative px-4 py-2.5 text-sm font-semibold transition-colors ${
+                                className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                                     studentTab === t.id
-                                        ? 'text-purple-600 dark:text-purple-400'
+                                        ? 'text-gray-900 dark:text-white'
                                         : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                                 }`}
                             >
                                 {t.label}
-                                {t.count !== undefined && (
-                                    <span className="ml-1.5 text-xs text-gray-400">{t.count}</span>
+                                {t.count !== undefined && t.count > 0 && (
+                                    <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold ${
+                                        studentTab === t.id
+                                            ? 'bg-purple-500 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                                    }`}>{t.count}</span>
                                 )}
                                 {studentTab === t.id && (
-                                    <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-purple-500 rounded-t-full" />
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
                                 )}
                             </button>
                         ))}
@@ -268,36 +275,36 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             }
                         />
                     ) : (
-                        <>
-                            <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                                <div className="flex items-center justify-between px-5 py-3">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">Teacher</span>
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{classroom.teacherName}</span>
-                                </div>
-                                <div className="flex items-center justify-between px-5 py-3">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">Classmates</span>
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{classroom.studentIds.length}</span>
-                                </div>
-                                <div className="flex items-center justify-between px-5 py-3">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">Join code</span>
+                        <div className="space-y-3">
+                            <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 px-1">
+                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Teacher</dt>
+                                <dd className="text-sm font-medium text-gray-900 dark:text-white">{classroom.teacherName}</dd>
+
+                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Classmates</dt>
+                                <dd className="text-sm font-medium text-gray-900 dark:text-white tabular-nums">{classroom.studentIds.length}</dd>
+
+                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Join code</dt>
+                                <dd>
                                     <button
                                         onClick={copyJoinCode}
-                                        className="flex items-center gap-1.5 font-mono font-bold tracking-widest text-sm text-gray-900 dark:text-white hover:text-purple-500"
+                                        className="inline-flex items-center gap-1.5 font-mono font-semibold tracking-[0.2em] text-sm text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400"
                                     >
                                         {classroom.joinCode}
-                                        {codeCopied ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-gray-400" />}
+                                        {codeCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                                     </button>
-                                </div>
+                                </dd>
+                            </dl>
+                            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+                                <button
+                                    onClick={handleLeave}
+                                    disabled={leaving}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-60"
+                                >
+                                    {leaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                                    Leave classroom
+                                </button>
                             </div>
-                            <button
-                                onClick={handleLeave}
-                                disabled={leaving}
-                                className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-60"
-                            >
-                                {leaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                                Leave classroom
-                            </button>
-                        </>
+                        </div>
                     )}
                 </Shell>
             );

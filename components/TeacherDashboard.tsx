@@ -342,13 +342,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
     return (
         <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0">
             {/* Top bar: classroom switcher + actions */}
-            <div className="flex items-center gap-2 px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 flex-shrink-0 flex-wrap">
+            <div className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 flex-wrap">
                 <div className="relative">
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5 ml-0.5">Class</div>
                     <button
                         onClick={() => setClassroomMenuOpen(o => !o)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold text-gray-900 dark:text-white"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-sm font-semibold text-gray-900 dark:text-white shadow-sm"
+                        aria-haspopup="listbox"
+                        aria-expanded={classroomMenuOpen}
                     >
-                        <span className="truncate max-w-[200px]">{activeClassroom.className}</span>
+                        <span className="truncate max-w-[220px]">{activeClassroom.className}</span>
+                        <span className="text-xs text-gray-400">{classrooms.length > 1 ? `· ${classrooms.length}` : ''}</span>
                         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${classroomMenuOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {classroomMenuOpen && (
@@ -402,22 +406,29 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                     )}
                 </div>
 
-                {/* Compact join code */}
-                <div className="flex items-center gap-2 ml-auto">
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold">Join</span>
-                        <span className="font-mono font-bold text-sm text-gray-900 dark:text-white tracking-widest">{activeClassroom.joinCode}</span>
-                        <button onClick={copyJoinCode} className="text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400" title="Copy join code">
-                            {codeCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                {/* Compact join code + refresh */}
+                <div className="flex items-end gap-2 ml-auto">
+                    <div className="hidden sm:flex flex-col">
+                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5 ml-0.5">Join code</div>
+                        <button
+                            onClick={copyJoinCode}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm group"
+                            title="Copy join code"
+                        >
+                            <span className="font-mono font-bold text-sm text-gray-900 dark:text-white tracking-[0.2em]">{activeClassroom.joinCode}</span>
+                            {codeCopied
+                                ? <CheckCheck className="w-3.5 h-3.5 text-green-500" />
+                                : <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />}
                         </button>
                     </div>
                     <button
                         onClick={() => loadClassroomData(true)}
                         disabled={refreshing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        className="p-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm disabled:opacity-50"
+                        title="Refresh"
+                        aria-label="Refresh classroom data"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline">Refresh</span>
                     </button>
                 </div>
             </div>
@@ -429,7 +440,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             )}
 
             {/* Tabs */}
-            <div className="flex gap-1 px-4 sm:px-6 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 flex-shrink-0">
+            <div className="flex gap-0 px-4 sm:px-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
                 {([
                     { id: 'stream', label: 'Stream', count: posts.length + assignments.length },
                     { id: 'students', label: 'Students', count: students.length },
@@ -439,17 +450,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                     <button
                         key={t.id}
                         onClick={() => setTab(t.id)}
-                        className={`relative px-4 py-3 text-sm font-semibold transition-colors ${
+                        className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                             tab === t.id
-                                ? 'text-cyan-600 dark:text-cyan-400'
+                                ? 'text-gray-900 dark:text-white'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
                         {t.label}
-                        {t.count !== undefined && (
-                            <span className="ml-1.5 text-xs text-gray-400">{t.count}</span>
+                        {t.count !== undefined && t.count > 0 && (
+                            <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold ${
+                                tab === t.id
+                                    ? 'bg-cyan-500 text-white'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                            }`}>{t.count}</span>
                         )}
-                        {tab === t.id && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 rounded-t-full" />}
+                        {tab === t.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />}
                     </button>
                 ))}
             </div>
@@ -504,6 +519,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                     lessonTitle={assignTarget.lessonTitle}
                     onClose={() => setAssignTarget(null)}
                     onAssigned={() => loadClassroomData()}
+                    students={students.map(s => ({ uid: s.uid, name: s.name, username: s.username }))}
                 />
             )}
         </div>
@@ -528,19 +544,21 @@ const StudentsTab: React.FC<{
     const topStudent = students[0];
     return (
         <div className="space-y-4">
-            {/* Stats strip */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 grid grid-cols-3 gap-4">
+            {/* Stats strip — inline, minimal chrome */}
+            <div className="flex items-baseline gap-6 px-1">
                 <div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Students</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{students.length}</div>
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Students</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">{students.length}</div>
                 </div>
-                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Avg. Lessons</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{avgLessons}</div>
+                <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+                <div>
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Avg. lessons</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">{avgLessons}</div>
                 </div>
-                <div className="border-l border-gray-100 dark:border-gray-700 pl-4 min-w-0">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Top Student</div>
-                    <div className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 truncate">
+                <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+                <div className="min-w-0">
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Top</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                         {topStudent ? `@${topStudent.username}` : '—'}
                     </div>
                 </div>
@@ -833,21 +851,27 @@ const AssignmentsTab: React.FC<{
 
     return (
         <div className="space-y-3">
-            {/* Overall summary strip */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 grid grid-cols-3 gap-4">
+            {/* Overall summary strip — inline, minimal chrome */}
+            <div className="flex items-baseline gap-6 px-1">
                 <div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Assignments</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{assignments.length}</div>
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Assignments</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">{assignments.length}</div>
                 </div>
-                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Total submissions</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
+                <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+                <div>
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Submissions</div>
+                    <div className="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">
                         {assignments.reduce((sum, a) => sum + getStatus(a).completed.length, 0)}
                     </div>
                 </div>
-                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
-                    <div className="text-xs text-gray-500 dark:text-gray-400">Overdue</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
+                <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
+                <div>
+                    <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Overdue</div>
+                    <div className={`text-xl font-semibold tabular-nums ${
+                        assignments.filter(a => a.dueAt !== null && a.dueAt < Date.now()).length > 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-gray-900 dark:text-white'
+                    }`}>
                         {assignments.filter(a => a.dueAt !== null && a.dueAt < Date.now()).length}
                     </div>
                 </div>
