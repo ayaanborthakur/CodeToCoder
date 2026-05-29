@@ -469,6 +469,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                 {tab === 'students' && (
                     <StudentsTab
                         students={students}
+                        assignments={assignments}
                         avgLessons={avgLessons}
                         expandedStudent={expandedStudent}
                         onExpand={(id) => setExpandedStudent(p => p === id ? null : id)}
@@ -486,6 +487,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                 {tab === 'assignments' && (
                     <AssignmentsTab
                         assignments={assignments}
+                        students={students}
                         onDelete={handleDeleteAssignment}
                     />
                 )}
@@ -510,13 +512,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
 
 // ─── Tab components ──────────────────────────────────────────────────────────
 
+// An assignment targets this student iff it's class-wide (studentIds=null)
+// or the student's uid is explicitly listed.
+const assignmentTargetsStudent = (a: Assignment, studentId: string): boolean =>
+    a.studentIds === null || a.studentIds.includes(studentId);
+
 const StudentsTab: React.FC<{
     students: StudentProgress[];
+    assignments: Assignment[];
     avgLessons: number;
     expandedStudent: string | null;
     onExpand: (id: string) => void;
     onToggleCourseUnlock: (studentId: string, courseId: string) => void;
-}> = ({ students, avgLessons, expandedStudent, onExpand, onToggleCourseUnlock }) => {
+}> = ({ students, assignments, avgLessons, expandedStudent, onExpand, onToggleCourseUnlock }) => {
     const topStudent = students[0];
     return (
         <div className="space-y-4">
@@ -623,10 +631,56 @@ const StudentsTab: React.FC<{
                                             </div>
                                         </div>
 
+                                        {/* Per-student assignment status */}
+                                        {(() => {
+                                            const studentAssignments = assignments.filter(a => assignmentTargetsStudent(a, s.uid));
+                                            const completedSet = new Set(s.completedLessons);
+                                            const completedCount = studentAssignments.filter(a => completedSet.has(a.lessonId)).length;
+                                            return (
+                                                <div>
+                                                    <div className="flex items-baseline justify-between mb-1.5">
+                                                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                                            Assignments
+                                                        </div>
+                                                        {studentAssignments.length > 0 && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                <span className={`font-bold ${completedCount === studentAssignments.length ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                                    {completedCount}
+                                                                </span>
+                                                                {' / '}{studentAssignments.length} done
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {studentAssignments.length === 0 ? (
+                                                        <p className="text-sm text-gray-400">No assignments targeted at this student.</p>
+                                                    ) : (
+                                                        <ul className="space-y-1">
+                                                            {studentAssignments.map(a => {
+                                                                const done = completedSet.has(a.lessonId);
+                                                                return (
+                                                                    <li key={a.id} className="flex items-center gap-2 text-sm">
+                                                                        {done ? (
+                                                                            <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                                                        ) : (
+                                                                            <div className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0" />
+                                                                        )}
+                                                                        <span className={`truncate ${done ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                                            {a.lessonTitle}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-400 truncate">· {a.courseTitle}</span>
+                                                                    </li>
+                                                                );
+                                                            })}
+                                                        </ul>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
                                         {/* Completed lessons */}
                                         <div>
                                             <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
-                                                Completed Lessons
+                                                All Completed Lessons
                                             </div>
                                             {s.completedLessons.length === 0 ? (
                                                 <p className="text-sm text-gray-400">None yet.</p>
@@ -750,8 +804,11 @@ const LessonsTab: React.FC<{
 
 const AssignmentsTab: React.FC<{
     assignments: Assignment[];
+    students: StudentProgress[];
     onDelete: (a: Assignment) => void;
-}> = ({ assignments, onDelete }) => {
+}> = ({ assignments, students, onDelete }) => {
+    const [expanded, setExpanded] = useState<string | null>(null);
+
     if (assignments.length === 0) {
         return (
             <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-10 text-center">
@@ -762,33 +819,136 @@ const AssignmentsTab: React.FC<{
             </div>
         );
     }
+
+    const studentById = new Map(students.map(s => [s.uid, s] as const));
+
+    // For an assignment, compute who is targeted, who's done, and who's pending.
+    const getStatus = (a: Assignment) => {
+        const targetIds = a.studentIds === null ? students.map(s => s.uid) : a.studentIds;
+        const targetStudents = targetIds.map(id => studentById.get(id)).filter((s): s is StudentProgress => !!s);
+        const completed = targetStudents.filter(s => s.completedLessons.includes(a.lessonId));
+        const pending = targetStudents.filter(s => !s.completedLessons.includes(a.lessonId));
+        return { total: targetStudents.length, completed, pending };
+    };
+
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-            {assignments.map(a => (
-                <div key={a.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
-                            <span className="truncate">{a.courseTitle}</span>
-                            <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatDue(a.dueAt)}
-                            </span>
-                            <span>
-                                {a.studentIds === null ? 'Whole class' : `${a.studentIds.length} student${a.studentIds.length === 1 ? '' : 's'}`}
-                            </span>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => onDelete(a)}
-                        className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title="Delete assignment"
-                        aria-label="Delete assignment"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+        <div className="space-y-3">
+            {/* Overall summary strip */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 grid grid-cols-3 gap-4">
+                <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Assignments</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{assignments.length}</div>
                 </div>
-            ))}
+                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Total submissions</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
+                        {assignments.reduce((sum, a) => sum + getStatus(a).completed.length, 0)}
+                    </div>
+                </div>
+                <div className="border-l border-gray-100 dark:border-gray-700 pl-4">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Overdue</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
+                        {assignments.filter(a => a.dueAt !== null && a.dueAt < Date.now()).length}
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+                {assignments.map(a => {
+                    const status = getStatus(a);
+                    const isOpen = expanded === a.id;
+                    const allDone = status.total > 0 && status.pending.length === 0;
+                    const overdue = a.dueAt !== null && a.dueAt < Date.now();
+
+                    return (
+                        <div key={a.id}>
+                            <button
+                                onClick={() => setExpanded(p => p === a.id ? null : a.id)}
+                                className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors text-left"
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
+                                        <span className="truncate">{a.courseTitle}</span>
+                                        <span className={`flex items-center gap-1 ${overdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}`}>
+                                            <Calendar className="w-3 h-3" />
+                                            {formatDue(a.dueAt)}
+                                        </span>
+                                        <span>
+                                            {a.studentIds === null ? 'Whole class' : `${a.studentIds.length} student${a.studentIds.length === 1 ? '' : 's'}`}
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* Completion pill */}
+                                <div className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                                    allDone
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                        : status.completed.length === 0
+                                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-500'
+                                            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                }`}>
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    {status.completed.length} / {status.total}
+                                </div>
+                                {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onDelete(a); }}
+                                    className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
+                                    title="Delete assignment"
+                                    aria-label="Delete assignment"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </button>
+
+                            {isOpen && (
+                                <div className="px-5 pb-4 pt-1 bg-gray-50/60 dark:bg-gray-900/30 grid sm:grid-cols-2 gap-4">
+                                    {/* Pending list */}
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pending</span>
+                                            <span className="text-xs text-gray-400">({status.pending.length})</span>
+                                        </div>
+                                        {status.pending.length === 0 ? (
+                                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Everyone is done.</p>
+                                        ) : (
+                                            <ul className="space-y-1">
+                                                {status.pending.map(s => (
+                                                    <li key={s.uid} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                                        <div className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0" />
+                                                        <span className="truncate">{s.name}</span>
+                                                        <span className="text-xs text-gray-400 truncate">@{s.username}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                    {/* Done list */}
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-2">
+                                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Done</span>
+                                            <span className="text-xs text-gray-400">({status.completed.length})</span>
+                                        </div>
+                                        {status.completed.length === 0 ? (
+                                            <p className="text-sm text-gray-400">No one yet.</p>
+                                        ) : (
+                                            <ul className="space-y-1">
+                                                {status.completed.map(s => (
+                                                    <li key={s.uid} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                                        <span className="truncate">{s.name}</span>
+                                                        <span className="text-xs text-gray-400 truncate">@{s.username}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };
