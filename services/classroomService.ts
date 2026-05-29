@@ -9,7 +9,6 @@ import {
     query,
     where,
     getDocs,
-    orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Classroom, UserRole } from '../types';
@@ -94,16 +93,18 @@ export const createClassroom = async (
 
 /**
  * All classrooms owned by a teacher, oldest first. Used to populate the
- * teacher's classroom switcher.
+ * teacher's classroom switcher. Sort happens client-side so this needs no
+ * composite Firestore index (which a where+orderBy combo would require).
  */
 export const listTeacherClassrooms = async (teacherId: string): Promise<Classroom[]> => {
     const q = query(
         collection(db, CLASSROOMS_COLLECTION),
-        where('teacherId', '==', teacherId),
-        orderBy('createdAt', 'asc')
+        where('teacherId', '==', teacherId)
     );
     const snap = await getDocs(q);
-    return snap.docs.map(d => d.data() as Classroom);
+    return snap.docs
+        .map(d => d.data() as Classroom)
+        .sort((a, b) => a.createdAt - b.createdAt);
 };
 
 /**
