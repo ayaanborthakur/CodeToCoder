@@ -12,6 +12,8 @@ interface CoursesCatalogProps {
     completedLessons: Set<string>;
     onSelectCourse: (courseId: string) => void;
     unlockedCourseIds?: string[] | null;
+    /** Teachers bypass all locks and can browse every course. */
+    isTeacher?: boolean;
 }
 
 export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
@@ -19,6 +21,7 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
     completedLessons,
     onSelectCourse,
     unlockedCourseIds,
+    isTeacher = false,
 }) => {
     const { allModuleIds, modulesById } = useMemo(() => {
         const ids = modules.map(m => m.id);
@@ -39,9 +42,10 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
                 <div className="space-y-3">
                     {COURSES.map(course => {
                         const progress = getCourseProgress(course.id, allModuleIds, modulesById, completedLessons);
-                        const unlocked = isCourseUnlocked(course, allModuleIds, modulesById, completedLessons, unlockedCourseIds);
+                        const unlocked = isTeacher || isCourseUnlocked(course, allModuleIds, modulesById, completedLessons, unlockedCourseIds);
                         const complete = progress.total > 0 && progress.completed === progress.total;
-                        const interactive = unlocked && !course.comingSoon;
+                        // Teachers can click into ComingSoon courses too (they just see an empty state) — useful for previewing.
+                        const interactive = isTeacher || (unlocked && !course.comingSoon);
                         const pct = progress.total > 0 ? Math.round(progress.fraction * 100) : 0;
                         const prereqTitle = COURSES.find(c => c.id === course.prerequisiteCourseId)?.title;
 
@@ -66,19 +70,19 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
                                             <h2 className="text-base font-bold text-gray-900 dark:text-white truncate">
                                                 {course.title}
                                             </h2>
-                                            {complete && (
+                                            {complete && !isTeacher && (
                                                 <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded">
                                                     <CheckCircle2 className="w-3 h-3" />
                                                     Complete
                                                 </span>
                                             )}
-                                            {!unlocked && (
+                                            {!unlocked && !isTeacher && (
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">
                                                     <Lock className="w-3 h-3" />
                                                     Locked
                                                 </span>
                                             )}
-                                            {course.comingSoon && unlocked && (
+                                            {course.comingSoon && (
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">
                                                     <Sparkles className="w-3 h-3" />
                                                     Coming Soon
@@ -94,7 +98,7 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
                                     <div className="flex items-center gap-4 flex-shrink-0">
                                         {course.comingSoon ? (
                                             <span className="text-xs text-gray-500 dark:text-gray-400 italic">
-                                                Material coming soon
+                                                {isTeacher ? 'Preview (no lessons yet)' : 'Material coming soon'}
                                             </span>
                                         ) : !unlocked ? (
                                             <span className="text-xs text-gray-500 dark:text-gray-400">

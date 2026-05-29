@@ -1749,6 +1749,7 @@ const App: React.FC = () => {
                                 completedLessons={completedLessons}
                                 onSelectCourse={(courseId) => navigate(`/courses/${courseId}`)}
                                 unlockedCourseIds={user?.unlockedCourseIds ?? null}
+                                isTeacher={user?.role === 'teacher'}
                             />
                         ) : (isClassroom && !currentLessonId && coursePageMatch) ? (
                             <CoursePage
@@ -1759,6 +1760,7 @@ const App: React.FC = () => {
                                 teacherId={user?.role === 'teacher' ? user.id : undefined}
                                 teacherClassroom={user?.role === 'teacher' ? teacherClassroom : null}
                                 unlockedCourseIds={user?.unlockedCourseIds ?? null}
+                                isTeacher={user?.role === 'teacher'}
                             />
                         ) : isLearnMode && activeLesson ? (
                             <LearnPanel

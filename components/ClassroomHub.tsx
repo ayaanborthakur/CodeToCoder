@@ -7,6 +7,9 @@ import {
     Copy,
     CheckCheck,
     LogOut,
+    Calendar,
+    ExternalLink,
+    ClipboardList,
 } from 'lucide-react';
 import {
     joinClassroom,
@@ -24,7 +27,7 @@ interface ClassroomHubProps {
     onNavigate: (view: ViewState) => void;
 }
 
-type StudentTab = 'stream' | 'info';
+type StudentTab = 'stream' | 'assignments' | 'info';
 
 // Module-level so its identity is stable across renders — defining this inside
 // the component would remount its children on every keystroke (losing input focus).
@@ -225,6 +228,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                     <div className="flex gap-1 mb-4 border-b border-gray-200 dark:border-gray-800">
                         {([
                             { id: 'stream' as StudentTab, label: 'Stream', count: posts.length + assignments.length },
+                            { id: 'assignments' as StudentTab, label: 'Assignments', count: assignments.length },
                             { id: 'info' as StudentTab, label: 'Class info' },
                         ]).map(t => (
                             <button
@@ -253,6 +257,13 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             assignments={assignments}
                             canPost={false}
                             onOpenLesson={(moduleId, lessonId) =>
+                                window.open(`/lessons/${moduleId}/${lessonId}`, '_blank', 'noopener,noreferrer')
+                            }
+                        />
+                    ) : studentTab === 'assignments' ? (
+                        <StudentAssignmentsList
+                            assignments={assignments}
+                            onOpen={(moduleId, lessonId) =>
                                 window.open(`/lessons/${moduleId}/${lessonId}`, '_blank', 'noopener,noreferrer')
                             }
                         />
@@ -335,5 +346,73 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                 )}
             </form>
         </Shell>
+    );
+};
+
+// Read-only list of assignments for the joined student.
+// Sorted by due-date (overdue first → soonest → no-due-date last).
+const StudentAssignmentsList: React.FC<{
+    assignments: Assignment[];
+    onOpen: (moduleId: string, lessonId: string) => void;
+}> = ({ assignments, onOpen }) => {
+    const sorted = [...assignments].sort((a, b) => {
+        const A = a.dueAt ?? Number.POSITIVE_INFINITY;
+        const B = b.dueAt ?? Number.POSITIVE_INFINITY;
+        return A - B;
+    });
+
+    const formatDue = (dueAt: number | null) => {
+        if (dueAt === null) return { label: 'No due date', tone: 'none' as const };
+        const d = dueAt - Date.now();
+        const day = 24 * 60 * 60 * 1000;
+        if (d < 0) return { label: 'Overdue', tone: 'overdue' as const };
+        if (d < day) return { label: 'Due today', tone: 'soon' as const };
+        if (d < 3 * day) return { label: `Due in ${Math.ceil(d / day)} days`, tone: 'soon' as const };
+        return { label: `Due ${new Date(dueAt).toLocaleDateString()}`, tone: 'later' as const };
+    };
+
+    if (sorted.length === 0) {
+        return (
+            <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-10 text-center">
+                <ClipboardList className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No assignments yet.</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    When your teacher assigns a lesson, it'll show up here.
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <ul className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {sorted.map(a => {
+                const due = formatDue(a.dueAt);
+                const toneClass =
+                    due.tone === 'overdue' ? 'text-red-600 dark:text-red-400' :
+                    due.tone === 'soon' ? 'text-amber-700 dark:text-amber-400' :
+                    'text-gray-500 dark:text-gray-400';
+                return (
+                    <li key={a.id} className="flex items-center gap-3 px-5 py-3">
+                        <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
+                                <span className="truncate">{a.courseTitle}</span>
+                                <span className={`flex items-center gap-1 font-medium ${toneClass}`}>
+                                    <Calendar className="w-3 h-3" />
+                                    {due.label}
+                                </span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => onOpen(a.moduleId, a.lessonId)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md flex-shrink-0"
+                        >
+                            Open
+                            <ExternalLink className="w-3 h-3" />
+                        </button>
+                    </li>
+                );
+            })}
+        </ul>
     );
 };

@@ -19,6 +19,8 @@ interface CoursePageProps {
     teacherId?: string;
     teacherClassroom?: Classroom | null;
     unlockedCourseIds?: string[] | null;
+    /** Teachers bypass the locked / module-progression checks. */
+    isTeacher?: boolean;
 }
 
 export const CoursePage: React.FC<CoursePageProps> = ({
@@ -29,6 +31,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
     teacherId,
     teacherClassroom,
     unlockedCourseIds,
+    isTeacher = false,
 }) => {
     const course = COURSES.find(c => c.id === courseId);
     const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string } | null>(null);
@@ -41,7 +44,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
         const moduleIds = resolveCourseModuleIds(courseId, allIds);
         const courseMods = moduleIds.map(id => byId.get(id)).filter((m): m is Module => !!m);
         const prog = getCourseProgress(courseId, allIds, byId, completedLessons);
-        const u = course ? isCourseUnlocked(course, allIds, byId, completedLessons, unlockedCourseIds) : false;
+        const u = course ? (isTeacher || isCourseUnlocked(course, allIds, byId, completedLessons, unlockedCourseIds)) : false;
         return { allModuleIds: allIds, modulesById: byId, courseModules: courseMods, progress: prog, unlocked: u };
     }, [courseId, modules, completedLessons, course]);
 
@@ -147,8 +150,9 @@ export const CoursePage: React.FC<CoursePageProps> = ({
                             const total = module.lessons.length;
 
                             // Module locking: same rule as the old sidebar - locked until previous module's final lesson is done.
+                            // Teachers see everything unlocked.
                             let moduleLocked = false;
-                            if (moduleIndex > 0) {
+                            if (!isTeacher && moduleIndex > 0) {
                                 const prevModule = courseModules[moduleIndex - 1];
                                 if (prevModule.lessons.length > 0) {
                                     const prevFinal = prevModule.lessons[prevModule.lessons.length - 1];
