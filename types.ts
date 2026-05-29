@@ -356,6 +356,17 @@ export interface Course {
   unlockThreshold: number; // 0..1, fraction of prerequisite course lessons completed
 }
 
+// Teacher post / announcement for a classroom (Google-Classroom-style stream).
+// Stored under classrooms/{classroomId}/posts/{postId}.
+export interface Post {
+  id: string;
+  classroomId: string;
+  teacherId: string;
+  teacherName: string;
+  content: string;        // plain text for now
+  createdAt: number;
+}
+
 // Teacher-assigned lesson for a classroom.
 // Stored under classrooms/{classroomId}/assignments/{assignmentId}.
 export interface Assignment {

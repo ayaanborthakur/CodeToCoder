@@ -26,11 +26,13 @@ import {
     setStudentUnlockedCourses,
 } from '../services/classroomService';
 import { listAssignmentsForClassroom, deleteAssignment } from '../services/assignmentsService';
+import { listPostsForClassroom, createPost, deletePost } from '../services/postsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import type { Classroom, Module, Assignment } from '../types';
+import type { Classroom, Module, Assignment, Post } from '../types';
 import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
 import { AssignLessonModal } from './AssignLessonModal';
+import { StreamView } from './StreamView';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +47,7 @@ interface StudentProgress {
     unlockedCourseIds: string[];
 }
 
-type Tab = 'students' | 'lessons' | 'assignments';
+type Tab = 'stream' | 'students' | 'lessons' | 'assignments';
 
 interface TeacherDashboardProps {
     modules: Module[];
@@ -88,10 +90,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
     const [activeClassId, setActiveClassId] = useState<string | null>(null);
     const [students, setStudents] = useState<StudentProgress[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [tab, setTab] = useState<Tab>('students');
+    const [tab, setTab] = useState<Tab>('stream');
     const [classroomMenuOpen, setClassroomMenuOpen] = useState(false);
     const [creatingNew, setCreatingNew] = useState(false);
     const [newClassName, setNewClassName] = useState('');
@@ -181,12 +184,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             if (!cls) { setError('Classroom not found.'); return; }
             // Update in-place inside classrooms list.
             setClassrooms(prev => prev.map(c => c.classId === cls.classId ? cls : c));
-            const [studentData, assignmentList] = await Promise.all([
+            const [studentData, assignmentList, postList] = await Promise.all([
                 fetchStudentData(cls),
                 listAssignmentsForClassroom(cls.classId),
+                listPostsForClassroom(cls.classId),
             ]);
             setStudents(studentData);
             setAssignments(assignmentList);
+            setPosts(postList);
             setError(null);
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to load classroom data.');
@@ -252,6 +257,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             setAssignments(prev => prev.filter(x => x.id !== a.id));
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to delete assignment.');
+        }
+    };
+
+    const handleCreatePost = async (content: string) => {
+        if (!activeClassroom || !user) return;
+        const created = await createPost({
+            classroomId: activeClassroom.classId,
+            teacherId: user.id,
+            teacherName: user.name,
+            content,
+        });
+        // Prepend so it appears at the top immediately (StreamView re-sorts anyway).
+        setPosts(prev => [created, ...prev]);
+    };
+
+    const handleDeletePost = async (p: Post) => {
+        if (!activeClassroom) return;
+        try {
+            await deletePost(activeClassroom.classId, p.id);
+            setPosts(prev => prev.filter(x => x.id !== p.id));
+        } catch (e: unknown) {
+            setError(e instanceof Error ? e.message : 'Failed to delete post.');
         }
     };
 
@@ -404,6 +431,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             {/* Tabs */}
             <div className="flex gap-1 px-4 sm:px-6 border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 flex-shrink-0">
                 {([
+                    { id: 'stream', label: 'Stream', count: posts.length + assignments.length },
                     { id: 'students', label: 'Students', count: students.length },
                     { id: 'lessons', label: 'Lessons', count: undefined },
                     { id: 'assignments', label: 'Assignments', count: assignments.length },
@@ -428,6 +456,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
 
             {/* Tab content fills remaining space */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
+                {tab === 'stream' && (
+                    <StreamView
+                        posts={posts}
+                        assignments={assignments}
+                        canPost
+                        onCreatePost={handleCreatePost}
+                        onDeletePost={handleDeletePost}
+                        onDeleteAssignment={handleDeleteAssignment}
+                    />
+                )}
                 {tab === 'students' && (
                     <StudentsTab
                         students={students}

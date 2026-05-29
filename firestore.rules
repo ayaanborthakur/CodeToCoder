@@ -119,6 +119,28 @@ service cloud.firestore {
         allow read: if isClassMember();
         allow create, update, delete: if isClassTeacher();
       }
+
+      // --- Posts (teacher announcements / classroom stream) ---
+      // Stored under classrooms/{classId}/posts/{postId}.
+      // Only the classroom's teacher can post or delete.
+      // Members of the classroom (teacher + students) can read.
+      match /posts/{postId} {
+        function classroomData() {
+          return get(/databases/$(database)/documents/classrooms/$(classId)).data;
+        }
+        function isClassTeacher() {
+          return isSignedIn() && classroomData().teacherId == request.auth.uid;
+        }
+        function isClassMember() {
+          return isSignedIn() && (
+            classroomData().teacherId == request.auth.uid
+            || request.auth.uid in classroomData().studentIds
+          );
+        }
+
+        allow read: if isClassMember();
+        allow create, update, delete: if isClassTeacher();
+      }
     }
 
     // --- AI Feedback Cache ---
