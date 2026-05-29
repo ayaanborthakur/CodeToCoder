@@ -51,17 +51,48 @@ service cloud.firestore {
         // Teacher can update anything about their classroom
         resource.data.teacherId == request.auth.uid
         ||
-        // Students can only append their own uid to studentIds (join)
+        // Students can append their own uid to studentIds (join)
         (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentIds'])
           && request.resource.data.studentIds.hasAll(resource.data.studentIds)
           && request.resource.data.studentIds.size() == resource.data.studentIds.size() + 1
           && request.auth.uid in request.resource.data.studentIds
         )
+        ||
+        // Students can remove themselves from studentIds (leave)
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['studentIds'])
+          && resource.data.studentIds.hasAll(request.resource.data.studentIds)
+          && resource.data.studentIds.size() == request.resource.data.studentIds.size() + 1
+          && request.auth.uid in resource.data.studentIds
+          && !(request.auth.uid in request.resource.data.studentIds)
+        )
       );
 
       // Only the owning teacher can delete a classroom
       allow delete: if isSignedIn() && resource.data.teacherId == request.auth.uid;
+
+      // --- Assignments subcollection ---
+      // Stored under classrooms/{classId}/assignments/{assignmentId}.
+      // Only the classroom's teacher can create/update/delete assignments.
+      // Members of the classroom (teacher + students) can read.
+      match /assignments/{assignmentId} {
+        function classroomData() {
+          return get(/databases/$(database)/documents/classrooms/$(classId)).data;
+        }
+        function isClassTeacher() {
+          return isSignedIn() && classroomData().teacherId == request.auth.uid;
+        }
+        function isClassMember() {
+          return isSignedIn() && (
+            classroomData().teacherId == request.auth.uid
+            || request.auth.uid in classroomData().studentIds
+          );
+        }
+
+        allow read: if isClassMember();
+        allow create, update, delete: if isClassTeacher();
+      }
     }
 
     // --- AI Feedback Cache ---
