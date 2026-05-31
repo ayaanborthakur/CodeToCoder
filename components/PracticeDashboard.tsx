@@ -17,6 +17,8 @@ interface PracticeDashboardProps {
     onAddCustomItem?: (item: PracticeItem) => void;
     onNavigate?: (path: string) => void;
     activities?: UserActivity[];
+    /** Teachers: when provided, each practice card gets an Assign button. */
+    onAssignItem?: (item: PracticeItem) => void;
 }
 
 
@@ -56,7 +58,8 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
     customItems = [], // From Firestore per-user
     onAddCustomItem,
     onNavigate,
-    activities = []
+    activities = [],
+    onAssignItem,
 }) => {
 
     const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -191,11 +194,14 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                             const lastScore = lastAttempt?.score;
 
                             return (
-                                <button
+                                <div
                                     key={item.id}
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => onSelectItem(item)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectItem(item); } }}
                                     style={{ animationDelay: `${index * 40}ms` }}
-                                    className={`p-5 rounded-xl border-2 transition-all text-left flex justify-between items-center group animate-slide-up opacity-0 shadow-sm ${isCustom
+                                    className={`p-5 rounded-xl border-2 transition-all text-left flex justify-between items-center group animate-slide-up opacity-0 shadow-sm cursor-pointer ${isCustom
                                         ? 'bg-purple-50/50 dark:bg-purple-900/10 border-purple-200/60 dark:border-purple-800/50 hover:border-purple-400'
                                         : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700/50 hover:border-cyan-400 dark:hover:border-cyan-600'
                                         }`}
@@ -237,7 +243,16 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-4 ml-4">
+                                    <div className="flex items-center gap-2 ml-4">
+                                        {onAssignItem && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onAssignItem(item); }}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                                                title="Assign to a class"
+                                            >
+                                                Assign
+                                            </button>
+                                        )}
                                         {isCompleted ? (
                                             <div className="p-2.5 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800/50 text-green-600 dark:text-green-400 shadow-sm">
                                                 <CheckCircle2 className="w-6 h-6" />
@@ -250,7 +265,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                             </div>
                                         )}
                                     </div>
-                                </button>
+                                </div>
                             );
                         };
 

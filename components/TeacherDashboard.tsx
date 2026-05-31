@@ -33,6 +33,7 @@ import type { Classroom, Module, Assignment, Post } from '../types';
 import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
 import { AssignLessonModal } from './AssignLessonModal';
 import { StreamView } from './StreamView';
+import { assignmentTitle, assignmentSubtitle } from '../utils/assignmentDisplay';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -683,9 +684,11 @@ const StudentsTab: React.FC<{
                                                                             <div className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 flex-shrink-0" />
                                                                         )}
                                                                         <span className={`truncate ${done ? 'text-gray-500 dark:text-gray-400 line-through' : 'text-gray-700 dark:text-gray-200'}`}>
-                                                                            {a.lessonTitle}
+                                                                            {assignmentTitle(a)}
                                                                         </span>
-                                                                        <span className="text-xs text-gray-400 truncate">· {a.courseTitle}</span>
+                                                                        {assignmentSubtitle(a) && (
+                                                                            <span className="text-xs text-gray-400 truncate">· {assignmentSubtitle(a)}</span>
+                                                                        )}
                                                                     </li>
                                                                 );
                                                             })}
@@ -841,11 +844,19 @@ const AssignmentsTab: React.FC<{
     const studentById = new Map(students.map(s => [s.uid, s] as const));
 
     // For an assignment, compute who is targeted, who's done, and who's pending.
+    // NOTE: practice completion lives in a different progress doc than lessons.
+    // For now the teacher view only sees lesson-style completion; practice
+    // assignments report 0/N until per-practice-item completion is wired in.
     const getStatus = (a: Assignment) => {
         const targetIds = a.studentIds === null ? students.map(s => s.uid) : a.studentIds;
         const targetStudents = targetIds.map(id => studentById.get(id)).filter((s): s is StudentProgress => !!s);
-        const completed = targetStudents.filter(s => s.completedLessons.includes(a.lessonId));
-        const pending = targetStudents.filter(s => !s.completedLessons.includes(a.lessonId));
+        const targetItemId = a.kind === 'practice' ? a.practiceItem?.id : a.lessonId;
+        const completed = targetItemId
+            ? targetStudents.filter(s => s.completedLessons.includes(targetItemId))
+            : [];
+        const pending = targetItemId
+            ? targetStudents.filter(s => !s.completedLessons.includes(targetItemId))
+            : targetStudents;
         return { total: targetStudents.length, completed, pending };
     };
 
@@ -891,9 +902,9 @@ const AssignmentsTab: React.FC<{
                                 className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors text-left"
                             >
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
-                                        <span className="truncate">{a.courseTitle}</span>
+                                        {assignmentSubtitle(a) && <span className="truncate">{assignmentSubtitle(a)}</span>}
                                         <span className={`flex items-center gap-1 ${overdue ? 'text-red-600 dark:text-red-400 font-medium' : ''}`}>
                                             <Calendar className="w-3 h-3" />
                                             {formatDue(a.dueAt)}

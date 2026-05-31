@@ -367,19 +367,36 @@ export interface Post {
   createdAt: number;
 }
 
-// Teacher-assigned lesson for a classroom.
+// Teacher-assigned work for a classroom.
 // Stored under classrooms/{classroomId}/assignments/{assignmentId}.
+//
+// Two kinds:
+//   - 'lesson'   : assigns a curriculum lesson (course + module + lesson IDs).
+//   - 'practice' : assigns a practice item (quiz/problem/project, built-in OR
+//                  AI-generated). The full PracticeItem is denormalised inline
+//                  so students can open it without access to the teacher's
+//                  per-user custom-quiz collection.
+//
+// `kind` is optional for back-compat — pre-feature assignments are implicitly
+// lessons (lessonId present).
 export interface Assignment {
   id: string;
   classroomId: string;
   teacherId: string;
-  courseId: string;
-  moduleId: string;
-  lessonId: string;
-  lessonTitle: string;     // denormalized for student-side display without re-fetch
-  courseTitle: string;     // denormalized
+  kind?: 'lesson' | 'practice';
+
+  // Lesson fields (when kind === 'lesson' or unset)
+  courseId?: string;
+  courseTitle?: string;
+  moduleId?: string;
+  lessonId?: string;
+  lessonTitle?: string;            // primary display title for lessons
+
+  // Practice fields (when kind === 'practice')
+  practiceItem?: PracticeItem;     // full item content, inlined
+
   assignedAt: number;
-  dueAt: number | null;    // unix ms; null = no due date
-  // Whole class (null) or specific student IDs. Empty array means none assigned (shouldn't happen).
+  dueAt: number | null;            // unix ms; null = no due date
+  // Whole class (null) or specific student IDs.
   studentIds: string[] | null;
 }

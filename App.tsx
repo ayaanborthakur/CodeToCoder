@@ -33,6 +33,7 @@ import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { UsernameModal } from './components/UsernameModal';
+import { AssignPracticeModal } from './components/AssignPracticeModal';
 import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
@@ -197,6 +198,7 @@ const App: React.FC = () => {
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+    const [practiceAssignTarget, setPracticeAssignTarget] = useState<PracticeItem | null>(null);
 
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
@@ -734,6 +736,7 @@ const App: React.FC = () => {
     const coursePageMatch = useMatch('/courses/:courseId');
     const playgroundMatch = useMatch('/playground/:fileId');
     const practiceMatch = useMatch('/practice/:category/:itemId');
+    const practiceAssignmentMatch = useMatch('/practice/assignment/:classId/:assignmentId');
 
     // Course currently selected in the Lessons tab (catalog → drill-in).
     // Derived from URL: either /courses/:courseId, or computed from /lessons/:moduleId/:lessonId.
@@ -770,13 +773,13 @@ const App: React.FC = () => {
 
     // Sync Practice URL
     useEffect(() => {
+        // Assignment-scoped practice has its own match handled below — skip here
+        // so the assignment effect can take over and load the inline PracticeItem.
+        if (practiceAssignmentMatch) return;
         if (practiceMatch) {
             const { category, itemId } = practiceMatch.params;
             if (category && itemId) {
-                // Check if it's already active
                 if (activePracticeItem?.id === itemId) return;
-
-                // Find item in loaded practice items or custom quizzes
                 const item = practiceItems.find((i: PracticeItem) => i.id === itemId) || customQuizzes.find((i: PracticeItem) => i.id === itemId);
                 if (item) {
                     setActivePracticeItem(item);
@@ -785,9 +788,29 @@ const App: React.FC = () => {
             }
         } else if (location.pathname === '/practice') {
             setActivePracticeItem(null);
-            // Don't reset category here to allow browsing same category
         }
-    }, [practiceMatch, location.pathname, activePracticeItem, customQuizzes, practiceItems]);
+    }, [practiceMatch, practiceAssignmentMatch, location.pathname, activePracticeItem, customQuizzes, practiceItems]);
+
+    // Sync an assignment-scoped practice URL: load the assignment doc, pipe the
+    // inlined PracticeItem into the existing practice render pipeline.
+    useEffect(() => {
+        if (!practiceAssignmentMatch) return;
+        const { classId, assignmentId } = practiceAssignmentMatch.params;
+        if (!classId || !assignmentId) return;
+        if (activePracticeItem && activePracticeItem.id.startsWith(`assignment:${assignmentId}`)) return;
+        let cancelled = false;
+        import('./services/assignmentsService').then(({ getAssignment }) => {
+            return getAssignment(classId, assignmentId);
+        }).then(a => {
+            if (cancelled || !a || a.kind !== 'practice' || !a.practiceItem) return;
+            // Prefix the id so we don't collide with a same-id item in the user's library
+            // and so the practice match effect doesn't overwrite it.
+            const item: PracticeItem = { ...a.practiceItem, id: `assignment:${assignmentId}:${a.practiceItem.id}` };
+            setActivePracticeItem(item);
+            setPracticeCategory(a.practiceItem.type);
+        }).catch(err => console.error('Failed to load assignment practice item:', err));
+        return () => { cancelled = true; };
+    }, [practiceAssignmentMatch, activePracticeItem]);
 
     const loadLesson = useCallback((moduleId: string, lessonId: string) => {
         const module = modules.find(m => m.id === moduleId);
@@ -1957,6 +1980,14 @@ const App: React.FC = () => {
                 <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
             </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+            {practiceAssignTarget && user?.role === 'teacher' && (
+                <AssignPracticeModal
+                    teacherId={user.id}
+                    practiceItem={practiceAssignTarget}
+                    onClose={() => setPracticeAssignTarget(null)}
+                    onAssigned={() => { /* nothing to refresh on this view */ }}
+                />
+            )}
             {user && !user.username && user.email && (
                 <UsernameModal
                     isOpen={isUsernameModalOpen}
@@ -2107,6 +2138,7 @@ const App: React.FC = () => {
                                 onAddCustomItem={addCustomQuiz}
                                 activities={userActivities}
                                 onNavigate={(path) => navigate(path)}
+                                onAssignItem={user?.role === 'teacher' ? (item) => setPracticeAssignTarget(item) : undefined}
                             />
                         } />
 
@@ -2114,6 +2146,8 @@ const App: React.FC = () => {
                         <Route path="/lessons/*" element={renderIdeView()} />
                         <Route path="/courses/*" element={renderIdeView()} />
                         <Route path="/playground/:fileId" element={renderIdeView()} />
+                        {/* Assignment-scoped practice route must be before the more general practice route */}
+                        <Route path="/practice/assignment/:classId/:assignmentId" element={renderIdeView()} />
                         <Route path="/practice/:category/:itemId" element={renderIdeView()} />
                         <Route path="/reference" element={<ReferencePanel />} />
                         <Route path="/reference/:itemId" element={<ReferencePanel />} />

@@ -22,6 +22,7 @@ import { listPostsForClassroom } from '../services/postsService';
 import type { Classroom, Post, Assignment } from '../types';
 import type { ViewState } from './Header';
 import { StreamView } from './StreamView';
+import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
 
 interface ClassroomHubProps {
     onNavigate: (view: ViewState) => void;
@@ -263,17 +264,10 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             posts={posts}
                             assignments={assignments}
                             canPost={false}
-                            onOpenLesson={(moduleId, lessonId) =>
-                                window.open(`/lessons/${moduleId}/${lessonId}`, '_blank', 'noopener,noreferrer')
-                            }
+                            showOpenButton
                         />
                     ) : studentTab === 'assignments' ? (
-                        <StudentAssignmentsList
-                            assignments={assignments}
-                            onOpen={(moduleId, lessonId) =>
-                                window.open(`/lessons/${moduleId}/${lessonId}`, '_blank', 'noopener,noreferrer')
-                            }
-                        />
+                        <StudentAssignmentsList assignments={assignments} />
                     ) : (
                         <div className="space-y-3">
                             <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 px-1">
@@ -360,8 +354,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
 // Sorted by due-date (overdue first → soonest → no-due-date last).
 const StudentAssignmentsList: React.FC<{
     assignments: Assignment[];
-    onOpen: (moduleId: string, lessonId: string) => void;
-}> = ({ assignments, onOpen }) => {
+}> = ({ assignments }) => {
     const sorted = [...assignments].sort((a, b) => {
         const A = a.dueAt ?? Number.POSITIVE_INFINITY;
         const B = b.dueAt ?? Number.POSITIVE_INFINITY;
@@ -401,22 +394,24 @@ const StudentAssignmentsList: React.FC<{
                 return (
                     <li key={a.id} className="flex items-center gap-3 px-5 py-3">
                         <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                            <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
-                                <span className="truncate">{a.courseTitle}</span>
+                                {assignmentSubtitle(a) && <span className="truncate">{assignmentSubtitle(a)}</span>}
                                 <span className={`flex items-center gap-1 font-medium ${toneClass}`}>
                                     <Calendar className="w-3 h-3" />
                                     {due.label}
                                 </span>
                             </div>
                         </div>
-                        <button
-                            onClick={() => onOpen(a.moduleId, a.lessonId)}
+                        <a
+                            href={assignmentOpenPath(a)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md flex-shrink-0"
                         >
                             Open
                             <ExternalLink className="w-3 h-3" />
-                        </button>
+                        </a>
                     </li>
                 );
             })}

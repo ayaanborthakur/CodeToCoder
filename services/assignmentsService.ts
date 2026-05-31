@@ -1,5 +1,6 @@
 import {
     doc,
+    getDoc,
     setDoc,
     deleteDoc,
     collection,
@@ -9,7 +10,7 @@ import {
     orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Assignment } from '../types';
+import type { Assignment, PracticeItem } from '../types';
 
 // Assignments live as a subcollection under each classroom:
 //   classrooms/{classroomId}/assignments/{assignmentId}
@@ -19,7 +20,7 @@ const assignmentsRef = (classroomId: string) =>
     collection(db, 'classrooms', classroomId, ASSIGNMENTS_SUBCOLLECTION);
 
 /**
- * Teacher creates a new assignment for their classroom.
+ * Teacher creates a new LESSON assignment for their classroom.
  * Pass studentIds=null to assign to the whole class.
  */
 export const createAssignment = async (input: {
@@ -38,6 +39,7 @@ export const createAssignment = async (input: {
         id: ref.id,
         classroomId: input.classroomId,
         teacherId: input.teacherId,
+        kind: 'lesson',
         courseId: input.courseId,
         courseTitle: input.courseTitle,
         moduleId: input.moduleId,
@@ -49,6 +51,44 @@ export const createAssignment = async (input: {
     };
     await setDoc(ref, assignment);
     return assignment;
+};
+
+/**
+ * Teacher creates a PRACTICE assignment for their classroom.
+ * The full PracticeItem (quiz questions, starting code, etc.) is denormalised
+ * inline so students can render it without access to the teacher's per-user
+ * custom-quiz collection.
+ */
+export const createPracticeAssignment = async (input: {
+    classroomId: string;
+    teacherId: string;
+    practiceItem: PracticeItem;
+    dueAt: number | null;
+    studentIds: string[] | null;
+}): Promise<Assignment> => {
+    const ref = doc(assignmentsRef(input.classroomId));
+    const assignment: Assignment = {
+        id: ref.id,
+        classroomId: input.classroomId,
+        teacherId: input.teacherId,
+        kind: 'practice',
+        practiceItem: input.practiceItem,
+        assignedAt: Date.now(),
+        dueAt: input.dueAt,
+        studentIds: input.studentIds,
+    };
+    await setDoc(ref, assignment);
+    return assignment;
+};
+
+/**
+ * Read a single assignment by ID. Used by the student route that opens an
+ * assigned practice item (the inline PracticeItem lives on this doc).
+ */
+export const getAssignment = async (classroomId: string, assignmentId: string): Promise<Assignment | null> => {
+    const snap = await getDoc(doc(db, 'classrooms', classroomId, ASSIGNMENTS_SUBCOLLECTION, assignmentId));
+    if (!snap.exists()) return null;
+    return snap.data() as Assignment;
 };
 
 /**

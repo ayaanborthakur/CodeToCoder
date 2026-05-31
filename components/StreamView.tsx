@@ -8,6 +8,7 @@ import {
     ExternalLink,
 } from 'lucide-react';
 import type { Post, Assignment } from '../types';
+import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
 
 interface StreamViewProps {
     posts: Post[];
@@ -20,8 +21,9 @@ interface StreamViewProps {
     onDeletePost?: (post: Post) => Promise<void>;
     /** Teacher-only — delete an assignment. */
     onDeleteAssignment?: (assignment: Assignment) => Promise<void>;
-    /** Called when a student clicks "Open" on an assignment lesson. */
-    onOpenLesson?: (moduleId: string, lessonId: string) => void;
+    /** Whether the assignment cards should render the student "Open" button.
+     *  Teachers don't need it (the link wouldn't make sense on their own dashboard). */
+    showOpenButton?: boolean;
 }
 
 type StreamItem =
@@ -57,7 +59,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
     onCreatePost,
     onDeletePost,
     onDeleteAssignment,
-    onOpenLesson,
+    showOpenButton = false,
 }) => {
     const [draft, setDraft] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -145,7 +147,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
                                 assignment={item.assignment}
                                 canDelete={canPost}
                                 onDelete={onDeleteAssignment}
-                                onOpen={onOpenLesson}
+                                showOpen={showOpenButton}
                             />
                         )
                     ))}
@@ -193,52 +195,57 @@ const AssignmentCard: React.FC<{
     assignment: Assignment;
     canDelete: boolean;
     onDelete?: (a: Assignment) => Promise<void>;
-    onOpen?: (moduleId: string, lessonId: string) => void;
-}> = ({ assignment, canDelete, onDelete, onOpen }) => (
-    <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-600" />
-        <div className="p-4">
-            <header className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                        <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+    showOpen?: boolean;
+}> = ({ assignment, canDelete, onDelete, showOpen }) => {
+    const kindLabel = assignment.kind === 'practice' ? 'Practice' : 'Assignment';
+    return (
+        <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-600" />
+            <div className="p-4">
+                <header className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                            <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="min-w-0">
+                            <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">{kindLabel}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{relativeTime(assignment.assignedAt)}</div>
+                        </div>
                     </div>
-                    <div className="min-w-0">
-                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Assignment</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{relativeTime(assignment.assignedAt)}</div>
-                    </div>
+                    {canDelete && onDelete && (
+                        <button
+                            onClick={() => onDelete(assignment)}
+                            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="Delete assignment"
+                            aria-label="Delete assignment"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                </header>
+                <div className="font-semibold text-sm text-gray-900 dark:text-white">{assignmentTitle(assignment)}</div>
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {assignmentSubtitle(assignment) && <span>{assignmentSubtitle(assignment)}</span>}
+                    <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatDue(assignment.dueAt)}
+                    </span>
+                    <span>
+                        {assignment.studentIds === null ? 'Whole class' : `${assignment.studentIds.length} student${assignment.studentIds.length === 1 ? '' : 's'}`}
+                    </span>
                 </div>
-                {canDelete && onDelete && (
-                    <button
-                        onClick={() => onDelete(assignment)}
-                        className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title="Delete assignment"
-                        aria-label="Delete assignment"
+                {showOpen && (
+                    <a
+                        href={assignmentOpenPath(assignment)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md"
                     >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                        Open
+                        <ExternalLink className="w-3 h-3" />
+                    </a>
                 )}
-            </header>
-            <div className="font-semibold text-sm text-gray-900 dark:text-white">{assignment.lessonTitle}</div>
-            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                <span>{assignment.courseTitle}</span>
-                <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatDue(assignment.dueAt)}
-                </span>
-                <span>
-                    {assignment.studentIds === null ? 'Whole class' : `${assignment.studentIds.length} student${assignment.studentIds.length === 1 ? '' : 's'}`}
-                </span>
             </div>
-            {onOpen && (
-                <button
-                    onClick={() => onOpen(assignment.moduleId, assignment.lessonId)}
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md"
-                >
-                    Open lesson
-                    <ExternalLink className="w-3 h-3" />
-                </button>
-            )}
-        </div>
-    </article>
-);
+        </article>
+    );
+};

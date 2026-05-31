@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ClipboardList, Calendar, ExternalLink } from 'lucide-react';
 import type { Assignment } from '../types';
 import { listAssignmentsForStudent } from '../services/assignmentsService';
+import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
 
 interface AssignmentsCardProps {
     studentId: string;
@@ -65,9 +66,11 @@ export const AssignmentsCard: React.FC<AssignmentsCardProps> = ({ studentId, cla
                         return (
                             <li key={a.id} className="py-3 flex items-center gap-3">
                                 <div className="min-w-0 flex-1">
-                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{a.lessonTitle}</div>
+                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</div>
                                     <div className="flex items-center gap-3 mt-0.5">
-                                        <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{a.courseTitle}</span>
+                                        {assignmentSubtitle(a) && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{assignmentSubtitle(a)}</span>
+                                        )}
                                         <span className={`text-xs font-medium flex items-center gap-1 ${toneClasses}`}>
                                             <Calendar className="w-3 h-3" />
                                             {due.label}
@@ -75,7 +78,7 @@ export const AssignmentsCard: React.FC<AssignmentsCardProps> = ({ studentId, cla
                                     </div>
                                 </div>
                                 <a
-                                    href={`/lessons/${a.moduleId}/${a.lessonId}`}
+                                    href={assignmentOpenPath(a)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md flex-shrink-0"
