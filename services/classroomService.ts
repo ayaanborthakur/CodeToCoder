@@ -9,6 +9,8 @@ import {
     query,
     where,
     getDocs,
+    deleteDoc,
+    writeBatch,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Classroom, UserRole } from '../types';
@@ -173,4 +175,76 @@ export const getClassroom = async (classId: string): Promise<Classroom | null> =
     const snap = await getDoc(doc(db, CLASSROOMS_COLLECTION, classId));
     if (!snap.exists()) return null;
     return snap.data() as Classroom;
+};
+
+// ─── Settings: rename / description / archive / regenerate / delete ────────
+
+type ClassroomSettingsPatch = Partial<Pick<Classroom, 'className' | 'description' | 'archived' | 'archivedAt'>>;
+
+/**
+ * Apply a settings patch to a classroom. The caller is responsible for
+ * preparing the diff (e.g. setting archivedAt alongside archived).
+ */
+export const updateClassroomSettings = async (
+    classId: string,
+    patch: ClassroomSettingsPatch
+): Promise<void> => {
+    const cleaned: Record<string, unknown> = {};
+    if (patch.className !== undefined) cleaned.className = patch.className.trim();
+    if (patch.description !== undefined) cleaned.description = patch.description.trim();
+    if (patch.archived !== undefined) cleaned.archived = patch.archived;
+    if (patch.archivedAt !== undefined) cleaned.archivedAt = patch.archivedAt;
+    if (Object.keys(cleaned).length === 0) return;
+    await updateDoc(doc(db, CLASSROOMS_COLLECTION, classId), cleaned);
+};
+
+/**
+ * Replace the classroom's join code with a freshly-generated unique one.
+ * Useful if the old code leaked / went around the wrong audience.
+ */
+export const regenerateJoinCode = async (classId: string): Promise<string> => {
+    const newCode = await getUniqueJoinCode();
+    await updateDoc(doc(db, CLASSROOMS_COLLECTION, classId), { joinCode: newCode });
+    return newCode;
+};
+
+/**
+ * Permanently delete a classroom and all of its subcollections (posts,
+ * assignments). Also removes the classroom from the teacher's classIds array.
+ * Note: does NOT clear classId on student user docs — those rules don't allow
+ * teacher writes to that field. Students whose classId now points at a
+ * deleted classroom will see a "classroom not found" state and can rejoin
+ * with another code, or leave to clear their stale pointer.
+ */
+export const deleteClassroomAndCascade = async (
+    classId: string,
+    teacherId: string,
+): Promise<void> => {
+    // 1) Delete all subcollection docs first. Firestore doesn't cascade.
+    const subcollections = ['posts', 'assignments'] as const;
+    for (const sub of subcollections) {
+        const snap = await getDocs(collection(db, CLASSROOMS_COLLECTION, classId, sub));
+        // Batched delete (Firestore caps a batch at 500 writes — chunk if needed)
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += 400) {
+            const batch = writeBatch(db);
+            for (const d of docs.slice(i, i + 400)) batch.delete(d.ref);
+            await batch.commit();
+        }
+    }
+
+    // 2) Delete the classroom doc itself.
+    await deleteDoc(doc(db, CLASSROOMS_COLLECTION, classId));
+
+    // 3) Remove from the teacher's classIds. Also clear classId if it was
+    //    pointing at the deleted room (back-compat field).
+    const teacherSnap = await getDoc(doc(db, 'users', teacherId));
+    if (teacherSnap.exists()) {
+        const data = teacherSnap.data();
+        const update: Record<string, unknown> = {
+            classIds: arrayRemove(classId),
+        };
+        if (data.classId === classId) update.classId = '';
+        await setDoc(doc(db, 'users', teacherId), update, { merge: true });
+    }
 };

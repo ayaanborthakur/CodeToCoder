@@ -91,6 +91,11 @@ export interface Classroom {
   joinCode: string;      // 6 uppercase letters, unique
   studentIds: string[];
   createdAt: number;
+  // Optional teacher-managed fields (all back-compat — pre-feature docs
+  // simply have them absent and the UI treats absence as the default).
+  description?: string;          // short subject/period note
+  archived?: boolean;            // hidden from the active switcher
+  archivedAt?: number;           // unix ms when archive flag flipped on
 }
 
 export interface User {
