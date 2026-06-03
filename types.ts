@@ -365,6 +365,7 @@ export interface Course {
 // Stored under classrooms/{classroomId}/posts/{postId}.
 export interface Post {
   id: string;
+  pinned?: boolean;        // pinned posts sort to the top of the stream
   classroomId: string;
   teacherId: string;
   teacherName: string;

@@ -33,6 +33,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlockedCourseIds']);
 
+      // Teacher of this student's classroom: can CLEAR the student's classId
+      // (kick out / remove from class). Only that one field, only to empty
+      // string. Prevents accidental writes to anything else.
+      allow update: if isSignedIn()
+        && resource.data.classId is string
+        && exists(/databases/$(database)/documents/classrooms/$(resource.data.classId))
+        && get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classId'])
+        && request.resource.data.classId == '';
+
       // Classmates: a signed-in user can READ another user's doc when both
       // share a classId (i.e. they're in the same classroom). Powers the
       // class-scoped leaderboard. Costs a single get() per read.

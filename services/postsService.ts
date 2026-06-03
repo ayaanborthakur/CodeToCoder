@@ -2,6 +2,7 @@ import {
     doc,
     setDoc,
     deleteDoc,
+    updateDoc,
     collection,
     query,
     getDocs,
@@ -54,4 +55,16 @@ export const listPostsForClassroom = async (classroomId: string): Promise<Post[]
  */
 export const deletePost = async (classroomId: string, postId: string): Promise<void> => {
     await deleteDoc(doc(db, 'classrooms', classroomId, POSTS_SUBCOLLECTION, postId));
+};
+
+/**
+ * Teacher toggles the pinned state of a post. Pinned posts sort to the top
+ * of every class member's stream.
+ */
+export const setPostPinned = async (
+    classroomId: string,
+    postId: string,
+    pinned: boolean,
+): Promise<void> => {
+    await updateDoc(doc(db, 'classrooms', classroomId, POSTS_SUBCOLLECTION, postId), { pinned });
 };

@@ -22,15 +22,17 @@ import {
     Archive,
     Eye,
     EyeOff,
+    UserMinus,
 } from 'lucide-react';
 import {
     getClassroom,
     createClassroom,
     listTeacherClassrooms,
     setStudentUnlockedCourses,
+    removeStudentFromClassroom,
 } from '../services/classroomService';
 import { listAssignmentsForClassroom, deleteAssignment } from '../services/assignmentsService';
-import { listPostsForClassroom, createPost, deletePost } from '../services/postsService';
+import { listPostsForClassroom, createPost, deletePost, setPostPinned } from '../services/postsService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import type { Classroom, Module, Assignment, Post } from '../types';
@@ -297,6 +299,35 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
         }
     };
 
+    const handleTogglePin = async (p: Post) => {
+        if (!activeClassroom) return;
+        const next = !p.pinned;
+        // Optimistic update.
+        setPosts(prev => prev.map(x => x.id === p.id ? { ...x, pinned: next } : x));
+        try {
+            await setPostPinned(activeClassroom.classId, p.id, next);
+        } catch (e: unknown) {
+            setPosts(prev => prev.map(x => x.id === p.id ? { ...x, pinned: !next } : x));
+            setError(e instanceof Error ? e.message : 'Failed to update pin.');
+        }
+    };
+
+    const handleRemoveStudent = async (studentId: string) => {
+        if (!activeClassroom) return;
+        // Optimistic: drop from local students list.
+        const previous = students;
+        setStudents(prev => prev.filter(s => s.uid !== studentId));
+        setClassrooms(prev => prev.map(c => c.classId === activeClassroom.classId
+            ? { ...c, studentIds: c.studentIds.filter(id => id !== studentId) }
+            : c));
+        try {
+            await removeStudentFromClassroom(activeClassroom.classId, studentId);
+        } catch (e: unknown) {
+            setStudents(previous);
+            setError(e instanceof Error ? e.message : 'Failed to remove student.');
+        }
+    };
+
     // ── No-classroom-yet empty state ──────────────────────────────────────────
 
     if (loading) {
@@ -514,6 +545,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         onCreatePost={handleCreatePost}
                         onDeletePost={handleDeletePost}
                         onDeleteAssignment={handleDeleteAssignment}
+                        onTogglePin={handleTogglePin}
                     />
                 )}
                 {tab === 'students' && (
@@ -524,6 +556,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         expandedStudent={expandedStudent}
                         onExpand={(id) => setExpandedStudent(p => p === id ? null : id)}
                         onToggleCourseUnlock={toggleCourseUnlock}
+                        onRemoveStudent={handleRemoveStudent}
                     />
                 )}
                 {tab === 'lessons' && (
@@ -605,8 +638,11 @@ const StudentsTab: React.FC<{
     expandedStudent: string | null;
     onExpand: (id: string) => void;
     onToggleCourseUnlock: (studentId: string, courseId: string) => void;
-}> = ({ students, assignments, avgLessons, expandedStudent, onExpand, onToggleCourseUnlock }) => {
+    onRemoveStudent?: (studentId: string) => Promise<void>;
+}> = ({ students, assignments, avgLessons, expandedStudent, onExpand, onToggleCourseUnlock, onRemoveStudent }) => {
     const topStudent = students[0];
+    const [confirmingRemove, setConfirmingRemove] = React.useState<string | null>(null);
+    const [removing, setRemoving] = React.useState(false);
     return (
         <div className="space-y-4">
             {/* Stats strip — inline, minimal chrome */}
@@ -789,6 +825,49 @@ const StudentsTab: React.FC<{
                                         {s.currentStreak > 0 && (
                                             <div className="text-xs text-orange-600 dark:text-orange-400 font-medium">
                                                 {s.currentStreak}-day streak
+                                            </div>
+                                        )}
+
+                                        {/* Remove from class — destructive action, sits at the bottom */}
+                                        {onRemoveStudent && (
+                                            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                                                {confirmingRemove !== s.uid ? (
+                                                    <button
+                                                        onClick={() => setConfirmingRemove(s.uid)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200 dark:border-red-900"
+                                                    >
+                                                        <UserMinus className="w-3.5 h-3.5" />
+                                                        Remove from class
+                                                    </button>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-900/10">
+                                                        <span className="text-xs text-red-700 dark:text-red-300 flex-1">
+                                                            Remove <span className="font-semibold">{s.name}</span> from this classroom?
+                                                        </span>
+                                                        <button
+                                                            onClick={() => setConfirmingRemove(null)}
+                                                            disabled={removing}
+                                                            className="px-2 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded disabled:opacity-50"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                setRemoving(true);
+                                                                try {
+                                                                    await onRemoveStudent(s.uid);
+                                                                    setConfirmingRemove(null);
+                                                                } finally {
+                                                                    setRemoving(false);
+                                                                }
+                                                            }}
+                                                            disabled={removing}
+                                                            className="px-2 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 rounded"
+                                                        >
+                                                            {removing ? '…' : 'Remove'}
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

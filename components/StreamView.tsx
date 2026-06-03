@@ -6,6 +6,8 @@ import {
     Trash2,
     Loader2,
     ExternalLink,
+    Pin,
+    PinOff,
 } from 'lucide-react';
 import type { Post, Assignment } from '../types';
 import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
@@ -21,6 +23,8 @@ interface StreamViewProps {
     onDeletePost?: (post: Post) => Promise<void>;
     /** Teacher-only — delete an assignment. */
     onDeleteAssignment?: (assignment: Assignment) => Promise<void>;
+    /** Teacher-only — pin/unpin a post. Pinned posts sort to the top. */
+    onTogglePin?: (post: Post) => Promise<void>;
     /** Whether the assignment cards should render the student "Open" button.
      *  Teachers don't need it (the link wouldn't make sense on their own dashboard). */
     showOpenButton?: boolean;
@@ -59,6 +63,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
     onCreatePost,
     onDeletePost,
     onDeleteAssignment,
+    onTogglePin,
     showOpenButton = false,
 }) => {
     const [draft, setDraft] = useState('');
@@ -70,7 +75,13 @@ export const StreamView: React.FC<StreamViewProps> = ({
             ...posts.map(p => ({ kind: 'post' as const, createdAt: p.createdAt, post: p })),
             ...assignments.map(a => ({ kind: 'assignment' as const, createdAt: a.assignedAt, assignment: a })),
         ];
-        return merged.sort((a, b) => b.createdAt - a.createdAt);
+        // Sort: pinned posts first (newest-first within), then everything else newest-first.
+        return merged.sort((a, b) => {
+            const aPinned = a.kind === 'post' && !!a.post.pinned;
+            const bPinned = b.kind === 'post' && !!b.post.pinned;
+            if (aPinned !== bPinned) return aPinned ? -1 : 1;
+            return b.createdAt - a.createdAt;
+        });
     }, [posts, assignments]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +151,8 @@ export const StreamView: React.FC<StreamViewProps> = ({
                                 post={item.post}
                                 canDelete={canPost}
                                 onDelete={onDeletePost}
+                                canPin={canPost}
+                                onTogglePin={onTogglePin}
                             />
                         ) : (
                             <AssignmentCard
@@ -161,8 +174,12 @@ const PostCard: React.FC<{
     post: Post;
     canDelete: boolean;
     onDelete?: (p: Post) => Promise<void>;
-}> = ({ post, canDelete, onDelete }) => (
-    <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    canPin?: boolean;
+    onTogglePin?: (p: Post) => Promise<void>;
+}> = ({ post, canDelete, onDelete, canPin, onTogglePin }) => (
+    <article className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden ${
+        post.pinned ? 'border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-500/20' : 'border-gray-200 dark:border-gray-700'
+    }`}>
         <div className="h-1 bg-gradient-to-r from-cyan-500 to-blue-600" />
         <div className="p-4">
             <header className="flex items-start justify-between gap-3 mb-2">
@@ -171,20 +188,43 @@ const PostCard: React.FC<{
                         <Megaphone className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                     </div>
                     <div className="min-w-0">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{post.teacherName}</div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{post.teacherName}</span>
+                            {post.pinned && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded uppercase tracking-[0.05em]">
+                                    <Pin className="w-2.5 h-2.5" /> Pinned
+                                </span>
+                            )}
+                        </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{relativeTime(post.createdAt)}</div>
                     </div>
                 </div>
-                {canDelete && onDelete && (
-                    <button
-                        onClick={() => onDelete(post)}
-                        className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title="Delete post"
-                        aria-label="Delete post"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
-                )}
+                <div className="flex items-center gap-0.5">
+                    {canPin && onTogglePin && (
+                        <button
+                            onClick={() => onTogglePin(post)}
+                            className={`p-1.5 rounded transition-colors ${
+                                post.pinned
+                                    ? 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                                    : 'text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                            title={post.pinned ? 'Unpin' : 'Pin to top'}
+                            aria-label={post.pinned ? 'Unpin post' : 'Pin post'}
+                        >
+                            {post.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                        </button>
+                    )}
+                    {canDelete && onDelete && (
+                        <button
+                            onClick={() => onDelete(post)}
+                            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="Delete post"
+                            aria-label="Delete post"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
             </header>
             <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{post.content}</div>
         </div>

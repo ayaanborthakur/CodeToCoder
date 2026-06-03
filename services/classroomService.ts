@@ -169,6 +169,25 @@ export const leaveClassroom = async (studentId: string, classId: string): Promis
 };
 
 /**
+ * Teacher removes a student from the classroom. Updates the classroom doc
+ * (allowed under the existing teacher full-update rule) AND clears classId
+ * on the student's user doc (allowed under the new teacher-clears-classId
+ * rule). The student must be in the classroom's studentIds when this is
+ * called; rule enforces the relationship.
+ */
+export const removeStudentFromClassroom = async (
+    classId: string,
+    studentId: string,
+): Promise<void> => {
+    // Clear classId on the student first (rule checks current classroom membership).
+    await updateDoc(doc(db, 'users', studentId), { classId: '' });
+    // Then drop them from the classroom's studentIds list.
+    await updateDoc(doc(db, CLASSROOMS_COLLECTION, classId), {
+        studentIds: arrayRemove(studentId),
+    });
+};
+
+/**
  * Fetch a classroom by its classId.
  */
 export const getClassroom = async (classId: string): Promise<Classroom | null> => {
