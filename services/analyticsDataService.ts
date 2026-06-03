@@ -20,7 +20,7 @@ const aiSkillRadarFn = httpsCallable(functions, 'aiSkillRadar');
  * Log a user activity (Lesson, Quiz, Practice, Project)
  */
 export const logUserActivity = async (
-    userId: string, 
+    userId: string,
     activity: Omit<UserActivity, 'id' | 'userId'>
 ): Promise<string> => {
     try {
@@ -29,14 +29,36 @@ export const logUserActivity = async (
             userId,
             timestamp: Date.now()
         };
-        console.warn('[AnalyticsService] Logging activity:', activityData.itemTitle, activityData.type);
         const activityRef = userPaths.activity(userId);
         const docRef = await addDoc(activityRef, activityData);
-        console.warn('[AnalyticsService] Logged successfully, ID:', docRef.id);
+
+        // Auto-enroll completed items into the SRS Review queue. The Review tab
+        // queries users/{uid}/Reviews where nextReviewDate <= now — without this
+        // call no items ever get added, which is why Review was always empty.
+        if (activity.completed && activity.itemId && activity.itemTitle) {
+            try {
+                const { logReviewAttempt } = await import('./learningService');
+                // Map activity.type to a coarse topic label so the SRS UI can group
+                // items meaningfully ('Lesson', 'Quiz', 'Problem', 'Project', 'Other').
+                const topic = activity.type
+                    ? activity.type.charAt(0).toUpperCase() + activity.type.slice(1)
+                    : 'Other';
+                await logReviewAttempt(
+                    userId,
+                    activity.itemId,
+                    activity.itemTitle,
+                    topic,
+                    typeof activity.score === 'number' ? activity.score : 100,
+                );
+            } catch (srsError) {
+                console.error('Failed to enroll in SRS:', srsError);
+                // Non-fatal — analytics succeeded already.
+            }
+        }
+
         return docRef.id;
     } catch (error) {
         console.error('Failed to log user activity:', error);
-        // Don't throw, just log error so it doesn't break app flow
         return '';
     }
 };

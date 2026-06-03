@@ -1,525 +1,279 @@
-import React, { useEffect, useState } from 'react';
-import { 
-    XAxis, YAxis, Tooltip, ResponsiveContainer, 
-    PieChart, Pie, Cell, AreaChart, Area, CartesianGrid,
-    Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
-} from 'recharts';
-import { Clock, BookOpen, Target, Calendar, Award, Activity, RefreshCw, TrendingUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getDailyActivityStats, getCategoryStats, getRecentActivity, getProductivityByHour, getAccuracyStats, getSkillRadarData, getActivityHeatmap } from '../services/analyticsDataService';
-import { getDueReviews } from '../services/learningService';
-import { ReviewHistory } from './ReviewHistory';
-import { onSnapshot } from 'firebase/firestore';
-import { userPaths } from '../services/firestorePathHelper';
-import type { DailyActivitySummary, UserActivity, ReviewItem } from '../types';
+import { getDailyActivityStats, getRecentActivity } from '../services/analyticsDataService';
+import type { DailyActivitySummary, UserActivity } from '../types';
+import { BookOpen, Loader2, Target, Clock, Flame, CheckCircle2, ClipboardList } from 'lucide-react';
 
-const COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981'];
+// ─── Constants ──────────────────────────────────────────────────────────
+const DAYS = 30;
 
-type TimeRange = '7d' | '14d' | '30d' | '90d' | 'all';
-
-// Custom theme-aware tooltip
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-50">
-                {label && <p className="font-bold text-gray-900 dark:text-white mb-2 text-sm">{label}</p>}
-                {payload.map((entry: any, index: number) => (
-                    <div key={index} className="flex items-center gap-2 text-sm py-0.5">
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full" 
-                            style={{ backgroundColor: entry.color || entry.payload.fill || '#06b6d4' }} 
-                        />
-                        <span className="text-gray-600 dark:text-gray-300 font-medium">
-                            {entry.name}:
-                        </span>
-                        <span className="font-bold text-gray-900 dark:text-white">
-                            {typeof entry.value === 'number' 
-                                ? (entry.name === 'Time' || entry.unit === '%') ? `${entry.value}%` : entry.value
-                                : entry.value}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    return null;
+const formatMinutes = (seconds: number): string => {
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
 };
+
+const relativeTime = (ts: number): string => {
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60_000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    if (d < 7) return `${d}d ago`;
+    return new Date(ts).toLocaleDateString();
+};
+
+// Bucket minutes-per-day into 0-4 intensity levels for the heatmap.
+const intensityBucket = (seconds: number): 0 | 1 | 2 | 3 | 4 => {
+    const minutes = seconds / 60;
+    if (minutes === 0) return 0;
+    if (minutes < 5) return 1;
+    if (minutes < 15) return 2;
+    if (minutes < 30) return 3;
+    return 4;
+};
+
+const intensityClass = (level: 0 | 1 | 2 | 3 | 4): string => {
+    switch (level) {
+        case 0: return 'bg-gray-100 dark:bg-gray-800';
+        case 1: return 'bg-cyan-100 dark:bg-cyan-900/40';
+        case 2: return 'bg-cyan-300 dark:bg-cyan-700/70';
+        case 3: return 'bg-cyan-500 dark:bg-cyan-600';
+        case 4: return 'bg-cyan-700 dark:bg-cyan-400';
+    }
+};
+
+const formatDateLabel = (iso: string): string => {
+    const [y, m, d] = iso.split('-');
+    const date = new Date(Number(y), Number(m) - 1, Number(d));
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+};
+
+const activityIcon = (type: string) => {
+    switch (type) {
+        case 'lesson': return <BookOpen className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />;
+        case 'quiz': return <Target className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />;
+        case 'practice':
+        case 'problem':
+        case 'project': return <ClipboardList className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />;
+        default: return <CheckCircle2 className="w-3.5 h-3.5 text-gray-500" />;
+    }
+};
+
+// ─── Component ──────────────────────────────────────────────────────────
 
 export const AnalyticsDashboard: React.FC = () => {
     const { user } = useAuth();
-    const [timeRange, setTimeRange] = useState<TimeRange>('14d');
-    const [dailyStats, setDailyStats] = useState<DailyActivitySummary[]>([]);
-    const [categoryStats, setCategoryStats] = useState<{name: string, value: number}[]>([]);
-    const [recentActivity, setRecentActivity] = useState<UserActivity[]>([]);
-    const [hourStats, setHourStats] = useState<{hour: number, count: number}[]>([]);
-    const [accuracyStats, setAccuracyStats] = useState({ averageQuizScore: 0, perfectScores: 0, averageCodeRuns: 0 });
-    const [radarData, setRadarData] = useState<{subject: string, A: number, fullMark: number}[]>([]);
-    const [heatmapData, setHeatmapData] = useState<{date: string, count: number, level: number}[]>([]);
-    const [dueReviews, setDueReviews] = useState<ReviewItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    // ── Skill radar cache key ─────────────────────────────────────────────────
-    // The AI skill radar (PRO_MODEL) is expensive. We cache the result in
-    // localStorage with a 24-hour TTL so it only re-runs once per day, not on
-    // every dashboard open or every Firestore activity write.
-    const RADAR_CACHE_KEY = user ? `skill_radar_${user.id}` : 'skill_radar';
-    const RADAR_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-    const getCachedRadar = (): { data: typeof radarData; ts: number } | null => {
-        try {
-            const raw = localStorage.getItem(RADAR_CACHE_KEY);
-            if (!raw) return null;
-            return JSON.parse(raw);
-        } catch { return null; }
-    };
-
-    const setCachedRadar = (data: typeof radarData) => {
-        try {
-            localStorage.setItem(RADAR_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-        } catch { /* ignore quota errors */ }
-    };
-    // ─────────────────────────────────────────────────────────────────────────
-
-    // loadChartData: cheap Firestore reads only — no AI calls.
-    // Called on mount, time-range change, and every real-time snapshot.
-    const loadChartData = async (isSilent = false) => {
-        if (!user) return;
-        if (!isSilent) setIsLoading(true);
-        try {
-            let days = 14;
-            if (timeRange === '7d') days = 7;
-            if (timeRange === '30d') days = 30;
-            if (timeRange === '90d') days = 90;
-            if (timeRange === 'all') days = 365;
-
-            const [daily, category, recent, hours, accuracy, heatmap, reviews] = await Promise.all([
-                getDailyActivityStats(user.id, days),
-                getCategoryStats(user.id),
-                getRecentActivity(user.id, 5),
-                getProductivityByHour(user.id),
-                getAccuracyStats(user.id),
-                getActivityHeatmap(user.id),
-                getDueReviews(user.id)
-            ]);
-
-            setDailyStats(daily);
-            setCategoryStats(category);
-            setRecentActivity(recent);
-            setHourStats(hours);
-            setAccuracyStats(accuracy);
-            setHeatmapData(heatmap);
-            setDueReviews(reviews);
-        } catch (error) {
-            console.error("Failed to load analytics:", error);
-        } finally {
-            if (!isSilent) setIsLoading(false);
-        }
-    };
-
-    // loadRadarData: calls the AI skill radar function — guarded by a 24-hour
-    // localStorage cache so it only fires once per day.
-    const loadRadarData = async () => {
-        if (!user) return;
-        const cached = getCachedRadar();
-        if (cached && Date.now() - cached.ts < RADAR_TTL_MS) {
-            setRadarData(cached.data);
-            return;
-        }
-        try {
-            const radar = await getSkillRadarData(user.id);
-            setRadarData(radar);
-            setCachedRadar(radar);
-        } catch (error) {
-            console.error("Failed to load skill radar:", error);
-        }
-    };
+    const [dailyStats, setDailyStats] = useState<DailyActivitySummary[] | null>(null);
+    const [recentActivity, setRecentActivity] = useState<UserActivity[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadChartData();
-        loadRadarData(); // AI call — rate-limited to once per 24 h via localStorage cache
-
         if (!user) return;
+        let cancelled = false;
+        Promise.all([
+            getDailyActivityStats(user.id, DAYS),
+            getRecentActivity(user.id, 10),
+        ])
+            .then(([daily, recent]) => {
+                if (cancelled) return;
+                setDailyStats(daily);
+                setRecentActivity(recent);
+            })
+            .catch(e => {
+                if (cancelled) return;
+                setError(e instanceof Error ? e.message : 'Failed to load analytics.');
+            });
+        return () => { cancelled = true; };
+    }, [user]);
 
-        // Real-time listener only refreshes cheap chart data, NOT the AI radar.
-        const activityRef = userPaths.activity(user.id);
-        const unsubscribe = onSnapshot(activityRef, () => {
-            loadChartData(true);
-        }, (error) => {
-            console.error("Real-time listener failed:", error);
-        });
+    // Derived stats — all computed from the last-30-days window.
+    const stats = useMemo(() => {
+        if (!dailyStats) return null;
+        const totalSeconds = dailyStats.reduce((s, d) => s + d.timeSpentSeconds, 0);
+        const totalLessons = dailyStats.reduce((s, d) => s + d.lessonsCompleted, 0);
+        const totalPractice = dailyStats.reduce((s, d) => s + d.practiceCompleted, 0);
+        const daysActive = dailyStats.filter(d => d.timeSpentSeconds > 0).length;
 
-        return () => unsubscribe();
-    }, [user, timeRange]);
+        // Current streak — consecutive days ending today with activity.
+        let currentStreak = 0;
+        for (let i = dailyStats.length - 1; i >= 0; i--) {
+            if (dailyStats[i].timeSpentSeconds > 0) currentStreak++;
+            else break;
+        }
 
-    if (isLoading) {
+        const avgPerActiveDay = daysActive > 0 ? totalSeconds / daysActive : 0;
+
+        const peakDay = dailyStats.reduce<DailyActivitySummary | null>((best, d) => {
+            if (!best || d.timeSpentSeconds > best.timeSpentSeconds) return d;
+            return best;
+        }, null);
+
+        return {
+            totalSeconds, totalLessons, totalPractice,
+            daysActive, currentStreak, avgPerActiveDay, peakDay,
+        };
+    }, [dailyStats]);
+
+    if (error) {
         return (
-            <div className="w-full h-96 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
         );
     }
 
-    const totalTimeMinutes = Math.round(dailyStats.reduce((acc, curr) => acc + curr.timeSpentSeconds, 0) / 60);
+    if (!dailyStats || !stats) {
+        return (
+            <div className="flex items-center justify-center py-20 text-gray-500">
+                <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+        );
+    }
 
     return (
-        <div className="space-y-8 animate-fade-in">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                    <TrendingUp className="w-8 h-8 text-blue-400" />
-                    Personal Analytics
-                  </h1>
-                  <p className="text-gray-500 dark:text-gray-400 mt-1">Track your progress and learning habits</p>
+        <div className="space-y-8">
+            {/* ─── Top stats strip ──────────────────────────────────── */}
+            <section>
+                <SectionLabel>Last 30 days</SectionLabel>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-6 py-5 grid grid-cols-2 sm:grid-cols-4 gap-6">
+                    <Stat
+                        label="Time studied"
+                        value={formatMinutes(stats.totalSeconds)}
+                        sub={stats.daysActive > 0 ? `${formatMinutes(stats.avgPerActiveDay)} / active day` : 'No sessions yet'}
+                        icon={<Clock className="w-3.5 h-3.5" />}
+                    />
+                    <Stat
+                        label="Lessons"
+                        value={stats.totalLessons.toString()}
+                        sub={`${stats.totalPractice} practice items`}
+                        icon={<BookOpen className="w-3.5 h-3.5" />}
+                    />
+                    <Stat
+                        label="Active days"
+                        value={`${stats.daysActive}`}
+                        sub={`of ${DAYS}`}
+                        icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                    />
+                    <Stat
+                        label="Current streak"
+                        value={`${stats.currentStreak}d`}
+                        sub={stats.currentStreak >= 3 ? 'on fire' : 'keep going'}
+                        icon={<Flame className="w-3.5 h-3.5" />}
+                        accent={stats.currentStreak >= 3 ? 'text-orange-600 dark:text-orange-400' : undefined}
+                    />
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => loadData()}
-                    disabled={isLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    title="Refresh statistics"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </button>
-                  
-                  <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
-                    {(['7d', '14d', '30d'] as TimeRange[]).map((range) => (
-                      <button
-                        key={range}
-                        onClick={() => setTimeRange(range)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          timeRange === range
-                            ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {range === '7d' ? 'Week' : range === '14d' ? '2 Weeks' : 'Month'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-            </div>
+            </section>
 
-            {/* SRS Review Due Alert */}
-            {dueReviews.length > 0 && (
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg animate-fade-in relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                        <Clock className="w-32 h-32" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-white/20 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide">Memory Boost</span>
-                        </div>
-                        <h3 className="text-2xl font-black mb-1">Time to Review!</h3>
-                        <p className="text-indigo-100 mb-4 max-w-lg">
-                            The Spaced Repetition System has identified {dueReviews.length} topics you might be forgetting. Review them now to strengthen your long-term memory.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {dueReviews.slice(0, 3).map(review => (
-                                <span key={review.id} className="bg-black/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/10">
-                                    {review.topic || review.itemTitle}
-                                </span>
-                            ))}
-                            {dueReviews.length > 3 && (
-                                <span className="bg-black/20 px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-sm border border-white/10">
-                                    +{dueReviews.length - 3} more
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Main Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Activity Heatmap */}
-                <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-green-500" />
-                        Activity Contribution
-                    </h3>
-                    <div className="w-full overflow-x-auto pb-2">
-                         <div className="flex gap-1 min-w-[700px]">
-                            {Array.from({ length: 53 }).map((_, weekIndex) => (
-                                <div key={weekIndex} className="flex flex-col gap-1">
-                                    {Array.from({ length: 7 }).map((_, dayIndex) => {
-                                        const dataIndex = weekIndex * 7 + dayIndex;
-                                        const dayData = heatmapData[dataIndex];
-                                        const colorClass = !dayData || dayData.level === 0 
-                                            ? 'bg-gray-100 dark:bg-gray-700' 
-                                            : dayData.level === 1 ? 'bg-green-200 dark:bg-green-900/40'
-                                            : dayData.level === 2 ? 'bg-green-300 dark:bg-green-800/60'
-                                            : dayData.level === 3 ? 'bg-green-400 dark:bg-green-600'
-                                            : 'bg-green-500 dark:bg-green-500';
-                                            
-                                        return (
-                                            <div 
-                                                key={dayIndex} 
-                                                className={`w-3 h-3 rounded-sm ${colorClass}`}
-                                                title={dayData ? `${dayData.date}: ${dayData.count} activities` : ''}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-end items-center gap-2 mt-2 text-xs text-gray-400">
+            {/* ─── 30-day activity heatmap ─────────────────────────── */}
+            <section>
+                <SectionLabel
+                    right={
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                             <span>Less</span>
-                            <div className="w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-700"></div>
-                            <div className="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900/40"></div>
-                            <div className="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-800/60"></div>
-                            <div className="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-600"></div>
-                            <div className="w-3 h-3 rounded-sm bg-green-500 dark:bg-green-500"></div>
+                            {[0, 1, 2, 3, 4].map(level => (
+                                <span key={level} className={`w-2.5 h-2.5 rounded-sm ${intensityClass(level as 0 | 1 | 2 | 3 | 4)}`} />
+                            ))}
                             <span>More</span>
                         </div>
+                    }
+                >
+                    Activity heatmap
+                </SectionLabel>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                    <div className="grid grid-cols-[repeat(31,minmax(0,1fr))] gap-1.5">
+                        {dailyStats.map((d, idx) => (
+                            <div
+                                key={d.date}
+                                className={`aspect-square rounded-sm ${intensityClass(intensityBucket(d.timeSpentSeconds))}`}
+                                title={`${formatDateLabel(d.date)} — ${formatMinutes(d.timeSpentSeconds)}${
+                                    d.lessonsCompleted + d.practiceCompleted > 0
+                                        ? ` · ${d.lessonsCompleted + d.practiceCompleted} item${d.lessonsCompleted + d.practiceCompleted === 1 ? '' : 's'}`
+                                        : ''
+                                }${idx === dailyStats.length - 1 ? ' (today)' : ''}`}
+                            />
+                        ))}
                     </div>
-                </div>
-
-                {/* Skill Radar */}
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-blue-500" />
-                        Skill Analysis
-                    </h3>
-                    <div className="flex-1 min-h-[250px] w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                                <PolarGrid stroke="#374151" strokeOpacity={0.2} />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9CA3AF', fontSize: 12 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                                <Radar
-                                    name="Skills"
-                                    dataKey="A"
-                                    stroke="#8b5cf6"
-                                    strokeWidth={2}
-                                    fill="#8b5cf6"
-                                    fillOpacity={0.3}
-                                />
-                                <Tooltip content={<CustomTooltip />} />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <Clock className="w-5 h-5 text-blue-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">
-                        {totalTimeMinutes}m
-                    </div>
-                    <p className="text-gray-500 text-sm">Time Spent Coding</p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                            <Target className="w-5 h-5 text-emerald-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">
-                        {accuracyStats.averageQuizScore}%
-                    </div>
-                    <p className="text-gray-500 text-sm">Avg. Quiz Accuracy</p>
-                </div>
-                
-                 <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                            <Activity className="w-5 h-5 text-purple-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">
-                        {accuracyStats.averageCodeRuns}
-                    </div>
-                    <p className="text-gray-500 text-sm">Avg. Runs / Lesson</p>
-                </div>
-                
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                     <div className="flex justify-between items-start mb-4">
-                        <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                            <Award className="w-5 h-5 text-amber-500" />
-                        </div>
-                    </div>
-                    <div className="text-3xl font-black text-gray-900 dark:text-white mb-1">
-                        {accuracyStats.perfectScores}
-                    </div>
-                    <p className="text-gray-500 text-sm">Perfect Scores</p>
-                </div>
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-cyan-500" />
-                        Learning Velocity
-                    </h3>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={dailyStats}>
-                                <defs>
-                                    <linearGradient id="colorLessons" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                                    </linearGradient>
-                                    <linearGradient id="colorPractice" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
-                                <XAxis 
-                                    dataKey="date" 
-                                    tickFormatter={(val) => val.slice(8)} 
-                                    stroke="#9CA3AF" 
-                                    fontSize={12}
-                                />
-                                <YAxis stroke="#9CA3AF" fontSize={12} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="lessonsCompleted" 
-                                    name="Lessons" 
-                                    stroke="#06b6d4" 
-                                    fillOpacity={1} 
-                                    fill="url(#colorLessons)" 
-                                    strokeWidth={3}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="practiceCompleted" 
-                                    name="Practice" 
-                                    stroke="#8b5cf6" 
-                                    fillOpacity={1} 
-                                    fill="url(#colorPractice)" 
-                                    strokeWidth={3}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-purple-500" />
-                        Time Distribution
-                    </h3>
-                    <div className="h-64 w-full relative">
-                        {categoryStats.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={categoryStats}
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {categoryStats.map((_entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                                Not enough data yet
-                            </div>
-                        )}
-                        <div className="absolute bottom-0 w-full flex justify-center gap-4 text-xs text-gray-500">
-                             {categoryStats.map((entry, index) => (
-                                <div key={entry.name} className="flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                                    {entry.name}
-                                </div>
-                             ))}
-                        </div>
-                    </div>
-                </div>
-
-                 <div className="lg:col-span-3 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-orange-500" />
-                        Peak Productivity Hours
-                    </h3>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={hourStats}>
-                                <defs>
-                                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
-                                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
-                                <XAxis 
-                                    dataKey="hour" 
-                                    tickFormatter={(val) => `${val}:00`}
-                                    stroke="#9CA3AF" 
-                                    fontSize={12}
-                                />
-                                <YAxis stroke="#9CA3AF" fontSize={12} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Area type="monotone" dataKey="count" stroke="#f59e0b" fillOpacity={1} fill="url(#colorCount)" strokeWidth={3} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </div>
-
-            {/* Recent Activity List */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                <h3 className="font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-orange-500" />
-                    Recent Activity
-                </h3>
-                <div className="space-y-4">
-                    {recentActivity.length > 0 ? (
-                        recentActivity.map((activity, i) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors">
-                                <div className="flex items-center gap-4">
-                                    <div className={`p-3 rounded-lg ${
-                                        activity.type === 'lesson' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600' :
-                                        activity.type === 'quiz' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600' :
-                                        'bg-orange-100 dark:bg-orange-900/30 text-orange-600'
-                                    }`}>
-                                        {activity.type === 'lesson' ? <BookOpen className="w-5 h-5" /> : 
-                                         activity.type === 'quiz' ? <Target className="w-5 h-5" /> : 
-                                         <Award className="w-5 h-5" />}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white">{activity.itemTitle}</h4>
-                                        <p className="text-xs text-gray-500">
-                                            {new Date(activity.timestamp).toLocaleDateString()} • {new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    {activity.score !== undefined && (
-                                        <div className="font-bold text-green-500 mb-1">{activity.score}%</div>
-                                    )}
-                                    <div className="text-xs text-gray-500">{Math.round((activity.durationSeconds || 0) / 60)} min</div>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-center py-8 text-gray-400">
-                            No recent activity recorded.
+                    {stats.peakDay && stats.peakDay.timeSpentSeconds > 0 && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                            Peak day: <span className="font-semibold text-gray-700 dark:text-gray-200">{formatDateLabel(stats.peakDay.date)}</span> with{' '}
+                            <span className="font-semibold text-gray-700 dark:text-gray-200">{formatMinutes(stats.peakDay.timeSpentSeconds)}</span> studied.
                         </div>
                     )}
                 </div>
-            </div>
+            </section>
 
-            <ReviewHistory />
+            {/* ─── Recent activity ──────────────────────────────────── */}
+            <section>
+                <SectionLabel
+                    right={recentActivity && recentActivity.length > 0 ? <span className="text-xs text-gray-400">{recentActivity.length} most recent</span> : null}
+                >
+                    Recent activity
+                </SectionLabel>
+                {recentActivity && recentActivity.length > 0 ? (
+                    <ul className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+                        {recentActivity.map(a => (
+                            <li key={a.id ?? `${a.itemId}-${a.timestamp}`} className="flex items-center gap-3 px-5 py-3">
+                                <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                                    {activityIcon(a.type)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.itemTitle ?? a.itemId}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {a.type[0].toUpperCase() + a.type.slice(1)}
+                                        {typeof a.durationSeconds === 'number' && a.durationSeconds > 0 && (
+                                            <span> · {formatMinutes(a.durationSeconds)}</span>
+                                        )}
+                                        {typeof a.score === 'number' && (
+                                            <span> · {a.score}%</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums whitespace-nowrap">
+                                    {relativeTime(a.timestamp)}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-8 text-center">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No activity yet.</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Finish a lesson or a practice item and it'll show up here.
+                        </p>
+                    </div>
+                )}
+            </section>
         </div>
     );
 };
+
+// ─── Sub-components ────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
+    <div className="flex items-center justify-between mb-2 px-1">
+        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">{children}</div>
+        {right}
+    </div>
+);
+
+const Stat: React.FC<{
+    label: string;
+    value: React.ReactNode;
+    sub?: string;
+    icon?: React.ReactNode;
+    accent?: string;
+}> = ({ label, value, sub, icon, accent }) => (
+    <div className="flex flex-col min-w-0">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">
+            {icon}
+            {label}
+        </div>
+        <div className={`text-xl font-semibold tabular-nums mt-1 ${accent ?? 'text-gray-900 dark:text-white'}`}>{value}</div>
+        {sub && <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{sub}</div>}
+    </div>
+);

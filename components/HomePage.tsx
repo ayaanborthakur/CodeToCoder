@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 
 import { AnalyticsDashboard } from './AnalyticsDashboard';
-import { AIChatPage } from './AIChatPage';
 import { ReviewTab } from './ReviewTab';
 import { AssignmentsCard } from './AssignmentsCard';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,7 +38,7 @@ interface HomePageProps {
   onClaimChallengeReward?: (challengeId: string) => void;
 }
 
-type HomeTab = 'overview' | 'analytics' | 'mentor' | 'review';
+type HomeTab = 'overview' | 'analytics' | 'review';
 
 export const HomePage: React.FC<HomePageProps> = ({
   modules,
@@ -204,7 +203,6 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div className="flex gap-0 mb-5 border-b border-gray-200 dark:border-gray-800">
           <TabButton tab="overview" label="Overview" />
           <TabButton tab="analytics" label="Analytics" />
-          <TabButton tab="mentor" label="Mentor" />
           <TabButton tab="review" label="Review" badge={dueReviewsCount} />
         </div>
 
@@ -377,10 +375,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         ) : activeTab === 'analytics' ? (
           <AnalyticsDashboard />
-        ) : activeTab === 'review' ? (
-          <ReviewTab onSelectLesson={onSelectLesson} />
         ) : (
-          <AIChatPage />
+          <ReviewTab onSelectLesson={onSelectLesson} />
         )}
       </div>
     </div>
