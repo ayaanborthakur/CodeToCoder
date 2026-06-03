@@ -265,6 +265,8 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             assignments={assignments}
                             canPost={false}
                             showOpenButton
+                            classroomId={classroom.classId}
+                            isClassTeacher={false}
                         />
                     ) : studentTab === 'assignments' ? (
                         <StudentAssignmentsList assignments={assignments} />

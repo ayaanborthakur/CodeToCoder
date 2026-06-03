@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { Post, Assignment } from '../types';
 import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
+import { CommentThread } from './CommentThread';
 
 interface StreamViewProps {
     posts: Post[];
@@ -28,6 +29,10 @@ interface StreamViewProps {
     /** Whether the assignment cards should render the student "Open" button.
      *  Teachers don't need it (the link wouldn't make sense on their own dashboard). */
     showOpenButton?: boolean;
+    /** Classroom these posts/assignments belong to. Required to enable comments. */
+    classroomId?: string;
+    /** Whether the current viewer is the classroom teacher. Used for comment-delete + pin permissions. */
+    isClassTeacher?: boolean;
 }
 
 type StreamItem =
@@ -65,6 +70,8 @@ export const StreamView: React.FC<StreamViewProps> = ({
     onDeleteAssignment,
     onTogglePin,
     showOpenButton = false,
+    classroomId,
+    isClassTeacher = false,
 }) => {
     const [draft, setDraft] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -153,6 +160,8 @@ export const StreamView: React.FC<StreamViewProps> = ({
                                 onDelete={onDeletePost}
                                 canPin={canPost}
                                 onTogglePin={onTogglePin}
+                                classroomId={classroomId}
+                                isClassTeacher={isClassTeacher}
                             />
                         ) : (
                             <AssignmentCard
@@ -161,6 +170,8 @@ export const StreamView: React.FC<StreamViewProps> = ({
                                 canDelete={canPost}
                                 onDelete={onDeleteAssignment}
                                 showOpen={showOpenButton}
+                                classroomId={classroomId}
+                                isClassTeacher={isClassTeacher}
                             />
                         )
                     ))}
@@ -176,7 +187,9 @@ const PostCard: React.FC<{
     onDelete?: (p: Post) => Promise<void>;
     canPin?: boolean;
     onTogglePin?: (p: Post) => Promise<void>;
-}> = ({ post, canDelete, onDelete, canPin, onTogglePin }) => (
+    classroomId?: string;
+    isClassTeacher?: boolean;
+}> = ({ post, canDelete, onDelete, canPin, onTogglePin, classroomId, isClassTeacher = false }) => (
     <article className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden ${
         post.pinned ? 'border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-500/20' : 'border-gray-200 dark:border-gray-700'
     }`}>
@@ -227,6 +240,14 @@ const PostCard: React.FC<{
                 </div>
             </header>
             <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{post.content}</div>
+            {classroomId && (
+                <CommentThread
+                    classroomId={classroomId}
+                    parentKind="post"
+                    parentId={post.id}
+                    isClassTeacher={isClassTeacher}
+                />
+            )}
         </div>
     </article>
 );
@@ -236,7 +257,9 @@ const AssignmentCard: React.FC<{
     canDelete: boolean;
     onDelete?: (a: Assignment) => Promise<void>;
     showOpen?: boolean;
-}> = ({ assignment, canDelete, onDelete, showOpen }) => {
+    classroomId?: string;
+    isClassTeacher?: boolean;
+}> = ({ assignment, canDelete, onDelete, showOpen, classroomId, isClassTeacher = false }) => {
     const kindLabel = assignment.kind === 'practice' ? 'Practice' : 'Assignment';
     return (
         <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -284,6 +307,14 @@ const AssignmentCard: React.FC<{
                         Open
                         <ExternalLink className="w-3 h-3" />
                     </a>
+                )}
+                {classroomId && (
+                    <CommentThread
+                        classroomId={classroomId}
+                        parentKind="assignment"
+                        parentId={assignment.id}
+                        isClassTeacher={isClassTeacher}
+                    />
                 )}
             </div>
         </article>

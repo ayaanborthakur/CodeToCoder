@@ -136,6 +136,24 @@ service cloud.firestore {
 
         allow read: if isClassMember();
         allow create, update, delete: if isClassTeacher();
+
+        // Comments on this assignment.
+        match /comments/{commentId} {
+          function isClassTeacherC() {
+            return isSignedIn() && get(/databases/$(database)/documents/classrooms/$(classId)).data.teacherId == request.auth.uid;
+          }
+          function isClassMemberC() {
+            return isSignedIn() && (
+              get(/databases/$(database)/documents/classrooms/$(classId)).data.teacherId == request.auth.uid
+              || request.auth.uid in get(/databases/$(database)/documents/classrooms/$(classId)).data.studentIds
+            );
+          }
+          allow read: if isClassMemberC();
+          allow create: if isClassMemberC() && request.resource.data.authorId == request.auth.uid;
+          allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isClassTeacherC());
+          // Comments are write-once — no edits.
+          allow update: if false;
+        }
       }
 
       // --- Posts (teacher announcements / classroom stream) ---
@@ -158,6 +176,23 @@ service cloud.firestore {
 
         allow read: if isClassMember();
         allow create, update, delete: if isClassTeacher();
+
+        // Comments on this post.
+        match /comments/{commentId} {
+          function isClassTeacherC() {
+            return isSignedIn() && get(/databases/$(database)/documents/classrooms/$(classId)).data.teacherId == request.auth.uid;
+          }
+          function isClassMemberC() {
+            return isSignedIn() && (
+              get(/databases/$(database)/documents/classrooms/$(classId)).data.teacherId == request.auth.uid
+              || request.auth.uid in get(/databases/$(database)/documents/classrooms/$(classId)).data.studentIds
+            );
+          }
+          allow read: if isClassMemberC();
+          allow create: if isClassMemberC() && request.resource.data.authorId == request.auth.uid;
+          allow delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isClassTeacherC());
+          allow update: if false;
+        }
       }
     }
 

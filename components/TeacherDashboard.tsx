@@ -546,6 +546,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         onDeletePost={handleDeletePost}
                         onDeleteAssignment={handleDeleteAssignment}
                         onTogglePin={handleTogglePin}
+                        classroomId={activeClassroom.classId}
+                        isClassTeacher
                     />
                 )}
                 {tab === 'students' && (

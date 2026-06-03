@@ -361,6 +361,22 @@ export interface Course {
   unlockThreshold: number; // 0..1, fraction of prerequisite course lessons completed
 }
 
+// A comment on either a post or an assignment.
+// Stored under:
+//   classrooms/{classId}/posts/{postId}/comments/{commentId}
+//   classrooms/{classId}/assignments/{assignmentId}/comments/{commentId}
+export interface Comment {
+  id: string;
+  classroomId: string;
+  parentKind: 'post' | 'assignment';
+  parentId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: 'teacher' | 'student';
+  content: string;
+  createdAt: number;
+}
+
 // Teacher post / announcement for a classroom (Google-Classroom-style stream).
 // Stored under classrooms/{classroomId}/posts/{postId}.
 export interface Post {
