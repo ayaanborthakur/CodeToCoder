@@ -59,16 +59,34 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [dueReviewsCount, setDueReviewsCount] = React.useState<number>(0);
 
   React.useEffect(() => {
-    const loadReviewCount = async () => {
-      if (!user) return;
-      try {
-        const reviews = await getDueReviews(user.id);
-        setDueReviewsCount(reviews.length);
-      } catch (error) {
-        console.error('Failed to fetch review count:', error);
+    // Cache the badge count in sessionStorage with a 5-minute TTL. The Review
+    // tab still runs its own query when actually opened — this just avoids the
+    // 'getDueReviews' query firing on every Home visit (every nav back) when
+    // the answer rarely changes within a few minutes.
+    if (!user) { setDueReviewsCount(0); return; }
+    const cacheKey = `dueReviewsCount:${user.id}`;
+    const TTL_MS = 5 * 60 * 1000;
+    try {
+      const cachedRaw = sessionStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw) as { count: number; at: number };
+        if (Date.now() - cached.at < TTL_MS) {
+          setDueReviewsCount(cached.count);
+          return;
+        }
       }
-    };
-    loadReviewCount();
+    } catch { /* sessionStorage may be unavailable — fall through to network */ }
+
+    let cancelled = false;
+    getDueReviews(user.id).then(reviews => {
+      if (cancelled) return;
+      const count = reviews.length;
+      setDueReviewsCount(count);
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ count, at: Date.now() })); } catch { /* ignore */ }
+    }).catch(error => {
+      console.error('Failed to fetch review count:', error);
+    });
+    return () => { cancelled = true; };
   }, [user]);
 
   // Find the next lesson the user should pick up.

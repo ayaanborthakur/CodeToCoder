@@ -28,7 +28,9 @@ export const LeaderboardPage: React.FC = () => {
                 setLoading(true);
                 const data = scope === 'class' && user?.classId
                     ? await getClassLeaderboardData(user.classId)
-                    : await getLeaderboardData(500);
+                    // Top 100 is plenty for the UI (podium + visible list).
+                    // 500 was burning 400 extra reads per Leaderboard view.
+                    : await getLeaderboardData(100);
                 setEntries(data);
             } catch (error) {
                 console.error("Failed to load leaderboard:", error);

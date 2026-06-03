@@ -300,7 +300,13 @@ const App: React.FC = () => {
         } else {
             setUserActivities([]);
         }
-    }, [user, currentView, location.pathname]); // Refresh when user changes, view changes, or path changes (to catch newly logged activities)
+        // Intentionally NOT depending on currentView or location.pathname. The
+        // previous version re-ran this on every route change (which fired
+        // getRecentActivity — a 50-doc collection query — every single nav).
+        // We now load once per user. Newly-logged activities show up on the
+        // next user state change, or via explicit refresh in the surfaces that
+        // need fresh data.
+    }, [user]);
 
     // Load teacher's classroom for the Lessons-tab assign button + student assignments lookup.
     useEffect(() => {
