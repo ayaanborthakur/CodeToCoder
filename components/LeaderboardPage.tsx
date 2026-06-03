@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { getLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
+import { getLeaderboardData, getClassLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
 import { useAuth } from '../contexts/AuthContext';
-import { Medal, Star, Crown, Trophy, Calendar, Search } from 'lucide-react';
+import { Medal, Star, Crown, Trophy, Calendar, Search, Globe, GraduationCap } from 'lucide-react';
+
+type LeaderboardScope = 'global' | 'class';
 
 const RankBadge = ({ rank }: { rank: number }) => {
     if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce-slow" />;
@@ -16,12 +18,17 @@ export const LeaderboardPage: React.FC = () => {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [scope, setScope] = useState<LeaderboardScope>('global');
+
+    const hasClass = !!user?.classId;
 
     useEffect(() => {
         const load = async () => {
             try {
                 setLoading(true);
-                const data = await getLeaderboardData(500); // Fetch more for better "Member Since" density
+                const data = scope === 'class' && user?.classId
+                    ? await getClassLeaderboardData(user.classId)
+                    : await getLeaderboardData(500);
                 setEntries(data);
             } catch (error) {
                 console.error("Failed to load leaderboard:", error);
@@ -30,7 +37,7 @@ export const LeaderboardPage: React.FC = () => {
             }
         };
         load();
-    }, []);
+    }, [scope, user?.classId]);
 
     const filteredEntries = entries.filter(e => 
         e.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -64,9 +71,40 @@ export const LeaderboardPage: React.FC = () => {
                         LEADERBOARD
                     </h1>
                     <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto relative z-10">
-                        Top masterminds competing for global dominance. <br/>
-                        Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.
+                        {scope === 'class'
+                            ? <>Top performers in <span className="text-cyan-400 font-bold">your class</span>. Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>
+                            : <>Top masterminds competing for global dominance. <br/>Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>}
                     </p>
+
+                    {/* Scope toggle */}
+                    <div className="inline-flex items-center bg-gray-900/60 border border-gray-800 rounded-full p-1 relative z-10 mt-2">
+                        <button
+                            onClick={() => setScope('global')}
+                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                                scope === 'global'
+                                    ? 'bg-cyan-500 text-white shadow-sm'
+                                    : 'text-gray-400 hover:text-gray-200'
+                            }`}
+                        >
+                            <Globe className="w-3.5 h-3.5" />
+                            Global
+                        </button>
+                        <button
+                            onClick={() => hasClass && setScope('class')}
+                            disabled={!hasClass}
+                            title={hasClass ? '' : 'Join a classroom to see class rankings'}
+                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                                scope === 'class'
+                                    ? 'bg-cyan-500 text-white shadow-sm'
+                                    : hasClass
+                                        ? 'text-gray-400 hover:text-gray-200'
+                                        : 'text-gray-600 cursor-not-allowed'
+                            }`}
+                        >
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            My Class
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (

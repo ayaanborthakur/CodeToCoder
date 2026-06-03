@@ -33,6 +33,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/classrooms/$(resource.data.classId)).data.teacherId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unlockedCourseIds']);
 
+      // Classmates: a signed-in user can READ another user's doc when both
+      // share a classId (i.e. they're in the same classroom). Powers the
+      // class-scoped leaderboard. Costs a single get() per read.
+      allow read: if isSignedIn()
+        && resource.data.classId is string
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId == resource.data.classId;
+
       // Subcollections (progress, economy, etc.):
       match /{document=**} {
         // Owner: full access.

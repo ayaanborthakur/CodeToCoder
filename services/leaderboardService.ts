@@ -1,4 +1,4 @@
-import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, where, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface LeaderboardEntry {
@@ -79,6 +79,50 @@ export const getLeaderboardData = async (limitCount: number = 50): Promise<Leade
         return entries;
     } catch (error) {
         console.error('Failed to fetch leaderboard data:', error);
+        return [];
+    }
+};
+
+/**
+ * Class-scoped leaderboard. Pulls every classmate's user doc, ranks by
+ * net_value, returns ordered entries. Reads are gated by the
+ * users/{uid} 'classmates can read each other' Firestore rule.
+ *
+ * For classes that grow beyond ~30 students, this issues one read per
+ * student. That's fine for typical class sizes; consider an aggregate
+ * pre-computed doc if classes grow into the hundreds.
+ */
+export const getClassLeaderboardData = async (classId: string): Promise<LeaderboardEntry[]> => {
+    try {
+        const classroomSnap = await getDoc(doc(db, 'classrooms', classId));
+        if (!classroomSnap.exists()) return [];
+        const studentIds: string[] = classroomSnap.data().studentIds ?? [];
+        if (studentIds.length === 0) return [];
+
+        const userSnaps = await Promise.all(
+            studentIds.map(uid => getDoc(doc(db, 'users', uid)).catch(() => null))
+        );
+
+        const entries: LeaderboardEntry[] = [];
+        for (const snap of userSnaps) {
+            if (!snap || !snap.exists()) continue;
+            const data = snap.data();
+            if (!data.username) continue;
+            entries.push({
+                userId: snap.id,
+                username: data.username,
+                avatar: data.avatar,
+                net_value: data.net_value ?? 0,
+                rank: 0,
+                joinedAt: data.joinedAt ?? data.createdAt,
+            });
+        }
+
+        entries.sort((a, b) => b.net_value - a.net_value);
+        entries.forEach((e, i) => { e.rank = i + 1; });
+        return entries;
+    } catch (error) {
+        console.error('Failed to fetch class leaderboard:', error);
         return [];
     }
 };
