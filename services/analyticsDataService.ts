@@ -128,19 +128,34 @@ export const getRecentActivity = async (
  * Aggregates on the client side for now (scale appropriate for single user dashboard)
  */
 export const getDailyActivityStats = async (
-    userId: string, 
+    userId: string,
     days: number = 14
 ): Promise<DailyActivitySummary[]> => {
+    const { dailyStats } = await getActivityStatsAndRecent(userId, days, 0);
+    return dailyStats;
+};
+
+/**
+ * Combined: fetches activities in the window ONCE, then derives the daily
+ * aggregation AND the most-recent slice client-side. Saves a Firestore query
+ * (and the read budget that came with it) compared to calling getDailyActivityStats
+ * + getRecentActivity separately for the same window.
+ */
+export const getActivityStatsAndRecent = async (
+    userId: string,
+    days: number,
+    recentLimit: number,
+): Promise<{ dailyStats: DailyActivitySummary[]; recent: UserActivity[] }> => {
     try {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
-        
+
         const activityRef = userPaths.activity(userId);
         const q = query(
             activityRef,
             where('timestamp', '>=', startDate.getTime())
         );
-        
+
         const snapshot = await getDocs(q);
         const toLocalDateString = (ts: number | Date) => {
             const d = new Date(ts);
@@ -150,13 +165,12 @@ export const getDailyActivityStats = async (
             return `${year}-${month}-${day}`;
         };
 
-        const activities = snapshot.docs.map(doc => doc.data() as UserActivity)
-            .sort((a, b) => a.timestamp - b.timestamp);
-        
+        const activities: UserActivity[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserActivity));
+        // Ascending for aggregation
+        const ascending = [...activities].sort((a, b) => a.timestamp - b.timestamp);
+
         // Aggregate by date
         const activityMap = new Map<string, DailyActivitySummary>();
-        
-        // Initialize map with all dates in range (including today)
         for (let i = 0; i <= days; i++) {
             const d = new Date(startDate);
             d.setDate(d.getDate() + i);
@@ -169,27 +183,24 @@ export const getDailyActivityStats = async (
                 starsEarned: 0
             });
         }
-        
-        activities.forEach(act => {
+        ascending.forEach(act => {
             const date = toLocalDateString(act.timestamp);
             const summary = activityMap.get(date);
-            
-            if (summary) {
-                if (act.type === 'lesson') {
-                    summary.lessonsCompleted++;
-                } else if (act.type === 'practice' || act.type === 'project' || act.type === 'quiz') {
-                    summary.practiceCompleted++;
-                }
-                
-                summary.timeSpentSeconds += act.durationSeconds || 0;
-            }
+            if (!summary) return;
+            if (act.type === 'lesson') summary.lessonsCompleted++;
+            else if (act.type === 'practice' || act.type === 'project' || act.type === 'quiz') summary.practiceCompleted++;
+            summary.timeSpentSeconds += act.durationSeconds || 0;
         });
-        
-        return Array.from(activityMap.values());
-        
+
+        // Most-recent slice (descending). recentLimit=0 means "skip".
+        const recent = recentLimit > 0
+            ? [...activities].sort((a, b) => b.timestamp - a.timestamp).slice(0, recentLimit)
+            : [];
+
+        return { dailyStats: Array.from(activityMap.values()), recent };
     } catch (error) {
-        console.error('Failed to get daily activity stats:', error);
-        return [];
+        console.error('Failed to get activity stats + recent:', error);
+        return { dailyStats: [], recent: [] };
     }
 };
 

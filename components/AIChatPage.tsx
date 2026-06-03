@@ -3,7 +3,7 @@ import { Send, User, Bot, Sparkles, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getChatResponse } from '../services/geminiService';
 import type { ChatMessage } from '../types';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -34,21 +34,26 @@ export const AIChatPage: React.FC = () => {
     const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
     const [secondsUntilNext, setSecondsUntilNext] = useState<number>(0);
 
-    useEffect(() => {
+    // One-shot fetch instead of onSnapshot — we only need the counter on mount
+    // and after each send (handled below). Avoids keeping a billable listener
+    // open for the entire session.
+    const refetchUsage = React.useCallback(async () => {
         if (!user) return;
-        const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
-        const unsubscribe = onSnapshot(docRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                if (data && Array.isArray(data.requestTimestamps)) {
-                    setRequestTimestamps(data.requestTimestamps);
-                }
+        try {
+            const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                setRequestTimestamps(Array.isArray(data?.requestTimestamps) ? data.requestTimestamps : []);
             } else {
                 setRequestTimestamps([]);
             }
-        });
-        return () => unsubscribe();
+        } catch (e) {
+            console.error('Failed to read AI usage:', e);
+        }
     }, [user]);
+
+    useEffect(() => { refetchUsage(); }, [refetchUsage]);
 
     const activeTimestamps = requestTimestamps.filter(t => t > Date.now() - WINDOW_MS);
     const questionsLeft = Math.max(0, MAX_REQUESTS - activeTimestamps.length);
@@ -105,6 +110,8 @@ export const AIChatPage: React.FC = () => {
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
+            // Sync counter with the server-side increment that just happened.
+            refetchUsage();
             setTimeout(() => inputRef.current?.focus(), 100);
         }
     };

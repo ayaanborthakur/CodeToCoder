@@ -4,7 +4,7 @@ import { CollapseIcon } from './CollapseIcon';
 import { TypewriterText } from './TypewriterText';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../services/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 declare let marked: { parse: (markdown: string) => string } | undefined;
 
@@ -56,24 +56,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const prevMessagesLengthRef = useRef(messages.length);
 
-    // Subscribe to rate limit document in real time
-    useEffect(() => {
+    // One-shot fetch instead of onSnapshot — refreshed after each message
+    // length change. Cuts the cost of keeping a billable real-time listener
+    // open for the entire lesson session.
+    const refetchUsage = React.useCallback(async () => {
         if (!user) return;
-        const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
-        const unsubscribe = onSnapshot(docRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                if (data && Array.isArray(data.requestTimestamps)) {
-                    setRequestTimestamps(data.requestTimestamps);
-                }
+        try {
+            const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                setRequestTimestamps(Array.isArray(data?.requestTimestamps) ? data.requestTimestamps : []);
             } else {
                 setRequestTimestamps([]);
             }
-        }, (error) => {
+        } catch (error) {
             console.error("Error reading AI usage statistics:", error);
-        });
-        return () => unsubscribe();
+        }
     }, [user]);
+
+    useEffect(() => { refetchUsage(); }, [refetchUsage]);
+
+    // Refetch the usage counter whenever the chat gets a new model message —
+    // that's when the server-side increment happened.
+    useEffect(() => {
+        if (messages.length === 0) return;
+        const last = messages[messages.length - 1];
+        if (last.role === 'model') refetchUsage();
+    }, [messages.length, refetchUsage]);  // eslint-disable-line react-hooks/exhaustive-deps
 
     // Compute remaining requests and countdown
     const windowMs = 3600000;

@@ -201,24 +201,49 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             if (!cls) { setError('Classroom not found.'); return; }
             // Update in-place inside classrooms list.
             setClassrooms(prev => prev.map(c => c.classId === cls.classId ? cls : c));
-            const [studentData, assignmentList, postList] = await Promise.all([
-                fetchStudentData(cls),
+            // Cheap reads only on the initial load — assignments + posts. Student
+            // data costs 3 Firestore reads per student and is only needed for the
+            // Students + Assignments tabs, so it's deferred to the effect below.
+            const [assignmentList, postList] = await Promise.all([
                 listAssignmentsForClassroom(cls.classId),
                 listPostsForClassroom(cls.classId),
             ]);
-            setStudents(studentData);
             setAssignments(assignmentList);
             setPosts(postList);
+            // If students were already loaded for this class, refresh them too
+            // (the user explicitly hit Refresh and they're already paying for it).
+            if (students.length > 0 || showSpinner) {
+                const studentData = await fetchStudentData(cls);
+                setStudents(studentData);
+            }
             setError(null);
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Failed to load classroom data.');
         } finally {
             setRefreshing(false);
         }
-    }, [activeClassroom, fetchStudentData]);
+    }, [activeClassroom, fetchStudentData, students.length]);
+
+    // Deferred student-progress fetch: only when the current tab actually needs
+    // it (Students or Assignments). Teachers who only post to the Stream pay 0
+    // student reads.
+    const needsStudentData = tab === 'students' || tab === 'assignments';
+    useEffect(() => {
+        if (!activeClassroom || !needsStudentData || students.length > 0) return;
+        let cancelled = false;
+        fetchStudentData(activeClassroom).then(data => {
+            if (!cancelled) setStudents(data);
+        });
+        return () => { cancelled = true; };
+    }, [activeClassroom?.classId, needsStudentData, students.length, fetchStudentData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => { loadClassrooms(); }, [loadClassrooms]);
-    useEffect(() => { if (activeClassroom) loadClassroomData(); }, [activeClassroom?.classId, loadClassroomData]); // eslint-disable-line react-hooks/exhaustive-deps
+    // When switching classes, drop the stale student list so the deferred
+    // fetch above re-runs for the new class on tab open.
+    useEffect(() => {
+        setStudents([]);
+        if (activeClassroom) loadClassroomData();
+    }, [activeClassroom?.classId, loadClassroomData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ── Actions ───────────────────────────────────────────────────────────────
 

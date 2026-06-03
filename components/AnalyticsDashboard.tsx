@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getDailyActivityStats, getRecentActivity } from '../services/analyticsDataService';
+import { getActivityStatsAndRecent } from '../services/analyticsDataService';
 import type { DailyActivitySummary, UserActivity } from '../types';
 import { BookOpen, Loader2, Target, Clock, Flame, CheckCircle2, ClipboardList } from 'lucide-react';
 
@@ -75,11 +75,9 @@ export const AnalyticsDashboard: React.FC = () => {
     useEffect(() => {
         if (!user) return;
         let cancelled = false;
-        Promise.all([
-            getDailyActivityStats(user.id, DAYS),
-            getRecentActivity(user.id, 10),
-        ])
-            .then(([daily, recent]) => {
+        // ONE query, two derivations. Saves a separate getRecentActivity round-trip.
+        getActivityStatsAndRecent(user.id, DAYS, 10)
+            .then(({ dailyStats: daily, recent }) => {
                 if (cancelled) return;
                 setDailyStats(daily);
                 setRecentActivity(recent);
