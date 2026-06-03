@@ -28,13 +28,11 @@ export const useProgress = () => {
         const loadProgressData = async () => {
             try {
                 if (user) {
-                    console.log('[useProgress] Loading data for user:', user.id);
 
                     // Trigger migration first
                     const { migrateUserData } = await import('../services/migrationService');
                     try {
                         await migrateUserData(user.id);
-                        console.log('[useProgress] Migration completed or already done');
                     } catch (migrationError) {
                         console.error('[useProgress] Migration failed, continuing with data load:', migrationError);
                     }
@@ -42,11 +40,8 @@ export const useProgress = () => {
                     // Load from new Firestore structure
                     const { loadClassroomProgress, loadPracticeProgress, loadAchievements } = await import('../services/userDataService');
 
-                    console.log('[useProgress] Loading classroom progress...');
                     const classroomData = await loadClassroomProgress(user.id);
-                    console.log('[useProgress] Classroom data:', classroomData);
 
-                    console.log('[useProgress] Loading practice progress...');
                     const [problemsData, quizzesData, projectsData] = await Promise.all([
                         loadPracticeProgress(user.id, 'PracticeProblems'),
                         loadPracticeProgress(user.id, 'PracticeQuizzes'),
@@ -65,44 +60,34 @@ export const useProgress = () => {
                         ...(projectsData?.rewardedItems || [])
                     ];
 
-                    console.log('[useProgress] All practice data loaded:', allCompletedPractice.length);
 
-                    console.log('[useProgress] Loading achievements...');
                     const achievementsData = await loadAchievements(user.id);
-                    console.log('[useProgress] Achievements data:', achievementsData);
 
                     if (classroomData && classroomData.completedLessons) {
-                        console.log('[useProgress] Setting completed lessons:', classroomData.completedLessons.length);
                         setCompletedLessons(new Set(classroomData.completedLessons));
                         if (classroomData.rewardedLessons) {
                             setRewardedLessons(new Set(classroomData.rewardedLessons));
                         }
                     } else {
-                        console.log('[useProgress] No classroom data found, checking localStorage...');
                         // Try localStorage as fallback
                         const savedProgress = window.localStorage?.getItem(getProgressKey());
                         if (savedProgress) {
                             const lessons = JSON.parse(savedProgress) as string[];
-                            console.log('[useProgress] Found lessons in localStorage:', lessons.length);
                             setCompletedLessons(new Set(lessons));
                         } else {
-                            console.log('[useProgress] No data in localStorage either, starting fresh');
                             setCompletedLessons(new Set());
                         }
                     }
 
                     if (allCompletedPractice.length > 0 || allRewardedPractice.length > 0) {
-                        console.log('[useProgress] Setting completed practice items:', allCompletedPractice.length);
                         setCompletedPracticeItems(new Set(allCompletedPractice));
                         setRewardedPracticeItems(new Set(allRewardedPractice));
                     } else {
-                        console.log('[useProgress] No practice data found');
                         setCompletedPracticeItems(new Set());
                         setRewardedPracticeItems(new Set());
                     }
 
                     if (achievementsData) {
-                        console.log('[useProgress] Setting achievements');
                         setAchievements(achievementsData);
                     }
 
@@ -116,7 +101,6 @@ export const useProgress = () => {
                         }
                     }
                 } else {
-                    console.log('[useProgress] No user logged in, resetting progress');
                     setCompletedLessons(new Set());
                     setCompletedPracticeItems(new Set());
                     setRewardedLessons(new Set());
@@ -127,7 +111,6 @@ export const useProgress = () => {
                 console.error("[useProgress] Failed to load progress", error);
             } finally {
                 setIsLoaded(true);
-                console.log('[useProgress] Loading complete');
             }
         };
 
@@ -135,16 +118,13 @@ export const useProgress = () => {
     }, [user, isAuthLoading, getProgressKey, getPracticeKey]);
 
     const markLessonAsCompleted = useCallback(async (lessonId: string) => {
-        console.log('[useProgress] markLessonAsCompleted called for:', lessonId);
 
         // Prevent duplicate rewards
         if (completedLessons.has(lessonId)) {
-            console.log('[useProgress] Lesson already marked as completed, skipping');
             return;
         }
 
         setCompletedLessons(prev => {
-            console.log('[useProgress] Updating completedLessons state with new lesson:', lessonId);
             const newSet = new Set(prev);
             newSet.add(lessonId);
 
@@ -166,7 +146,6 @@ export const useProgress = () => {
 
                     const modules = await contentService.getAllModules();
                     const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
-                    console.log('[useProgress] Total lessons calculated:', totalLessons);
 
                     // Update daily challenges and rewarded set (only if not already rewarded)
                     if (user && !rewardedLessons.has(lessonId)) {

@@ -115,17 +115,13 @@ export const syncClassroomProgress = async (
  */
 export const loadClassroomProgress = async (userId: string): Promise<ClassroomProgressData | null> => {
     try {
-        console.log('[loadClassroomProgress] Loading for user:', userId);
         const progressRef = userPaths.progress.classroom(userId);
-        console.log('[loadClassroomProgress] Firestore path:', progressRef.path);
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data() as ClassroomProgressData;
-            console.log('[loadClassroomProgress] Found data:', data);
             return data;
         }
-        console.log('[loadClassroomProgress] No data found in Firestore');
         return null;
     } catch (error) {
         console.error('[loadClassroomProgress] Failed to load classroom progress from Firestore:', error);
@@ -183,7 +179,6 @@ export const loadPracticeProgress = async (
     category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects'
 ): Promise<ProgressCategoryData | null> => {
     try {
-        console.log(`[loadPracticeProgress] Loading ${category} for user:`, userId);
 
         const pathMap = {
             'PracticeQuizzes': userPaths.progress.practiceQuizzes,
@@ -192,15 +187,12 @@ export const loadPracticeProgress = async (
         };
 
         const progressRef = pathMap[category](userId);
-        console.log(`[loadPracticeProgress] Firestore path:`, progressRef.path);
         const progressSnap = await getDoc(progressRef);
 
         if (progressSnap.exists()) {
             const data = progressSnap.data() as ProgressCategoryData;
-            console.log(`[loadPracticeProgress] Found data:`, data);
             return data;
         }
-        console.log(`[loadPracticeProgress] No data found in Firestore`);
         return null;
     } catch (error) {
         console.error(`[loadPracticeProgress] Failed to load ${category} progress from Firestore:`, error);

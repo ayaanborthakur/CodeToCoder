@@ -1,12 +1,13 @@
-import { 
-    addDoc, 
-    query, 
-    where, 
-    orderBy, 
-    limit, 
+import {
+    addDoc,
+    query,
+    where,
+    orderBy,
+    limit,
     getDocs,
     updateDoc,
-    increment
+    increment,
+    Timestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './firebase';
@@ -19,15 +20,25 @@ const aiSkillRadarFn = httpsCallable(functions, 'aiSkillRadar');
 /**
  * Log a user activity (Lesson, Quiz, Practice, Project)
  */
+// Activity docs auto-delete after this window once you've enabled a Firestore
+// TTL policy on the 'expiresAt' field in the Firebase console:
+//   Firestore → TTL → Add policy → users/{uid}/Activity → field 'expiresAt'.
+// No code changes needed to start cleaning up old docs.
+const ACTIVITY_TTL_DAYS = 90;
+
 export const logUserActivity = async (
     userId: string,
     activity: Omit<UserActivity, 'id' | 'userId'>
 ): Promise<string> => {
     try {
+        const now = Date.now();
         const activityData = {
             ...activity,
             userId,
-            timestamp: Date.now()
+            timestamp: now,
+            // Firestore TTL field — actual deletion happens after a TTL policy
+            // is enabled in the console; the field itself is free to write.
+            expiresAt: Timestamp.fromMillis(now + ACTIVITY_TTL_DAYS * 24 * 60 * 60 * 1000),
         };
         const activityRef = userPaths.activity(userId);
         const docRef = await addDoc(activityRef, activityData);

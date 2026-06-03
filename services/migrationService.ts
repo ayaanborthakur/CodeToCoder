@@ -67,7 +67,6 @@ const migrateProgressData = async (userId: string): Promise<void> => {
         const oldProgressSnap = await getDoc(oldProgressRef);
 
         if (!oldProgressSnap.exists()) {
-            console.log('No old progress data to migrate');
             return;
         }
 
@@ -118,7 +117,6 @@ const migrateProgressData = async (userId: string): Promise<void> => {
             await setDoc(collectionRef, collectionData, { merge: true });
         }
 
-        console.log('Progress data migrated successfully');
     } catch (error) {
         console.error('Error migrating progress data:', error);
         throw error;
@@ -135,7 +133,6 @@ const migrateMarketplaceData = async (userId: string): Promise<void> => {
         const oldMarketplaceSnap = await getDoc(oldMarketplaceRef);
 
         if (!oldMarketplaceSnap.exists()) {
-            console.log('No old marketplace data to migrate');
             return;
         }
 
@@ -172,7 +169,6 @@ const migrateMarketplaceData = async (userId: string): Promise<void> => {
         };
         await setDoc(collectionRef, collectionData, { merge: true });
 
-        console.log('Marketplace data migrated successfully');
     } catch (error) {
         console.error('Error migrating marketplace data:', error);
         throw error;
@@ -189,7 +185,6 @@ const migratePlaygroundFiles = async (userId: string): Promise<void> => {
         const oldFilesSnap = await getDocs(oldFilesRef);
 
         if (oldFilesSnap.empty) {
-            console.log('No old playground files to migrate');
             return;
         }
 
@@ -203,7 +198,6 @@ const migratePlaygroundFiles = async (userId: string): Promise<void> => {
         });
 
         await batch.commit();
-        console.log('Playground files migrated successfully');
     } catch (error) {
         console.error('Error migrating playground files:', error);
         throw error;
@@ -220,7 +214,6 @@ const migrateCustomQuizzes = async (userId: string): Promise<void> => {
         const oldQuizzesSnap = await getDocs(oldQuizzesRef);
 
         if (oldQuizzesSnap.empty) {
-            console.log('No old custom quizzes to migrate');
             return;
         }
 
@@ -234,7 +227,6 @@ const migrateCustomQuizzes = async (userId: string): Promise<void> => {
         });
 
         await batch.commit();
-        console.log('Custom quizzes migrated successfully');
     } catch (error) {
         console.error('Error migrating custom quizzes:', error);
         throw error;
@@ -246,12 +238,19 @@ const migrateCustomQuizzes = async (userId: string): Promise<void> => {
  */
 export const migrateUserData = async (userId: string): Promise<void> => {
     try {
-        console.log(`Starting migration for user ${userId}`);
+        // Fast path: localStorage remembers users who've finished the current
+        // migration. Avoids reading the migration/status doc on every login.
+        const cacheKey = `migration:${userId}:v${MIGRATION_VERSION}`;
+        try {
+            if (typeof window !== 'undefined' && window.localStorage?.getItem(cacheKey) === '1') {
+                return;
+            }
+        } catch { /* sessionStorage / localStorage unavailable — fall through */ }
 
-        // Check if already migrated
+        // Check if already migrated (server source of truth)
         const migrationStatus = await checkMigrationStatus(userId);
         if (migrationStatus && migrationStatus.completed && migrationStatus.version >= MIGRATION_VERSION) {
-            console.log('User already migrated to current version');
+            try { window.localStorage?.setItem(cacheKey, '1'); } catch { /* ignore */ }
             return;
         }
 
@@ -261,10 +260,10 @@ export const migrateUserData = async (userId: string): Promise<void> => {
         await migratePlaygroundFiles(userId);
         await migrateCustomQuizzes(userId);
 
-        // Mark migration as complete
+        // Mark migration as complete (server + cache)
         await markMigrationComplete(userId);
+        try { window.localStorage?.setItem(cacheKey, '1'); } catch { /* ignore */ }
 
-        console.log(`Migration completed successfully for user ${userId}`);
     } catch (error) {
         console.error('Migration failed:', error);
         throw error;
