@@ -300,13 +300,15 @@ export interface UserActivity {
   type: 'lesson' | 'quiz' | 'practice' | 'project' | 'focus';
   itemId: string;
   itemTitle: string;
+  moduleId?: string;        // for lessons — lets the Review tab build a proper /lessons/:moduleId/:lessonId URL
+  category?: string;        // for practice items — quiz / problem / project (URL category segment)
   timestamp: number;
   durationSeconds: number;
-  attempts?: number; // Number of run/check attempts
-  score?: number; // 0-100 for quizzes/projects
+  attempts?: number;
+  score?: number;
   completed: boolean;
-  skillRatings?: SkillRatings; // AI-assigned proficiency scores (0-100)
-  metadata?: Record<string, any>; // Flexible field for "nothing left out" (code, errors, etc.)
+  skillRatings?: SkillRatings;
+  metadata?: Record<string, any>;
 }
 
 export interface DailyActivitySummary {
@@ -324,9 +326,11 @@ export interface ReviewItem {
   itemId: string; // The lesson or quiz ID
   itemTitle: string;
   topic: string; // e.g. "Loops", "Variables"
-  nextReviewDate: number; // Timestamp
-  interval: number; // Days until next review
-  easeFactor: number; // Multiplier (default 2.5)
+  moduleId?: string;          // for lesson reviews — drives the Open button URL
+  category?: string;          // for practice reviews — quiz / problem / project
+  nextReviewDate: number;
+  interval: number;
+  easeFactor: number;
   lastReviewed: number;
 }
 

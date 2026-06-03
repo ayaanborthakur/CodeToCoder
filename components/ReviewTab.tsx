@@ -86,22 +86,28 @@ export const ReviewTab: React.FC<ReviewTabProps> = ({ onSelectLesson }) => {
                                                 </p>
                                             </div>
                                         </div>
-                                        {onSelectLesson && (
-                                            <button 
-                                                onClick={() => {
-                                                    // This assumes we have moduleId. In a real app we might need to look it up or store it in review item
-                                                    // For now, let's try to parse or just notify it's a review
-                                                    // If we don't have moduleId, we can't navigate directly but we can show curiosity
-                                                    if (review.itemId.includes('-')) {
-                                                        const [mId, lId] = review.itemId.split('-');
-                                                        onSelectLesson(mId, lId);
-                                                    }
-                                                }}
+                                        {/* Open button — lessons go to the curriculum IDE; practice items
+                                            go to the practice IDE. Items missing routing metadata (legacy
+                                            rows before this feature shipped) don't get a clickable target. */}
+                                        {review.moduleId && onSelectLesson ? (
+                                            <button
+                                                onClick={() => onSelectLesson(review.moduleId!, review.itemId)}
                                                 className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Open lesson"
                                             >
                                                 <ArrowRight className="w-5 h-5" />
                                             </button>
-                                        )}
+                                        ) : review.category ? (
+                                            <a
+                                                href={`/practice/${review.category}/${review.itemId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Open practice item"
+                                            >
+                                                <ArrowRight className="w-5 h-5" />
+                                            </a>
+                                        ) : null}
                                     </div>
                                 ))}
                             </div>

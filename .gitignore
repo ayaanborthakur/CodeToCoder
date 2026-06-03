@@ -26,6 +26,10 @@ dist-ssr
 .env
 .env.*
 
-functions/node_modules  
+functions/node_modules
 .vscode
 .agent
+
+# Vite writes a timestamped marker every time it restarts on a config change.
+vite.config.ts.timestamp-*.mjs
+vite.config.js.timestamp-*.mjs

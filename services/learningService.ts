@@ -71,40 +71,43 @@ export const logReviewAttempt = async (
     itemId: string,
     itemTitle: string,
     topic: string,
-    score: number // 0-100
+    score: number, // 0-100
+    location?: { moduleId?: string; category?: string }, // For navigation from the Review tab
 ): Promise<void> => {
     try {
         const reviewsRef = getReviewCollection(userId);
-        
+
         // Check if item exists
         const q = query(reviewsRef, where('itemId', '==', itemId));
         const snapshot = await getDocs(q);
-        
+
         // Map 0-100 score to 0-5 quality
         const quality = score >= 100 ? 5 : score >= 80 ? 4 : score >= 60 ? 3 : score >= 40 ? 2 : 1;
 
         if (!snapshot.empty) {
-            // Update existing
             const docSnap = snapshot.docs[0];
             const data = docSnap.data() as ReviewItem;
-            
+
             const { interval, easeFactor } = calculateNextReview(data.interval, data.easeFactor, quality);
-            
+
             const nextReviewDate = new Date();
             nextReviewDate.setDate(nextReviewDate.getDate() + interval);
 
-            await updateDoc(doc(reviewsRef, docSnap.id), {
+            const update: Record<string, unknown> = {
                 interval,
                 easeFactor,
                 lastReviewed: Date.now(),
                 nextReviewDate: nextReviewDate.getTime(),
-                // Update topic if needed or keep existing
-            });
+            };
+            // Backfill navigation fields on existing rows if the caller has them
+            // and we don't already.
+            if (location?.moduleId && !data.moduleId) update.moduleId = location.moduleId;
+            if (location?.category && !data.category) update.category = location.category;
+
+            await updateDoc(doc(reviewsRef, docSnap.id), update);
         } else {
-            // Create new
-            // Initial interval logic (treat as first success or fail)
             const { interval, easeFactor } = calculateNextReview(0, 2.5, quality);
-            
+
             const nextReviewDate = new Date();
             nextReviewDate.setDate(nextReviewDate.getDate() + interval);
 
@@ -116,7 +119,9 @@ export const logReviewAttempt = async (
                 nextReviewDate: nextReviewDate.getTime(),
                 interval,
                 easeFactor,
-                lastReviewed: Date.now()
+                lastReviewed: Date.now(),
+                ...(location?.moduleId ? { moduleId: location.moduleId } : {}),
+                ...(location?.category ? { category: location.category } : {}),
             };
 
             await addDoc(reviewsRef, newItem);

@@ -464,7 +464,6 @@ const App: React.FC = () => {
     }, [user, isAuthLoading, location.pathname]);
 
     const handleOpenAuth = useCallback(() => {
-        console.warn("Opening Auth Modal");
         setIsAuthModalOpen(true);
     }, []);
 
@@ -572,48 +571,29 @@ const App: React.FC = () => {
     const activeCode = currentView === 'playground' ? playgroundEditorCode : code;
 
     const handleCodeGenerated = useCallback((generatedCode: string | null) => {
-        console.warn('📝 handleCodeGenerated called with:', generatedCode);
-        console.warn('📝 Type of generatedCode:', typeof generatedCode);
-        
-        // Check if code generation was successful
         if (!generatedCode || typeof generatedCode !== 'string') {
-            console.error('❌ Code generation failed or returned invalid data');
+            console.error('Code generation failed or returned invalid data');
             setIsFlowchartMode(false);
             return;
         }
 
-        console.warn('✅ Code is valid, updating editor...');
-        console.warn('📍 Current view:', currentView);
-
         if (currentView === 'playground') {
-            // ALWAYS update the editor state if we are in playground mode
-            console.warn('🎮 Updating playground editor code');
             setPlaygroundEditorCode(generatedCode);
-            
-            // Only update file persistence if we have an active file
             if (activePlaygroundFile) {
-                console.warn('💾 Updating file:', (activePlaygroundFile as any).name);
                 updateFile(activePlaygroundFile.id, { content: generatedCode });
             }
         } else {
-            // Update classroom/practice code
-            console.warn('📚 Updating classroom/practice code');
             setCode(generatedCode);
         }
-        // Close flowchart mode after generating code
-        console.warn('🔒 Closing flowchart mode');
         setIsFlowchartMode(false);
     }, [currentView, activePlaygroundFile, updateFile]);
 
-    // Handle flowchart generation - receives FlowchartData, calls AI, then updates code
     const handleFlowchartGenerate = useCallback(async (flowchartData: FlowchartData) => {
-        console.warn('🎨 handleFlowchartGenerate called with flowchart data');
         try {
             const generatedCode = await generateCodeFromFlowchart(flowchartData);
-            console.warn('🎯 AI returned code:', generatedCode);
             handleCodeGenerated(generatedCode);
         } catch (error) {
-            console.error('💥 Error generating code:', error);
+            console.error('Error generating code from flowchart:', error);
             handleCodeGenerated(null);
         }
     }, [handleCodeGenerated]);
@@ -1149,9 +1129,7 @@ const App: React.FC = () => {
                             );
 
                             if (validation.passed) {
-                                // Both output and methodology are correct
-                                console.warn('[App] Validation passed! Marking complete...');
-                                triggerConfetti(); // Visual feedback
+                                triggerConfetti();
                                 await markLessonAsCompleted(contextItem.id);
 
                                 if (user) {
@@ -1170,12 +1148,12 @@ const App: React.FC = () => {
                                 // Log activity for analytics when validation passes
                                 try {
                                     const { logUserActivity } = await import('./services/analyticsDataService');
-                                    
-                                    console.warn('[App] Logging activity for analytics...');
                                     await logUserActivity(user!.id, {
-                                        type: 'lesson',
+                                        type: currentView === 'practice' ? (activePracticeItem?.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
                                         itemId: contextItem.id,
                                         itemTitle: contextItem.title,
+                                        moduleId: currentView === 'classroom' ? currentModuleId ?? undefined : undefined,
+                                        category: currentView === 'practice' ? activePracticeItem?.type : undefined,
                                         timestamp: Date.now(),
                                         durationSeconds,
                                         completed: true,
@@ -1190,7 +1168,6 @@ const App: React.FC = () => {
                                 setLessonStartTime(Date.now());
                                 advanceToNextLesson();
                             } else {
-                                console.warn('[Lesson Validation Failed]', validation.reason);
                                 setTerminalOutput(prev => prev + `\n\n❌ ${validation.reason || "Lesson requirements not met. Please check your code and try again."}`);
                             }
                         } else {
@@ -1206,9 +1183,11 @@ const App: React.FC = () => {
                              import('./services/analyticsDataService').then(({ logUserActivity }) => {
                                 const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
                                 logUserActivity(user.id, {
-                                    type: 'lesson',
+                                    type: currentView === 'practice' ? (activePracticeItem?.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
                                     itemId: contextItem.id,
                                     itemTitle: contextItem.title,
+                                    moduleId: currentView === 'classroom' ? currentModuleId ?? undefined : undefined,
+                                    category: currentView === 'practice' ? activePracticeItem?.type : undefined,
                                     timestamp: Date.now(),
                                     durationSeconds,
                                     completed: true,

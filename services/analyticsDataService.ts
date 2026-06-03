@@ -38,8 +38,6 @@ export const logUserActivity = async (
         if (activity.completed && activity.itemId && activity.itemTitle) {
             try {
                 const { logReviewAttempt } = await import('./learningService');
-                // Map activity.type to a coarse topic label so the SRS UI can group
-                // items meaningfully ('Lesson', 'Quiz', 'Problem', 'Project', 'Other').
                 const topic = activity.type
                     ? activity.type.charAt(0).toUpperCase() + activity.type.slice(1)
                     : 'Other';
@@ -49,10 +47,10 @@ export const logUserActivity = async (
                     activity.itemTitle,
                     topic,
                     typeof activity.score === 'number' ? activity.score : 100,
+                    { moduleId: activity.moduleId, category: activity.category },
                 );
             } catch (srsError) {
                 console.error('Failed to enroll in SRS:', srsError);
-                // Non-fatal — analytics succeeded already.
             }
         }
 
@@ -115,7 +113,6 @@ export const getRecentActivity = async (
         );
         
         const snapshot = await getDocs(q);
-        console.warn(`[AnalyticsService] Fetched ${snapshot.docs.length} recent activities`);
         return snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
@@ -145,7 +142,6 @@ export const getDailyActivityStats = async (
         );
         
         const snapshot = await getDocs(q);
-        console.warn(`[AnalyticsService] Fetched ${snapshot.docs.length} activities for daily stats`);
         const toLocalDateString = (ts: number | Date) => {
             const d = new Date(ts);
             const year = d.getFullYear();
