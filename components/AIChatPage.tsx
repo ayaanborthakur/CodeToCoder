@@ -1,10 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Sparkles } from 'lucide-react';
+import { Send, User, Bot, Sparkles, Lock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getChatResponse } from '../services/geminiService';
 import type { ChatMessage } from '../types';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
+import { useAuth } from '../contexts/AuthContext';
+
+// Same window + cap as ChatPanel — both surfaces hit the same server-side
+// rate limit in the ai-proxy Cloud Function. Mirroring the constants on the
+// client lets us preview the counter and gate sends before they fail.
+const WINDOW_MS = 3600000;       // 1 hour
+const MAX_REQUESTS = 5;
+
+const formatCountdown = (totalSeconds: number) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+};
 
 export const AIChatPage: React.FC = () => {
+    const { user } = useAuth();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([
         { role: 'model', content: "Hello! I'm your AI Coding Mentor. \n\nI can help you understand concepts, debug code, or plan your next project. What's on your mind today?" }
@@ -13,6 +29,46 @@ export const AIChatPage: React.FC = () => {
     const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    // ─── Shared AI rate-limit subscription ───────────────────────────────
+    const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
+    const [secondsUntilNext, setSecondsUntilNext] = useState<number>(0);
+
+    useEffect(() => {
+        if (!user) return;
+        const docRef = doc(db, 'users', user.id, 'stats', 'aiUsage');
+        const unsubscribe = onSnapshot(docRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data && Array.isArray(data.requestTimestamps)) {
+                    setRequestTimestamps(data.requestTimestamps);
+                }
+            } else {
+                setRequestTimestamps([]);
+            }
+        });
+        return () => unsubscribe();
+    }, [user]);
+
+    const activeTimestamps = requestTimestamps.filter(t => t > Date.now() - WINDOW_MS);
+    const questionsLeft = Math.max(0, MAX_REQUESTS - activeTimestamps.length);
+    const isLocked = questionsLeft === 0;
+
+    // Countdown — recomputed every second while locked.
+    useEffect(() => {
+        if (!isLocked || activeTimestamps.length === 0) {
+            setSecondsUntilNext(0);
+            return;
+        }
+        const oldest = activeTimestamps[0];
+        const tick = () => {
+            const remainingMs = oldest + WINDOW_MS - Date.now();
+            setSecondsUntilNext(remainingMs <= 0 ? 0 : Math.ceil(remainingMs / 1000));
+        };
+        tick();
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, [isLocked, activeTimestamps]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -23,12 +79,11 @@ export const AIChatPage: React.FC = () => {
     }, [messages]);
 
     useEffect(() => {
-        // Focus input on mount
         inputRef.current?.focus();
     }, []);
 
     const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
+        if (!input.trim() || isLoading || isLocked) return;
 
         const userMessage: ChatMessage = { role: 'user', content: input };
         setMessages(prev => [...prev, userMessage]);
@@ -38,19 +93,18 @@ export const AIChatPage: React.FC = () => {
         try {
             // Pass null for lesson to trigger "Playground/Mentor" mode in geminiService
             const response = await getChatResponse([...messages, userMessage], null, '');
-            
+
             const botMessage: ChatMessage = { role: 'model', content: response };
             setMessages(prev => [...prev, botMessage]);
         } catch (error) {
             console.error("Chat error:", error);
-            const errorMessage: ChatMessage = { 
-                role: 'model', 
-                content: "I'm having trouble connecting right now. Please try again in a moment." 
+            const errorMessage: ChatMessage = {
+                role: 'model',
+                content: "I'm having trouble connecting right now. Please try again in a moment."
             };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
-            // Re-focus input after sending
             setTimeout(() => inputRef.current?.focus(), 100);
         }
     };
@@ -78,23 +132,34 @@ export const AIChatPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
                     <Sparkles className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                     <h1 className="text-xl font-bold text-gray-900 dark:text-white">AI Mentor</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Ask anything related to Python & Coding</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Ask anything related to Python &amp; Coding</p>
                 </div>
+                {/* Rate-limit status — same cap as the lesson assistant */}
+                {user && (
+                    <div className="text-right">
+                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Questions left</div>
+                        <div className={`text-lg font-semibold tabular-nums ${
+                            isLocked ? 'text-red-500' : questionsLeft <= 2 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'
+                        }`}>
+                            {questionsLeft} <span className="text-xs font-normal text-gray-400">/ {MAX_REQUESTS}</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {messages.map((msg, idx) => (
-                    <div 
-                        key={idx} 
+                    <div
+                        key={idx}
                         className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                     >
                         {/* Avatar */}
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            msg.role === 'user' 
-                                ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' 
+                            msg.role === 'user'
+                                ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
                                 : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400'
                         }`}>
                             {msg.role === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
@@ -103,12 +168,13 @@ export const AIChatPage: React.FC = () => {
                         {/* Content */}
                         <div className={`flex flex-col max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                             <div className={`px-5 py-3 rounded-2xl shadow-sm prose dark:prose-invert max-w-none ${
-                                msg.role === 'user' 
-                                    ? 'bg-indigo-600 text-white rounded-tr-none' 
+                                msg.role === 'user'
+                                    ? 'bg-indigo-600 text-white rounded-tr-none'
                                     : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-gray-700'
                             } ${!expandedMessages.has(idx) && msg.role === 'model' && msg.content.length > 400 ? 'max-h-60 overflow-hidden relative' : ''}`}>
                                 <ReactMarkdown
                                     components={{
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         code({inline, className, children, ...props}: any) {
                                             const match = /language-(\w+)/.exec(className || '');
                                             return !inline && match ? (
@@ -130,14 +196,14 @@ export const AIChatPage: React.FC = () => {
                                 >
                                     {msg.content}
                                 </ReactMarkdown>
-                                
+
                                 {!expandedMessages.has(idx) && msg.role === 'model' && msg.content.length > 400 && (
                                     <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-white dark:from-gray-800 to-transparent pointer-events-none" />
                                 )}
                             </div>
-                            
+
                             {msg.role === 'model' && msg.content.length > 400 && (
-                                <button 
+                                <button
                                     onClick={() => toggleExpand(idx)}
                                     className="mt-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 flex items-center gap-1 self-start ml-2"
                                 >
@@ -147,7 +213,7 @@ export const AIChatPage: React.FC = () => {
                         </div>
                     </div>
                 ))}
-                
+
                 {isLoading && (
                     <div className="flex gap-4">
                         <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
@@ -165,25 +231,34 @@ export const AIChatPage: React.FC = () => {
 
             {/* Input Area */}
             <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-                <div className="relative max-w-4xl mx-auto">
-                    <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type a message to your mentor..."
-                        className="w-full pl-4 pr-14 py-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 resize-none max-h-40 shadow-inner"
-                        rows={1}
-                        style={{ minHeight: '60px' }}
-                    />
-                    <button
-                        onClick={handleSend}
-                        disabled={!input.trim() || isLoading}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-xl transition-all shadow-md disabled:shadow-none"
-                    >
-                        <Send className="w-5 h-5" />
-                    </button>
-                </div>
+                {isLocked ? (
+                    <div className="max-w-4xl mx-auto flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
+                        <Lock className="w-4 h-4 flex-shrink-0" />
+                        <div className="flex-1 text-sm">
+                            <span className="font-semibold">Daily question limit reached.</span> Try again in <span className="font-mono font-semibold">{formatCountdown(secondsUntilNext)}</span>.
+                        </div>
+                    </div>
+                ) : (
+                    <div className="relative max-w-4xl mx-auto">
+                        <textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Type a message to your mentor..."
+                            className="w-full pl-4 pr-14 py-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 resize-none max-h-40 shadow-inner"
+                            rows={1}
+                            style={{ minHeight: '60px' }}
+                        />
+                        <button
+                            onClick={handleSend}
+                            disabled={!input.trim() || isLoading}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-xl transition-all shadow-md disabled:shadow-none"
+                        >
+                            <Send className="w-5 h-5" />
+                        </button>
+                    </div>
+                )}
                 <p className="text-center text-xs text-gray-400 mt-2">
                     AI can make mistakes. Verify important code.
                 </p>

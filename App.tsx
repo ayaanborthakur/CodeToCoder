@@ -1568,50 +1568,12 @@ const App: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     }, [panelSizes, isMobile]);
 
-    // --- LOADING STATE WITH TIMEOUT ---
-    const [showReloadOption, setShowReloadOption] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded) {
-                setShowReloadOption(true);
-            }
-        }, 15000); // 15 seconds timeout
-        return () => clearTimeout(timer);
-    }, [isProgressLoaded, isPlaygroundLoaded, isQuizzesLoaded]);
-
-    // Signup page has its own self-contained flow — don't let the global loading screen
-    // interrupt it when data hooks reinitialise after the new user is created.
+    // --- LOADING STATE ---
+    // No timeout-triggered "connection trouble" fallback. If hydration is
+    // slow we just keep showing the regular loading screen rather than
+    // telling the user the app might be broken — most slow loads finish
+    // fine and a doom prompt only causes panic-reloads.
     if (currentView !== 'signup' && (!isProgressLoaded || !isPlaygroundLoaded || !isQuizzesLoaded || isAuthLoading || (currentView === 'classroom' && currentLessonId && !currentLesson))) {
-        if (showReloadOption) {
-            return (
-                <div className="bg-white dark:bg-gray-900 text-black dark:text-white h-screen flex flex-col items-center justify-center p-8 text-center">
-                    <Helmet>
-                        <title>Code2Coder - Learn Python Online with AI Coding Tutor</title>
-                        <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
-                        <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
-                    </Helmet>
-                    <h2 className="text-2xl font-bold mb-4">Connection taking longer than expected</h2>
-                    <p className="text-gray-500 mb-8 max-w-md">We're having trouble connecting to the database. This might be due to a poor connection or a browser cache issue.</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-6 py-3 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-colors font-semibold"
-                    >
-                        Reload Application
-                    </button>
-                    <button
-                        onClick={() => {
-                            // Clear critical storages that might block loading
-                            localStorage.removeItem('firebase:previous_websocket_failure');
-                            window.location.reload();
-                        }}
-                        className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
-                    >
-                        Clear Cache & Reload
-                    </button>
-                </div>
-            )
-        }
 
         return (
             <LoadingScreen
