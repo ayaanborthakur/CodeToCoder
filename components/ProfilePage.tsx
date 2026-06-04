@@ -36,11 +36,14 @@ interface ProfilePageProps {
     onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
+    // Lets ProfilePage push the new AI assistance level into App-level state
+    // so chat behavior updates immediately. Replaces the old onSnapshot path.
+    onAssistanceLevelChange?: (level: number) => void;
     netWorth?: number;
     starBalance?: number;
 }
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, stats, netWorth, starBalance: propStarBalance }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, setTheme, onAssistanceLevelChange, stats, netWorth, starBalance: propStarBalance }) => {
     const { user, logout, deleteAccount, refreshUser } = useAuth();
     const { achievements } = useProgress();
     const [collectibles, setCollectibles] = useState<Collectible[]>([]);
@@ -622,6 +625,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                 onChange={(e) => {
                                                     const val = parseInt(e.target.value);
                                                     setAiAssistanceLevel(val);
+                                                    onAssistanceLevelChange?.(val);
                                                     if (user) updateUserSettings(user.id, { aiAssistanceLevel: val });
                                                 }}
                                                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-600"

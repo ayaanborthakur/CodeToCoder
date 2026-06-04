@@ -50,7 +50,8 @@ import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
 import { useCustomQuizzes } from './hooks/useCustomQuizzes';
 import { useAuth } from './contexts/AuthContext';
 import { hasTutorialCompleted } from './services/tutorialService';
-import { subscribeToUserSettings } from './services/userSettingsService';
+// userSettingsService is now imported lazily where needed (one-shot read on
+// login, write on user change), so we no longer eagerly pull it at module load.
 import { getMarketplaceData, recalculateNetWorth, getDailyChallenges, claimChallengeReward } from './services/marketplaceService';
 import { getStreakInfo } from './services/streakService';
 import type { DailyChallenge } from './types';
@@ -367,15 +368,23 @@ const App: React.FC = () => {
     }, [user]);
 
 
-    // Load user settings from Firebase
+    // Load user settings from Firebase.
+    // One-shot read on login — previously this was an onSnapshot listener that
+    // held an open connection for the whole session. Settings only change when
+    // the user edits them in ProfilePage, and ProfilePage now pushes the new
+    // value back through setAiAssistanceLevel/handleThemeChange props, so a
+    // live listener was pure overhead.
     useEffect(() => {
-        if (user) {
-            const unsubscribe = subscribeToUserSettings(user.id, (settings) => {
+        if (!user) return;
+        let cancelled = false;
+        import('./services/userSettingsService').then(({ getUserSettings }) => {
+            getUserSettings(user.id).then(settings => {
+                if (cancelled) return;
                 setTheme(settings.theme);
                 setAiAssistanceLevel(settings.aiAssistanceLevel);
             });
-            return () => unsubscribe();
-        }
+        });
+        return () => { cancelled = true; };
     }, [user, setTheme, setAiAssistanceLevel]);
 
     const loadStarBalance = useCallback(async () => {
@@ -2042,6 +2051,7 @@ const App: React.FC = () => {
                                 onNavigate={handleNavigate}
                                 theme={theme}
                                 setTheme={handleThemeChange}
+                                onAssistanceLevelChange={setAiAssistanceLevel}
                                 netWorth={netWorth}
                                 starBalance={starBalance}
                             />
