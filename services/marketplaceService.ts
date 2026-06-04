@@ -397,36 +397,38 @@ export const saveCollectionData = async (userId: string, data: CollectionData): 
  * Call this on login or when you need to ensure net worth is up-to-date
  * Net Worth = Current Star Balance + Value of All Collectibles Owned
  */
-export const recalculateNetWorth = async (userId: string): Promise<number> => {
+// Optional pre-fetched values let callers (e.g. loadStarBalance in App.tsx)
+// skip the two extra Firestore reads when they already pulled stars and
+// collectibles via getMarketplaceData a moment earlier.
+export const recalculateNetWorth = async (
+    userId: string,
+    prefetched?: { balance: number; ownedCollectibleIds: string[] }
+): Promise<number> => {
     if (!userId) return 0;
-    
+
     try {
-        // Get current stars balance
-        const starsData = await getStarsData(userId);
-        
-        // Get owned collectibles
-        const collectionData = await getCollectionData(userId);
-        const ownedCollectibleIds = collectionData.collectibles.ownedCollectibleIds || [];
-        
-        // Calculate collectibles value by rarity
-        const { totalValue: collectiblesValue, breakdown } = calculateCollectiblesValue(ownedCollectibleIds);
-        
-        // Net Worth = Balance + Collectibles Value
-        const netWorth = starsData.balance + collectiblesValue;
-        
-        console.log(`[Net Worth] Recalculating for user ${userId}:`);
-        console.log(`  - Stars Balance: ${starsData.balance}`);
-        console.log(`  - Collectibles Value: ${collectiblesValue}`);
-        console.log(`  - Breakdown:`, breakdown);
-        console.log(`  - Net Worth: ${netWorth}`);
-        
-        // Update the user document
+        let balance: number;
+        let ownedCollectibleIds: string[];
+
+        if (prefetched) {
+            balance = prefetched.balance;
+            ownedCollectibleIds = prefetched.ownedCollectibleIds;
+        } else {
+            const starsData = await getStarsData(userId);
+            const collectionData = await getCollectionData(userId);
+            balance = starsData.balance;
+            ownedCollectibleIds = collectionData.collectibles.ownedCollectibleIds || [];
+        }
+
+        const { totalValue: collectiblesValue } = calculateCollectiblesValue(ownedCollectibleIds);
+        const netWorth = balance + collectiblesValue;
+
         const userRef = userPaths.root(userId);
         await setDoc(userRef, {
             net_value: netWorth,
             lastActive: Date.now()
         }, { merge: true });
-        
+
         return netWorth;
     } catch (error) {
         console.error('[Net Worth] Error recalculating:', error);

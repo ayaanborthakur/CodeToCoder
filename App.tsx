@@ -393,19 +393,22 @@ const App: React.FC = () => {
             setCurrentStreak(0);
             return;
         }
+        // getMarketplaceData already returns stars, challenges, AND collectibles
+        // in one call. Use what it returns instead of refetching the same docs
+        // inside recalculateNetWorth. Saves 2 Firestore reads per login.
         const data = await getMarketplaceData(user.id);
         setStarBalance(data.stars.balance);
+        setDailyChallenges(data.dailyChallenges);
 
-        // Load streak info
+        // getStreakInfo lives outside the marketplace doc so it's still a
+        // separate read.
         const streakInfo = await getStreakInfo(user.id);
         setCurrentStreak(streakInfo.currentStreak);
 
-        // Load daily challenges
-        const challenges = await getDailyChallenges(user.id);
-        setDailyChallenges(challenges);
-
-        // Recalculate net worth on load
-        const net = await recalculateNetWorth(user.id);
+        const net = await recalculateNetWorth(user.id, {
+            balance: data.stars.balance,
+            ownedCollectibleIds: data.ownedCollectibles ?? [],
+        });
         setNetWorth(net);
     }, [user]);
 
