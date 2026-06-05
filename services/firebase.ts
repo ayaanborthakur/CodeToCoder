@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 // import other services you'll use, like getAuth
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';

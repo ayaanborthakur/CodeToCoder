@@ -38,14 +38,14 @@ export const CoursePage: React.FC<CoursePageProps> = ({
     const [recentlyAssigned, setRecentlyAssigned] = useState<Set<string>>(new Set());
     const canAssign = !!(teacherId && teacherClassroom);
 
-    const { allModuleIds, modulesById, courseModules, progress, unlocked } = useMemo(() => {
+    const { courseModules, progress, unlocked } = useMemo(() => {
         const allIds = modules.map(m => m.id);
         const byId = new Map(modules.map(m => [m.id, m] as const));
         const moduleIds = resolveCourseModuleIds(courseId, allIds);
         const courseMods = moduleIds.map(id => byId.get(id)).filter((m): m is Module => !!m);
         const prog = getCourseProgress(courseId, allIds, byId, completedLessons);
         const u = course ? (isTeacher || isCourseUnlocked(course, allIds, byId, completedLessons, unlockedCourseIds)) : false;
-        return { allModuleIds: allIds, modulesById: byId, courseModules: courseMods, progress: prog, unlocked: u };
+        return { courseModules: courseMods, progress: prog, unlocked: u };
     }, [courseId, modules, completedLessons, course]);
 
     // Opens the IDE for a specific lesson in a new tab.

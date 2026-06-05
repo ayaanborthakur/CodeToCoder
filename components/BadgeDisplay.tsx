@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Badge, BadgeTier } from '../types';
-import { getBadgeColor, getBadgeGradient } from '../services/achievementService';
+import type { Badge } from '../types';
+import { getBadgeColor } from '../services/achievementService';
 import { BadgeIcon } from './BadgeIcon';
 
 interface BadgeDisplayProps {
@@ -25,7 +25,6 @@ export const BadgeDisplay: React.FC<BadgeDisplayProps> = ({
     };
 
     const tierColor = getBadgeColor(badge.tier);
-    const tierGradient = getBadgeGradient(badge.tier);
 
     return (
         <div className="flex flex-col items-center gap-2 group relative">

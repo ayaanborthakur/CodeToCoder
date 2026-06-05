@@ -1,18 +1,15 @@
-import { 
-    addDoc, 
-    query, 
-    where, 
-    orderBy, 
-    limit, 
+import {
+    addDoc,
+    query,
+    where,
+    orderBy,
+    limit,
     getDocs,
     collection,
     doc,
-    updateDoc,
-    setDoc,
-    Timestamp
+    updateDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { getDocFromPath, getCollectionFromPath } from './firestorePathHelper';
 import type { ReviewItem, CodeReviewLog } from '../types';
 
 /**

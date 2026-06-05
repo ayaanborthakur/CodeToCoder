@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-    Users,
     Copy,
     CheckCheck,
     BookOpen,
@@ -781,7 +780,7 @@ const StudentsTab: React.FC<{
                                         {(() => {
                                             const studentAssignments = assignments.filter(a => assignmentTargetsStudent(a, s.uid));
                                             const completedSet = new Set(s.completedLessons);
-                                            const completedCount = studentAssignments.filter(a => completedSet.has(a.lessonId)).length;
+                                            const completedCount = studentAssignments.filter(a => a.lessonId != null && completedSet.has(a.lessonId)).length;
                                             return (
                                                 <div>
                                                     <div className="flex items-baseline justify-between mb-1.5">
@@ -802,7 +801,7 @@ const StudentsTab: React.FC<{
                                                     ) : (
                                                         <ul className="space-y-1">
                                                             {studentAssignments.map(a => {
-                                                                const done = completedSet.has(a.lessonId);
+                                                                const done = a.lessonId != null && completedSet.has(a.lessonId);
                                                                 return (
                                                                     <li key={a.id} className="flex items-center gap-2 text-sm">
                                                                         {done ? (

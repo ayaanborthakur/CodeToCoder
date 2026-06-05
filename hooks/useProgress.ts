@@ -383,7 +383,7 @@ export const useProgress = () => {
                         await syncPracticeProgress(
                             user.id,
                             category,
-                            Array.from(newSet).filter(id => {
+                            Array.from(newSet).filter(_id => {
                                 // Only sync IDs that belong to this category to keep data clean
                                 // (Actually, the current structure expects the full 'completed' list per category)
                                 // But since we merged them, we should ideally filter or just sync the ones that belong.

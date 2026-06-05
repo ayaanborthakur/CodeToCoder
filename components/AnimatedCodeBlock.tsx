@@ -82,7 +82,7 @@ export const AnimatedCodeBlock: React.FC<AnimatedCodeBlockProps> = ({
         // 7. Function call
         const tokenRegex = /(#.*)|((?:f|r)?)(["'])((?:\\.|(?!\3)[^\\])*)\3|\b(def|for|in|if|else|elif|return|import|from|class|while|try|except|with|as|not|and|or|True|False|None|range|print|input)\b|\b(\d+)\b|(\w+)(?=\()/g;
 
-        return code.replace(tokenRegex, (match, comment, prefix, quote, content, keyword, number, func) => {
+        return code.replace(tokenRegex, (match, comment, prefix, quote, _content, keyword, number, func) => {
             if (comment) {
                 return `<span class="text-gray-400 dark:text-gray-500 italic">${comment}</span>`;
             }

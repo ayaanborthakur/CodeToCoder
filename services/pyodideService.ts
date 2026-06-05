@@ -8,7 +8,6 @@ export interface PyodideCallbacks {
 
 let worker: Worker | null = null;
 let currentCallbacks: PyodideCallbacks | null = null;
-let isInitialized = false;
 
 // Initialize the worker
 export const initializePyodide = async () => {
@@ -23,7 +22,6 @@ export const initializePyodide = async () => {
 
         if (type === 'ready') {
             console.log("Pyodide Worker Ready");
-            isInitialized = true;
         } else if (type === 'output') {
              if (currentCallbacks?.onOutput) {
                  currentCallbacks.onOutput(text);
@@ -104,9 +102,7 @@ export const runPythonCode = async (
     });
 };
 
-export const sendInputToWorker = (text: string) => {
-    // This is handled by the callback in runPythonCode -> SW postMessage
-    // But if called externally:
+export const sendInputToWorker = (_text: string) => {
     console.warn("sendInputToWorker is deprecated. Input flow is handled via callbacks.");
 };
 

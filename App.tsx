@@ -43,7 +43,7 @@ import { TutorialOverlay } from './components/TutorialOverlay';
 // PRACTICE_ITEMS removed - loaded dynamically
 import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity, Classroom } from './types';
 import { contentService } from './services/contentService';
-import { generateCodeFromFlowchart, getChatResponse, lintCodeWithAI } from './services/geminiService';
+import { generateCodeFromFlowchart, getChatResponse } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
 import { useTheme } from './hooks/useTheme';
 import { usePlaygroundFiles } from './hooks/usePlaygroundFiles';
@@ -153,7 +153,7 @@ const App: React.FC = () => {
         return 'mission';
     }, [location.pathname]);
 
-    const [playgroundView, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
+    const [, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
     // Teacher's classroom (loaded lazily so the Lessons-tab assign button can use it).
@@ -1167,11 +1167,11 @@ const App: React.FC = () => {
                                 try {
                                     const { logUserActivity } = await import('./services/analyticsDataService');
                                     await logUserActivity(user!.id, {
-                                        type: currentView === 'practice' ? (activePracticeItem?.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
+                                        type: activePracticeItem ? (activePracticeItem.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
                                         itemId: contextItem.id,
                                         itemTitle: contextItem.title,
                                         moduleId: currentView === 'classroom' ? currentModuleId ?? undefined : undefined,
-                                        category: currentView === 'practice' ? activePracticeItem?.type : undefined,
+                                        category: activePracticeItem?.type,
                                         timestamp: Date.now(),
                                         durationSeconds,
                                         completed: true,
@@ -1201,11 +1201,11 @@ const App: React.FC = () => {
                              import('./services/analyticsDataService').then(({ logUserActivity }) => {
                                 const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
                                 logUserActivity(user.id, {
-                                    type: currentView === 'practice' ? (activePracticeItem?.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
+                                    type: activePracticeItem ? (activePracticeItem.type === 'quiz' ? 'quiz' : 'practice') : 'lesson',
                                     itemId: contextItem.id,
                                     itemTitle: contextItem.title,
                                     moduleId: currentView === 'classroom' ? currentModuleId ?? undefined : undefined,
-                                    category: currentView === 'practice' ? activePracticeItem?.type : undefined,
+                                    category: activePracticeItem?.type,
                                     timestamp: Date.now(),
                                     durationSeconds,
                                     completed: true,

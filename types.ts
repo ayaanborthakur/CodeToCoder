@@ -67,6 +67,19 @@ export interface UserAchievements {
   lastUpdated: number;
 }
 
+export type BadgeType = 'lesson' | 'practice' | 'quiz' | 'project' | 'streak' | 'collection' | 'special';
+export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  type: BadgeType;
+  tier: BadgeTier;
+  requirement: number;
+  icon: string;
+}
+
 // Token & Marketplace System Types
 export interface UserStars {
   balance: number;

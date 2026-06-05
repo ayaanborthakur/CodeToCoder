@@ -13,7 +13,7 @@ export const BadgeIcon: React.FC<BadgeIconProps> = ({ type, tier, size = 48, cla
     const getGradientId = () => `badge-gradient-${type}-${tier}-${Math.random().toString(36).substr(2, 9)}`;
     const gradientId = getGradientId();
 
-    const getTierColors = () => {
+    const getTierColors = (): { start: string; end: string; glow: string } => {
         switch (tier) {
             case 'bronze':
                 return { start: '#CD7F32', end: '#A0522D', glow: '#CD7F32' };

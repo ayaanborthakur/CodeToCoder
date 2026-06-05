@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TUTORIAL_STEPS, markTutorialCompleted, type TutorialStep, saveTutorialProgress, getTutorialProgress, clearTutorialProgress } from '../services/tutorialService';
+import { TUTORIAL_STEPS, markTutorialCompleted, saveTutorialProgress, getTutorialProgress, clearTutorialProgress } from '../services/tutorialService';
 
 interface TutorialOverlayProps {
     userId?: string;

@@ -4,9 +4,7 @@ import {
     setDoc,
     collection,
     getDocs,
-    deleteDoc,
-    writeBatch,
-    Timestamp
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type {
@@ -14,8 +12,7 @@ import type {
     ClassroomProgressData,
     StarsData,
     DailyChallengesData,
-    CollectionData,
-    PracticeItem
+    CollectionData
 } from '../types';
 import { userPaths } from './firestorePathHelper';
 
@@ -146,7 +143,10 @@ const migrateMarketplaceData = async (userId: string): Promise<void> => {
             totalSpent: oldData.stars?.totalSpent || 0,
             lastUpdated: oldData.stars?.lastUpdated || Date.now(),
             transactionHistory: oldData.transactionHistory || [],
-            dailyPrizeClaimed: oldData.dailyPrizeClaimed || 0
+            dailyPrizeClaimed: oldData.dailyPrizeClaimed || 0,
+            currentStreak: 0,
+            longestStreak: 0,
+            lastActiveDate: ''
         };
         await setDoc(starsRef, starsData);
 

@@ -52,9 +52,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, sta
   const lessonProgress = getBadgeProgress('lesson', stats.lessons, earnedBadgeIds);
   const practiceProgress = getBadgeProgress('practice', stats.practice, earnedBadgeIds);
 
-  // Separate quizzes and projects (for now, using 0 until we track them separately)
-  const quizProgress = getBadgeProgress('quiz', 0, earnedBadgeIds);
-  const projectProgress = getBadgeProgress('project', 0, earnedBadgeIds);
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>

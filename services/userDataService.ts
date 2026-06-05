@@ -2,10 +2,7 @@ import {
     doc,
     setDoc,
     getDoc,
-    collection,
     getDocs,
-    addDoc,
-    updateDoc,
     deleteDoc,
     serverTimestamp,
     Timestamp

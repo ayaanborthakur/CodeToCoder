@@ -1,9 +1,7 @@
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import {
     MarketplaceData,
-    UserStars,
-    Pack,
     DailyChallenge,
     StarTransaction,
     Collectible,
@@ -632,7 +630,7 @@ export const claimDailyPrize = async (userId: string): Promise<number> => {
     return prizeAmount;
 };
 
-export const isDailyPrizeAvailable = (userId: string, starsData?: StarsData | MarketplaceData): boolean => {
+export const isDailyPrizeAvailable = (_userId: string, starsData?: StarsData | MarketplaceData): boolean => {
     if (!starsData) return false;
 
     const lastClaimed = new Date(starsData.dailyPrizeClaimed);
@@ -643,7 +641,7 @@ export const isDailyPrizeAvailable = (userId: string, starsData?: StarsData | Ma
         lastClaimed.getFullYear() !== now.getFullYear();
 };
 
-export const getTimeUntilDailyPrize = (userId: string, starsData?: StarsData | MarketplaceData): number => {
+export const getTimeUntilDailyPrize = (_userId: string, starsData?: StarsData | MarketplaceData): number => {
     if (!starsData) return 24;
 
     const now = new Date();
