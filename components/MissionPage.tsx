@@ -40,7 +40,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
     return (
-        <div className="mission-page min-h-full bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-100 font-sans antialiased">
+        <div className="mission-page min-h-full bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
             <Helmet>
                 <title>Code2Coder — Learn Python in your browser, free</title>
                 <meta name="description" content="Free, AI-guided Python lessons that run in your browser. No installs, no setup. Built for students, by students." />
@@ -51,9 +51,9 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
             </Helmet>
 
             <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(6,182,212,0.10),transparent_70%)] dark:bg-[radial-gradient(ellipse_60%_50%_at_50%_-10%,rgba(6,182,212,0.12),transparent_70%)]" />
-                <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]" style={{
-                    backgroundImage: `linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)`,
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_-5%,rgba(6,182,212,0.14),transparent_70%)] dark:bg-[radial-gradient(ellipse_70%_55%_at_50%_-5%,rgba(34,211,238,0.16),transparent_70%)]" />
+                <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.045]" style={{
+                    backgroundImage: `linear-gradient(rgba(148,163,184,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.6) 1px, transparent 1px)`,
                     backgroundSize: '56px 56px',
                     maskImage: 'radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent)',
                     WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 30%, black, transparent)',
@@ -63,20 +63,19 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
             <section className="relative z-10 px-6 pt-28 pb-24 md:pt-36 md:pb-32">
                 <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.1fr_1fr] gap-16 lg:gap-20 items-center">
                     <div>
-                        <div className="inline-flex items-center gap-2 mb-8 text-xs font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                        <div className="inline-flex items-center gap-2 mb-8 text-xs font-semibold tracking-wider uppercase text-cyan-700 dark:text-cyan-300">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
                             Free forever · No installs · No accounts needed
                         </div>
 
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-[-0.035em] leading-[1.02] text-slate-900 dark:text-white">
+                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-[-0.035em] leading-[1.02] text-gray-900 dark:text-white">
                             Learn Python.
                             <br />
-                            Right in your
-                            <br />
-                            browser.
+                            Right in your{' '}
+                            <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">browser.</span>
                         </h1>
 
-                        <p className="mt-8 text-lg md:text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl">
+                        <p className="mt-8 text-lg md:text-xl text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl">
                             A clean place to learn Python — with a real editor, an AI tutor that
                             gives hints instead of answers, and lessons that run the moment you press play.
                         </p>
@@ -84,14 +83,14 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         <div className="mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
                             <button
                                 onClick={onStart}
-                                className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+                                className="group inline-flex items-center gap-2 px-5 py-3 text-sm font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all"
                             >
                                 Start coding
                                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                             </button>
                             <button
                                 onClick={() => onNavigate('about')}
-                                className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                className="text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
                                 About the project →
                             </button>
@@ -99,7 +98,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                     </div>
 
                     <div className="relative lg:pl-4">
-                        <div className="absolute -inset-6 bg-cyan-500/[0.06] dark:bg-cyan-500/[0.08] rounded-3xl blur-2xl" />
+                        <div className="absolute -inset-6 bg-cyan-500/[0.08] dark:bg-cyan-500/[0.12] rounded-3xl blur-2xl" />
                         <div className="relative">
                             <AnimatedCodeBlock />
                         </div>
@@ -107,18 +106,18 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                 </div>
             </section>
 
-            <section className="relative z-10 px-6 py-20 border-t border-slate-200/70 dark:border-slate-800/70">
+            <section className="relative z-10 px-6 py-20 border-t border-gray-200 dark:border-gray-800">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid md:grid-cols-3 gap-10 md:gap-12">
                         {VALUE_PROPS.map((p) => (
                             <div key={p.title}>
-                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 mb-5">
+                                <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-cyan-500/10 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 dark:border-cyan-400/20 mb-5">
                                     {p.icon}
                                 </div>
-                                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2 tracking-tight">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2 tracking-tight">
                                     {p.title}
                                 </h3>
-                                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                                     {p.body}
                                 </p>
                             </div>
@@ -127,33 +126,33 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                 </div>
             </section>
 
-            <section className="relative z-10 px-6 py-24 md:py-32 border-t border-slate-200/70 dark:border-slate-800/70">
+            <section className="relative z-10 px-6 py-24 md:py-32 border-t border-gray-200 dark:border-gray-800">
                 <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1.4fr] gap-16 md:gap-24">
                     <div>
-                        <div className="text-xs font-medium tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-4">
+                        <div className="text-xs font-semibold tracking-wider uppercase text-cyan-700 dark:text-cyan-300 mb-4">
                             The path
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.02em] text-slate-900 dark:text-white leading-tight">
+                        <h2 className="text-3xl md:text-4xl font-bold tracking-[-0.02em] text-gray-900 dark:text-white leading-tight">
                             From your first line of code
-                            <span className="text-slate-400 dark:text-slate-500"> to your first real project.</span>
+                            <span className="text-gray-400 dark:text-gray-500"> to your first real project.</span>
                         </h2>
-                        <p className="mt-6 text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+                        <p className="mt-6 text-base text-gray-500 dark:text-gray-400 leading-relaxed">
                             Lessons are short, hands-on, and ordered so each one builds on the last. Skip ahead any time — your progress saves automatically.
                         </p>
                     </div>
 
                     <div className="md:pt-2">
-                        <ul className="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                        <ul className="divide-y divide-gray-200 dark:divide-gray-800">
                             {CURRICULUM.map((step) => (
                                 <li key={step.n} className="flex items-baseline gap-6 py-5 first:pt-0">
-                                    <span className="font-mono text-xs text-slate-400 dark:text-slate-600 tabular-nums">
+                                    <span className="font-mono text-xs text-cyan-600 dark:text-cyan-400 tabular-nums font-bold">
                                         {step.n}
                                     </span>
                                     <div className="flex-1">
-                                        <h3 className="text-base font-medium text-slate-900 dark:text-white">
+                                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                                             {step.title}
                                         </h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                                             {step.body}
                                         </p>
                                     </div>
@@ -164,23 +163,23 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                 </div>
             </section>
 
-            <section className="relative z-10 px-6 py-24 md:py-32 border-t border-slate-200/70 dark:border-slate-800/70">
+            <section className="relative z-10 px-6 py-24 md:py-32 border-t border-gray-200 dark:border-gray-800">
                 <div className="max-w-3xl mx-auto text-center">
-                    <h2 className="text-3xl md:text-5xl font-semibold tracking-[-0.025em] text-slate-900 dark:text-white leading-[1.05]">
+                    <h2 className="text-3xl md:text-5xl font-bold tracking-[-0.025em] text-gray-900 dark:text-white leading-[1.05]">
                         Open the editor.
                         <br />
-                        <span className="text-slate-400 dark:text-slate-500">Write your first line.</span>
+                        <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">Write your first line.</span>
                     </h2>
-                    <p className="mt-6 text-base md:text-lg text-slate-600 dark:text-slate-400">
+                    <p className="mt-6 text-base md:text-lg text-gray-500 dark:text-gray-400">
                         Free forever. No credit card. No download.
                     </p>
                     <div className="mt-10">
                         <button
                             onClick={onStart}
-                            className="group inline-flex items-center gap-2 px-6 py-3.5 text-sm font-medium bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors"
+                            className="group inline-flex items-center gap-2 px-6 py-3.5 text-base font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
                         >
                             Start coding
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
                         </button>
                     </div>
                 </div>
@@ -188,28 +187,28 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
 
             <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
 
-            <footer className="relative z-10 border-t border-slate-200/70 dark:border-slate-800/70 px-6 pt-16 pb-10">
+            <footer className="relative z-10 border-t border-gray-200 dark:border-gray-800 px-6 pt-16 pb-10">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid md:grid-cols-[1.8fr_1fr_1fr] gap-12 mb-14">
                         <div>
                             <div className="flex items-center gap-2.5 mb-4">
                                 <FooterLogo className="h-7 w-auto" />
-                                <span className="font-semibold text-base tracking-tight text-slate-900 dark:text-white">Code2Coder</span>
+                                <span className="font-bold text-base tracking-tight text-gray-900 dark:text-white">Code2Coder</span>
                             </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm leading-relaxed">
                                 Free Python education for everyone. Built by students at Bellarmine College Preparatory.
                             </p>
                         </div>
 
                         <nav>
-                            <h4 className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-500 mb-4">
+                            <h4 className="text-xs font-bold tracking-wider uppercase text-gray-500 dark:text-gray-500 mb-4">
                                 Project
                             </h4>
                             <ul className="space-y-3 text-sm">
                                 <li>
                                     <button
                                         onClick={() => onNavigate('about')}
-                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                        className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
                                         About the team
                                     </button>
@@ -217,7 +216,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 <li>
                                     <button
                                         onClick={() => setIsContactModalOpen(true)}
-                                        className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                                        className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
                                         Contact us
                                     </button>
@@ -226,21 +225,21 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </nav>
 
                         <nav>
-                            <h4 className="text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-500 mb-4">
+                            <h4 className="text-xs font-bold tracking-wider uppercase text-gray-500 dark:text-gray-500 mb-4">
                                 Legal
                             </h4>
                             <ul className="space-y-3 text-sm">
-                                <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a></li>
-                                <li><a href="#" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Terms</a></li>
+                                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Privacy</a></li>
+                                <li><a href="#" className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">Terms</a></li>
                             </ul>
                         </nav>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-8 border-t border-slate-200/70 dark:border-slate-800/70">
-                        <p className="text-xs text-slate-500 dark:text-slate-500">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-8 border-t border-gray-200 dark:border-gray-800">
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                             © {new Date().getFullYear()} Code2Coder
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500">
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
                             Bellarmine College Preparatory · San Jose, CA
                         </p>
                     </div>
