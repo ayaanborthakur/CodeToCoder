@@ -50,6 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentFirebaseUser(firebaseUser);
           // Fetch user with username from Firestore
           const userWithUsername = await authService.mapFirebaseUserWithUsername(firebaseUser);
+
+          // Run user-data migration once per login, before any data hook fires.
+          // localStorage cache makes this a ~no-op for returning users.
+          try {
+            const { migrateUserData } = await import('../services/migrationService');
+            await migrateUserData(userWithUsername.id);
+          } catch (migrationError) {
+            console.error('[AuthContext] Migration failed, continuing:', migrationError);
+          }
+
           setUser(userWithUsername);
         } else {
           setCurrentFirebaseUser(null);

@@ -28,16 +28,7 @@ export const useProgress = () => {
         const loadProgressData = async () => {
             try {
                 if (user) {
-
-                    // Trigger migration first
-                    const { migrateUserData } = await import('../services/migrationService');
-                    try {
-                        await migrateUserData(user.id);
-                    } catch (migrationError) {
-                        console.error('[useProgress] Migration failed, continuing with data load:', migrationError);
-                    }
-
-                    // Load from new Firestore structure
+                    // Migration is owned by AuthContext now — by the time `user` is set, it's done.
                     const { loadClassroomProgress, loadPracticeProgress, loadAchievements } = await import('../services/userDataService');
 
                     const classroomData = await loadClassroomProgress(user.id);

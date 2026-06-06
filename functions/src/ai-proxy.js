@@ -66,42 +66,45 @@ async function verifyAndRateLimitUsage(request, maxRequests = 5, windowMs = 3600
   const now = Date.now();
   const limitTime = now - windowMs;
 
-  const usageRef = getDb().collection('users').doc(uid).collection('stats').doc('aiUsage');
-  
+  const db = getDb();
+  const usageRef = db.collection('users').doc(uid).collection('stats').doc('aiUsage');
+
   try {
-    const doc = await usageRef.get();
-    let timestamps = [];
-    
-    if (doc.exists) {
-      const data = doc.data();
-      if (data && Array.isArray(data.requestTimestamps)) {
-        // Filter out timestamps older than the window
-        timestamps = data.requestTimestamps.filter(t => t > limitTime);
+    // Transaction prevents the read-check-write race: two concurrent requests
+    // would otherwise both read the old array, both pass the check, both write,
+    // and the user would exceed maxRequests. The transaction serializes them.
+    await db.runTransaction(async (tx) => {
+      const doc = await tx.get(usageRef);
+      let timestamps = [];
+
+      if (doc.exists) {
+        const data = doc.data();
+        if (data && Array.isArray(data.requestTimestamps)) {
+          timestamps = data.requestTimestamps.filter(t => t > limitTime);
+        }
       }
-    }
-    
-    if (timestamps.length >= maxRequests) {
-      // Calculate minutes until the oldest request falls out of the window
-      const oldestTimestamp = timestamps[0];
-      const waitMs = oldestTimestamp + windowMs - now;
-      const waitMinutes = Math.ceil(waitMs / 60000);
-      throw new HttpsError(
-        'resource-exhausted',
-        `You have used your ${maxRequests} AI questions for this hour. Please wait ${waitMinutes} minute(s) before asking again.`
-      );
-    }
-    
-    // Add current timestamp and save
-    timestamps.push(now);
-    await usageRef.set({ requestTimestamps: timestamps }, { merge: true });
-    
+
+      if (timestamps.length >= maxRequests) {
+        const oldestTimestamp = timestamps[0];
+        const waitMs = oldestTimestamp + windowMs - now;
+        const waitMinutes = Math.ceil(waitMs / 60000);
+        throw new HttpsError(
+          'resource-exhausted',
+          `You have used your ${maxRequests} AI questions for this hour. Please wait ${waitMinutes} minute(s) before asking again.`
+        );
+      }
+
+      timestamps.push(now);
+      tx.set(usageRef, { requestTimestamps: timestamps }, { merge: true });
+    });
+
     return uid;
   } catch (error) {
     if (error instanceof HttpsError) {
       throw error;
     }
     logger.error("Rate limit verification error:", error);
-    // Fail-open in case of Firestore issues so students aren't blocked from learning
+    // Fail-open on Firestore errors so students aren't blocked from learning.
     return uid;
   }
 }

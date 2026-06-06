@@ -15,7 +15,7 @@ service cloud.firestore {
  
     match /users/{userId} {
       // Owner: full access to their own user doc and subcollections.
-      allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
+      allow read, write: if (isSignedIn() && isOwner(userId)) || (request.auth != null && request.auth.token.admin == true);
 
       // Teacher of this student's classroom: can READ the student's user doc
       // (so the dashboard can show name, role, classId, unlockedCourseIds).
@@ -54,7 +54,7 @@ service cloud.firestore {
       // Subcollections (progress, economy, etc.):
       match /{document=**} {
         // Owner: full access.
-        allow read, write: if isSignedIn() && isOwner(userId) || request.auth.token.admin == true;
+        allow read, write: if (isSignedIn() && isOwner(userId)) || (request.auth != null && request.auth.token.admin == true);
         // Teacher of the user's classroom: read-only (dashboard needs lessons + stars).
         allow read: if isSignedIn()
           && exists(/databases/$(database)/documents/users/$(userId))

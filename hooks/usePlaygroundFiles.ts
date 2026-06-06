@@ -41,15 +41,6 @@ export const usePlaygroundFiles = () => {
         const loadFiles = async () => {
             try {
                 if (user) {
-                    // Trigger migration first
-                    const { migrateUserData } = await import('../services/migrationService');
-                    try {
-                        await migrateUserData(user.id);
-                    } catch (migrationError) {
-                        console.error('Migration failed, continuing with data load:', migrationError);
-                    }
-
-                    // Load from new Firestore structure
                     const { loadPlaygroundFiles } = await import('../services/userDataService');
                     const firestoreFiles = await loadPlaygroundFiles(user.id);
 

@@ -121,42 +121,30 @@
       }
     </script>
 
-    <!-- Removed coi-serviceworker to fix Auth redirects -->
-    <!-- Added Pyodide for Main Thread execution -->
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <!-- Firebase config (public key) — generated at runtime in production by scripts/env.sh -->
     <script src="/env-config.js"></script>
-    <title>Code2Coder: Learn Python with AI</title>
 
-    <!-- Google Fonts: JetBrains Mono -->
+    <!-- Preconnect to CDNs we still depend on (fonts + deferred scripts) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-
-    <!-- PrismJS for Syntax Highlighting -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <!-- Non-critical: load async/defer so they don't block first paint. -->
+    <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 
     <link rel="stylesheet" href="./index.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "react": "https://esm.sh/react@18.3.1",
-          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-          "react-dom": "https://esm.sh/react-dom@18.3.1",
-          "@google/genai": "https://esm.sh/@google/genai"
-        }
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
