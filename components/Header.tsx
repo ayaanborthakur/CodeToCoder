@@ -114,12 +114,17 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
           <span className="font-bold text-xl text-gray-800 dark:text-white hidden sm:inline tracking-tight">Code2Coder</span>
         </button>
 
-        <nav className="hidden md:flex items-center gap-0.5">
-          <NavLink view="classroom" label="Lessons" />
-          <NavLink view="practice" label="Practice" />
-          <NavLink view="playground" label="Playground" />
-          <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
-        </nav>
+        {/* Primary nav is gated on auth — learning content is for signed-in
+            users only (school-focused product). Logged-out visitors see only
+            the landing page and the Sign In CTA on the right. */}
+        {user && (
+          <nav className="hidden md:flex items-center gap-0.5">
+            <NavLink view="classroom" label="Lessons" />
+            <NavLink view="practice" label="Practice" />
+            <NavLink view="playground" label="Playground" />
+            <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
+          </nav>
+        )}
       </div>
 
       {/* Right: status + account */}
@@ -221,12 +226,12 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3 space-y-1 shadow-lg animate-slide-up">
-          <NavLink view="classroom" label="Lessons" />
-          <NavLink view="practice" label="Practice" />
-          <NavLink view="playground" label="Playground" />
-          <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
           {user && (
             <>
+              <NavLink view="classroom" label="Lessons" />
+              <NavLink view="practice" label="Practice" />
+              <NavLink view="playground" label="Playground" />
+              <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
               <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
               <MenuItem onClick={() => go('profile')} icon={<User className="w-4 h-4" />} label="Profile" />
               <MenuItem onClick={() => go('marketplace')} icon={<ShoppingBag className="w-4 h-4" />} label="Star Market" />

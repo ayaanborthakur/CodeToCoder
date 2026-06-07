@@ -2013,6 +2013,14 @@ const App: React.FC = () => {
                 )}
 
                 <div className="flex-1 flex overflow-hidden relative">
+                    {(() => {
+                        // School-focused product: all learning content is for
+                        // signed-in users. Direct URL navigation to protected
+                        // routes bounces to the landing page instead of leaking
+                        // any UI. Public routes: /, /about, /signup.
+                        const gate = (el: React.ReactElement): React.ReactElement =>
+                            user ? el : <Navigate to="/" replace />;
+                        return (
                     <Routes>
                         <Route path="/" element={
                             <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
@@ -2026,7 +2034,7 @@ const App: React.FC = () => {
                             </div>
                         } />
 
-                        <Route path="/dashboard" element={
+                        <Route path="/dashboard" element={gate(
                             <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                 <HomePage
                                     modules={modules} // Pass loaded modules
@@ -2043,11 +2051,11 @@ const App: React.FC = () => {
                                     onClaimChallengeReward={handleClaimChallengeReward}
                                 />
                             </div>
-                        } />
+                        )} />
 
                         <Route path="/about" element={<AboutTeam onBack={() => handleNavigate('home')} />} />
 
-                        <Route path="/profile" element={
+                        <Route path="/profile" element={gate(
                             <ProfilePage
                                 stats={{ lessons: completedLessons.size, practice: completedPracticeItems.size }}
                                 achievements={achievements}
@@ -2058,16 +2066,16 @@ const App: React.FC = () => {
                                 netWorth={netWorth}
                                 starBalance={starBalance}
                             />
-                        } />
+                        )} />
 
-                        <Route path="/marketplace" element={<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} starBalance={starBalance} />} />
+                        <Route path="/marketplace" element={gate(<MarketplacePage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} starBalance={starBalance} />)} />
 
                         <Route path="/signup" element={<SignupPage />} />
 
-                        <Route path="/leaderboard" element={<LeaderboardPage />} />
+                        <Route path="/leaderboard" element={gate(<LeaderboardPage />)} />
 
 
-                        <Route path="/playground" element={
+                        <Route path="/playground" element={gate(
                             <PlaygroundDashboard
                                 files={playgroundFiles}
                                 onNewFile={handlePlaygroundNew}
@@ -2078,9 +2086,9 @@ const App: React.FC = () => {
                                 lastActiveFileId={mostRecentPlaygroundFile?.id}
                                 onResume={handlePlaygroundResume}
                             />
-                        } />
+                        )} />
 
-                        <Route path="/practice" element={
+                        <Route path="/practice" element={gate(
                             <PracticeDashboard
                                 practiceItems={practiceItems}
                                 onSelectItem={(item) => {
@@ -2100,34 +2108,32 @@ const App: React.FC = () => {
                                 onNavigate={(path) => navigate(path)}
                                 onAssignItem={user?.role === 'teacher' ? (item) => setPracticeAssignTarget(item) : undefined}
                             />
-                        } />
+                        )} />
 
                         {/* IDE Views — lessons/curriculum live under /lessons */}
-                        <Route path="/lessons/*" element={renderIdeView()} />
-                        <Route path="/courses/*" element={renderIdeView()} />
-                        <Route path="/playground/:fileId" element={renderIdeView()} />
+                        <Route path="/lessons/*" element={gate(renderIdeView())} />
+                        <Route path="/courses/*" element={gate(renderIdeView())} />
+                        <Route path="/playground/:fileId" element={gate(renderIdeView())} />
                         {/* Assignment-scoped practice route must be before the more general practice route */}
-                        <Route path="/practice/assignment/:classId/:assignmentId" element={renderIdeView()} />
-                        <Route path="/practice/:category/:itemId" element={renderIdeView()} />
-                        <Route path="/reference" element={<ReferencePanel />} />
-                        <Route path="/reference/:itemId" element={<ReferencePanel />} />
+                        <Route path="/practice/assignment/:classId/:assignmentId" element={gate(renderIdeView())} />
+                        <Route path="/practice/:category/:itemId" element={gate(renderIdeView())} />
+                        <Route path="/reference" element={gate(<ReferencePanel />)} />
+                        <Route path="/reference/:itemId" element={gate(<ReferencePanel />)} />
 
                         {/* Classroom hub — join/create a classroom, pick a role */}
-                        <Route path="/classroom" element={
-                            user
-                                ? <ClassroomHub onNavigate={handleNavigate} />
-                                : <Navigate to="/dashboard" replace />
-                        } />
+                        <Route path="/classroom" element={gate(<ClassroomHub onNavigate={handleNavigate} />)} />
 
                         {/* Teacher dashboard — only shown to teachers */}
                         <Route path="/teacher" element={
                             user?.role === 'teacher'
                                 ? <TeacherDashboard modules={modules} />
-                                : <Navigate to="/dashboard" replace />
+                                : <Navigate to="/" replace />
                         } />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
+                        );
+                    })()}
                 </div>
             </div>
         </>
