@@ -128,9 +128,15 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
     // ── Data fetching ─────────────────────────────────────────────────────────
 
     const fetchStudentData = useCallback(async (classroom: Classroom): Promise<StudentProgress[]> => {
-        if (classroom.studentIds.length === 0) return [];
+        // Defensive: older classroom docs may lack the studentIds field entirely
+        // (predating the migration that always initializes it to []). Without
+        // this guard the dashboard throws "Cannot read length of undefined" and
+        // the entire Students tab fails to load — looking like all students
+        // vanished.
+        const studentIds = Array.isArray(classroom.studentIds) ? classroom.studentIds : [];
+        if (studentIds.length === 0) return [];
         const results = await Promise.all(
-            classroom.studentIds.map(async (uid): Promise<StudentProgress> => {
+            studentIds.map(async (uid): Promise<StudentProgress> => {
                 try {
                     const [userSnap, progressSnap, starsSnap] = await Promise.all([
                         getDoc(doc(db, 'users', uid)),

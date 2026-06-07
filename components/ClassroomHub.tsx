@@ -124,6 +124,14 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
 
     const handleLeave = async () => {
         if (!classroom) return;
+        // Confirm before leaving — accidental click here costs the student their
+        // place in the class roster and the teacher loses visibility of their
+        // progress until they rejoin with the code.
+        const className = classroom.className || 'this classroom';
+        const ok = window.confirm(
+            `Leave ${className}?\n\nYou'll be removed from the class roster. You can rejoin later with the class code if your teacher shares it again.`
+        );
+        if (!ok) return;
         setLeaving(true);
         try {
             await leaveClassroom(user.id, classroom.classId);
