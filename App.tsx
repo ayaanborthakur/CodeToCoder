@@ -37,6 +37,7 @@ import { AssignPracticeModal } from './components/AssignPracticeModal';
 import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
+import { SchoolsPage } from './components/SchoolsPage';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -911,6 +912,7 @@ const App: React.FC = () => {
 
         if (view === 'home') navigate('/dashboard');
         else if (view === 'mission') navigate('/');
+        else if (view === 'schools') navigate('/schools');
         else navigate(`/${view}`);
 
         // Log page view analytics
@@ -2054,6 +2056,9 @@ const App: React.FC = () => {
                         )} />
 
                         <Route path="/about" element={<AboutTeam onBack={() => handleNavigate('home')} />} />
+
+                        {/* Public list of schools registered on Code2Coder. */}
+                        <Route path="/schools" element={<SchoolsPage onBack={() => handleNavigate(user ? 'home' : 'mission')} />} />
 
                         <Route path="/profile" element={gate(
                             <ProfilePage

@@ -133,6 +133,32 @@ export interface User {
   // student (overrides the prerequisite gate). Python Basics is always
   // unlocked; this is for granting early access to later courses.
   unlockedCourseIds?: string[];
+  // School association (Phase A: teacher self-registers a school; later
+  // phases gate classroom-joins and the school-leaderboard by this field).
+  // Set only after the school's registrar approves the join request.
+  schoolId?: string;
+  // True while waiting for the school's registrar to approve the join.
+  // The user can use the app normally but is not yet 'a student of' the school.
+  schoolJoinPending?: boolean;
+  // Set true once we've shown the "Are you part of a school?" prompt to
+  // an existing user. Stops it from re-appearing every login.
+  schoolPromptSeen?: boolean;
+}
+
+/** A school registered on Code2Coder. Registrars are the teacher who created it. */
+export interface School {
+  id: string;
+  name: string;
+  // Teacher (user.id) who registered this school. They approve student join
+  // requests and are the de-facto admin for the school's membership.
+  registrarId: string;
+  registrarName?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  // Free-text identifier (e.g. school district, board). Optional.
+  notes?: string;
+  createdAt: number;
 }
 
 export interface StarTransaction {

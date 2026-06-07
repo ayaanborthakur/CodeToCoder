@@ -207,6 +207,14 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             <ul className="space-y-3.5 text-base">
                                 <li>
                                     <button
+                                        onClick={() => onNavigate('schools')}
+                                        className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    >
+                                        Schools using Code2Coder
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
                                         onClick={() => onNavigate('about')}
                                         className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
