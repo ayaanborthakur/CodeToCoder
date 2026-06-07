@@ -456,6 +456,12 @@ const App: React.FC = () => {
     useEffect(() => {
         if (isAuthLoading || !isProgressLoaded) return;
 
+        // Don't trigger the tutorial while the user is still on the signup page.
+        // The username is set partway through signup (before the role + school
+        // steps), so firing on `user.username` alone would interrupt signup
+        // before the user can finish. Wait until they've left /signup.
+        if (location.pathname === '/signup') return;
+
         // Only show tutorial for logged-in users who have completed signup (have a username)
         // This ensures the username modal completes before the tutorial starts
         if (user && user.username) {
@@ -471,7 +477,7 @@ const App: React.FC = () => {
 
             checkTutorial();
         }
-    }, [user, isAuthLoading, isProgressLoaded]);
+    }, [user, isAuthLoading, isProgressLoaded, location.pathname]);
 
     // 4. Check if user needs to set a username (but not on signup page which handles this inline)
     useEffect(() => {
