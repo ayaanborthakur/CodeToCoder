@@ -1,7 +1,8 @@
 {
   "firestore": {
     "database": "code2coder-india",
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "database": {
     "rules": "database.rules.json"
