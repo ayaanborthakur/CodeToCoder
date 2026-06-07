@@ -452,18 +452,22 @@ const App: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isAuthLoading]);
 
-    // 3. Check if tutorial should be shown for first-time users
+    // 3. Check if tutorial should be shown for first-time users.
+    //
+    // The tour starts on the dashboard (TUTORIAL_STEPS[0].route === '/dashboard')
+    // and *every* new user lands there once signup is fully complete — so we
+    // auto-start the tour ONLY on the dashboard view. Whitelisting the
+    // destination (rather than blacklisting /signup) is what guarantees the
+    // overlay can never paint over the multi-step signup flow: `user.username`
+    // is claimed partway through signup (before the role + school steps), but
+    // the user is still on /signup at that point, not /dashboard, so the tour
+    // stays dormant until they actually arrive home.
     useEffect(() => {
         if (isAuthLoading || !isProgressLoaded) return;
-
-        // Don't trigger the tutorial while the user is still on the signup page.
-        // The username is set partway through signup (before the role + school
-        // steps), so firing on `user.username` alone would interrupt signup
-        // before the user can finish. Wait until they've left /signup.
-        if (location.pathname === '/signup') return;
+        if (currentView !== 'home') return;
 
         // Only show tutorial for logged-in users who have completed signup (have
-        // a username). This ensures the username step completes first.
+        // a username).
         if (!(user && user.username)) return;
 
         let cancelled = false;
@@ -473,9 +477,9 @@ const App: React.FC = () => {
             if (cancelled || tutorialCompleted) return;
             // Small delay to ensure the page has loaded.
             timeoutId = setTimeout(() => {
-                // Re-check live path: if a late navigation put us back on the
-                // signup flow, never surface the tutorial over it.
-                if (window.location.pathname === '/signup') return;
+                // Re-check live path: if a navigation moved us off the dashboard
+                // during the delay, don't surface the tour on the wrong screen.
+                if (window.location.pathname !== '/dashboard') return;
                 setShowTutorial(true);
             }, 1000);
         };
@@ -484,7 +488,7 @@ const App: React.FC = () => {
         // Cancel any pending tutorial if deps change (e.g. user navigates) before
         // it fires — prevents a stray overlay landing on the wrong screen.
         return () => { cancelled = true; if (timeoutId) clearTimeout(timeoutId); };
-    }, [user, isAuthLoading, isProgressLoaded, location.pathname]);
+    }, [user, isAuthLoading, isProgressLoaded, currentView]);
 
     // 4. Check if user needs to set a username (but not on signup page which handles this inline)
     useEffect(() => {
@@ -2043,8 +2047,11 @@ const App: React.FC = () => {
                     />
                 )}
 
-                {/* Tutorial Overlay for first-time users */}
-                {showTutorial && (
+                {/* Tutorial Overlay for first-time users. Hard guard: never render
+                    over the signup flow, even if something flips showTutorial early.
+                    (The tour itself only ever visits /dashboard + /lessons routes,
+                    so this guard never clips a step mid-tour.) */}
+                {showTutorial && currentView !== 'signup' && (
                     <TutorialOverlay
                         userId={user?.id}
                         onComplete={() => setShowTutorial(false)}
