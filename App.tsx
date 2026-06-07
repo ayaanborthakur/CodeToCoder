@@ -462,21 +462,28 @@ const App: React.FC = () => {
         // before the user can finish. Wait until they've left /signup.
         if (location.pathname === '/signup') return;
 
-        // Only show tutorial for logged-in users who have completed signup (have a username)
-        // This ensures the username modal completes before the tutorial starts
-        if (user && user.username) {
-            const checkTutorial = async () => {
-                const tutorialCompleted = await hasTutorialCompleted(user.id);
-                if (!tutorialCompleted) {
-                    // Small delay to ensure the page has loaded
-                    setTimeout(() => {
-                        setShowTutorial(true);
-                    }, 1000);
-                }
-            };
+        // Only show tutorial for logged-in users who have completed signup (have
+        // a username). This ensures the username step completes first.
+        if (!(user && user.username)) return;
 
-            checkTutorial();
-        }
+        let cancelled = false;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const checkTutorial = async () => {
+            const tutorialCompleted = await hasTutorialCompleted(user.id);
+            if (cancelled || tutorialCompleted) return;
+            // Small delay to ensure the page has loaded.
+            timeoutId = setTimeout(() => {
+                // Re-check live path: if a late navigation put us back on the
+                // signup flow, never surface the tutorial over it.
+                if (window.location.pathname === '/signup') return;
+                setShowTutorial(true);
+            }, 1000);
+        };
+        checkTutorial();
+
+        // Cancel any pending tutorial if deps change (e.g. user navigates) before
+        // it fires — prevents a stray overlay landing on the wrong screen.
+        return () => { cancelled = true; if (timeoutId) clearTimeout(timeoutId); };
     }, [user, isAuthLoading, isProgressLoaded, location.pathname]);
 
     // 4. Check if user needs to set a username (but not on signup page which handles this inline)
