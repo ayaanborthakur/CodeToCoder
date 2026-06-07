@@ -243,7 +243,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
                     {!isEmbedded && (
                         <div className="text-center mb-8">
-                            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
+                            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
                                 My Collection
                             </h1>
                             <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>
@@ -254,7 +254,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                     <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default p-6 mb-8">
                         <div className="text-center mb-6">
                             <div className="text-sm text-text-secondary mb-2 uppercase tracking-wider">Collection Progress</div>
-                            <div className="text-5xl font-black text-text-primary mb-2">
+                            <div className="text-5xl font-bold text-text-primary mb-2">
                                 {stats.owned} / {stats.total}
                             </div>
                             <div className="text-cyan-400 text-xl font-bold">{stats.percentage}% Complete</div>

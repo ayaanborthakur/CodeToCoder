@@ -133,7 +133,7 @@ export const PackOpeningModal: React.FC<PackOpeningModalProps> = ({ packId, onCo
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/90 dark:bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
             <div className="relative flex flex-col items-center">
                 <div className={`mb-12 text-center transition-opacity duration-300 ${tapCount > 0 ? 'opacity-50' : 'opacity-100'}`}>
-                    <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2 animate-pulse">
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 animate-pulse">
                         {tapCount >= maxCracks ? 'OPENING!' : 'TAP TO OPEN!'}
                     </h2>
                     <p className="text-gray-700 dark:text-white/70">

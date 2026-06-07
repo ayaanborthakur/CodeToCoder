@@ -267,13 +267,13 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                                 <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={439.8} strokeDashoffset={439.8 - (439.8 * (score || 0) / 100)} className={`${circleColor} transition-all duration-1000 ease-out`} strokeLinecap="round" />
                                             </svg>
                                             <div className="absolute flex flex-col items-center">
-                                                <span className={`text-4xl font-black tracking-tight ${scoreColor}`}>{score?.toFixed(0)}%</span>
+                                                <span className={`text-4xl font-bold tracking-tight ${scoreColor}`}>{score?.toFixed(0)}%</span>
                                                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">Score</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-3">
+                                    <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
                                         {score === 100 ? "Perfect Score!" : (score && score >= 80 ? "Excellent Job!" : (score && score >= 50 ? "Good Effort!" : "Keep Practicing"))}
                                     </h3>
 

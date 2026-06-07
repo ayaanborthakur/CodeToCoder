@@ -44,7 +44,7 @@ export const ReviewTab: React.FC<ReviewTabProps> = ({ onSelectLesson }) => {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Brain className="w-7 h-7 text-indigo-500" />
                         Memory Boost
                     </h2>

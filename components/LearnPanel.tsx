@@ -121,7 +121,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                     {/* Markdown Content */}
                     <div className="prose dark:prose-invert max-w-none
                         prose-headings:text-gray-900 dark:prose-headings:text-white
-                        prose-h1:text-3xl prose-h1:font-extrabold prose-h1:mb-6
+                        prose-h1:text-3xl prose-h1:font-bold prose-h1:mb-6
                         prose-h2:text-xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4 prose-h2:text-cyan-700 dark:prose-h2:text-cyan-400
                         prose-h3:text-lg prose-h3:font-bold prose-h3:mt-6 prose-h3:mb-3
                         prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:mb-4

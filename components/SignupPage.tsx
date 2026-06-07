@@ -256,7 +256,7 @@ export const SignupPage: React.FC = () => {
                     </div>
                 </div>
                 <div className="relative z-10 p-12 max-w-lg">
-                    <h1 className="text-5xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-sm">
+                    <h1 className="text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-sm">
                         Build your future in code.
                     </h1>
                     <p className="text-xl text-gray-300 leading-relaxed mb-8">
@@ -581,7 +581,7 @@ export const SignupPage: React.FC = () => {
                                                 Class Join Code
                                             </p>
                                             <div className="flex items-center justify-center gap-3 mb-4">
-                                                <span className="text-5xl font-black font-mono tracking-[0.3em] text-gray-900 dark:text-white">
+                                                <span className="text-5xl font-bold font-mono tracking-[0.3em] text-gray-900 dark:text-white">
                                                     {createdClassroom.joinCode}
                                                 </span>
                                                 <button
@@ -633,7 +633,7 @@ export const SignupPage: React.FC = () => {
                                                 setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''));
                                                 setJoinError(null);
                                             }}
-                                            className={`w-full px-4 py-4 text-3xl font-black font-mono tracking-[0.4em] text-center rounded-xl bg-gray-50 dark:bg-gray-900 border focus:ring-2 outline-none transition-all ${
+                                            className={`w-full px-4 py-4 text-3xl font-bold font-mono tracking-[0.4em] text-center rounded-xl bg-gray-50 dark:bg-gray-900 border focus:ring-2 outline-none transition-all ${
                                                 joinError
                                                     ? 'border-red-400 focus:ring-red-500'
                                                     : 'border-gray-200 dark:border-gray-800 focus:ring-purple-500 focus:border-purple-500'

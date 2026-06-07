@@ -308,7 +308,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 </div>
 
                                 <div className="mt-8 text-center space-y-1">
-                                    <h2 className="text-3xl font-black tracking-tight">{user.name}</h2>
+                                    <h2 className="text-3xl font-bold tracking-tight">{user.name}</h2>
                                     {user.role && (
                                         <div className="flex items-center justify-center pt-1">
                                             <span
@@ -347,14 +347,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                             <span className="text-sm font-bold text-gray-500">Stars</span>
                                         </div>
-                                        <div className="text-2xl font-black">{formatCompactNumber(starBalance)}</div>
+                                        <div className="text-2xl font-bold">{formatCompactNumber(starBalance)}</div>
                                     </div>
                                     <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-2xl border border-cyan-100 dark:border-cyan-800/50 text-center">
                                         <div className="flex items-center justify-center gap-1.5 mb-1">
                                             <Trophy className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                                             <span className="text-sm font-bold text-cyan-600/80">Net Worth</span>
                                         </div>
-                                        <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
+                                        <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                                             {formatCompactNumber(netWorth)}
                                         </div>
                                     </div>
@@ -366,12 +366,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-lg text-center group hover:border-cyan-500/50 transition-colors">
                                 <Layout className="w-6 h-6 text-gray-400 mb-3 mx-auto group-hover:text-cyan-500 transition-colors" />
-                                <div className="text-2xl font-black">{stats.lessons}</div>
+                                <div className="text-2xl font-bold">{stats.lessons}</div>
                                 <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Lessons</div>
                             </div>
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-lg text-center group hover:border-purple-500/50 transition-colors">
                                 <Code className="w-6 h-6 text-gray-400 mb-3 mx-auto group-hover:text-purple-500 transition-colors" />
-                                <div className="text-2xl font-black">{stats.practice}</div>
+                                <div className="text-2xl font-bold">{stats.practice}</div>
                                 <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Projects</div>
                             </div>
                         </div>
@@ -419,7 +419,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                         <p className="font-bold">Module Master</p>
                                                         <p className="text-sm text-gray-500">Complete logic and loops</p>
                                                     </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
                                                 </div>
                                                 <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                                     <div className="h-full bg-cyan-500 w-[65%]" />
@@ -471,11 +471,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     {/* Stats Summary */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                                         <div className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg">
-                                            <div className="text-3xl font-black">{earnedBadges.length}</div>
+                                            <div className="text-3xl font-bold">{earnedBadges.length}</div>
                                             <div className="text-xs font-bold uppercase tracking-wider opacity-80">Badges Earned</div>
                                         </div>
                                         <div className="bg-white dark:bg-gray-700 rounded-2xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm">
-                                            <div className="text-3xl font-black text-gray-400">{getAllBadges().length}</div>
+                                            <div className="text-3xl font-bold text-gray-400">{getAllBadges().length}</div>
                                             <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Available</div>
                                         </div>
                                     </div>
@@ -615,7 +615,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                          'Maximum support & auto-correction'}
                                                     </p>
                                                 </div>
-                                                <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400">{aiAssistanceLevel}</div>
+                                                <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{aiAssistanceLevel}</div>
                                             </div>
                                             <input 
                                                 type="range" 

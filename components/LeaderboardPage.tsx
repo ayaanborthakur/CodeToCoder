@@ -69,7 +69,7 @@ export const LeaderboardPage: React.FC = () => {
                 {/* Header Section */}
                 <div className="text-center space-y-4 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 relative z-10">
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 relative z-10">
                         LEADERBOARD
                     </h1>
                     <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto relative z-10">
@@ -131,7 +131,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gray-300 text-gray-900 font-black text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gray-300 text-gray-900 font-bold text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
                                                 RANK 2
                                             </div>
                                         </div>
@@ -162,18 +162,18 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
                                                 CHAMPION
                                             </div>
                                         </div>
                                         <div className="w-full bg-gradient-to-t from-yellow-900/40 to-yellow-600/20 backdrop-blur-xl rounded-t-3xl border-t border-yellow-500/50 p-8 text-center h-[240px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 shadow-[0_10px_40px_-10px_rgba(234,179,8,0.2)]">
                                             <div>
-                                                <h3 className="font-black text-2xl truncate text-yellow-100">@{top3[0].username}</h3>
+                                                <h3 className="font-bold text-2xl truncate text-yellow-100">@{top3[0].username}</h3>
                                                 <p className="text-yellow-200/60 text-sm mt-1 font-medium">{getMemberSince(top3[0].joinedAt)}</p>
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="text-yellow-500 text-xs font-bold uppercase tracking-widest">Net Worth</div>
-                                                <div className="flex items-center justify-center gap-2 text-white font-black text-3xl bg-yellow-500/20 py-3 rounded-2xl border border-yellow-500/30">
+                                                <div className="flex items-center justify-center gap-2 text-white font-bold text-3xl bg-yellow-500/20 py-3 rounded-2xl border border-yellow-500/30">
                                                     <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
                                                     {top3[0].net_value.toLocaleString()}
                                                 </div>
@@ -195,7 +195,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-amber-700 text-white font-black text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-amber-700 text-white font-bold text-xs px-3 py-1 rounded-full shadow-lg z-20 whitespace-nowrap">
                                                 RANK 3
                                             </div>
                                         </div>

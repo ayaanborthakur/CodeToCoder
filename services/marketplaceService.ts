@@ -93,26 +93,49 @@ const calculateCollectiblesValue = (ownedCollectibleIds: string[]): { totalValue
     return { totalValue, breakdown };
 };
 
+// In-memory throttle so we don't write lastActive / net_value on every star
+// earn. lastActive is only used by the teacher dashboard for "X min ago"
+// display (5-min precision is fine); net_value is the leaderboard input
+// (rewriting the same value is a wasted Firestore write).
+const LAST_ACTIVE_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+const _lastActiveWriteAt = new Map<string, number>();
+const _lastNetValueWritten = new Map<string, number>();
+
+const shouldWriteLastActive = (userId: string): boolean => {
+    const now = Date.now();
+    const last = _lastActiveWriteAt.get(userId) ?? 0;
+    if (now - last < LAST_ACTIVE_THROTTLE_MS) return false;
+    _lastActiveWriteAt.set(userId, now);
+    return true;
+};
+
 /**
- * Update net_value on the user's root document for leaderboard
- * Net Worth = Current Star Balance + Value of All Collectibles Owned
+ * Update net_value on the user's root document for leaderboard.
+ * Net Worth = Current Star Balance + Value of All Collectibles Owned.
+ * Skips the write entirely when net_value hasn't changed since the last
+ * call AND lastActive is still within its throttle window.
  */
 const updateNetValue = async (userId: string, starsBalance: number, ownedCollectibleIds: string[]): Promise<void> => {
     const { totalValue: collectiblesValue } = calculateCollectiblesValue(ownedCollectibleIds);
     const netWorth = starsBalance + collectiblesValue;
-    
-    console.log(`[Net Worth] Updating for user ${userId}: Stars Balance = ${starsBalance}, Collectibles Value = ${collectiblesValue}, Net Worth = ${netWorth}`);
-    
+
+    const netChanged = _lastNetValueWritten.get(userId) !== netWorth;
+    const writeLastActive = shouldWriteLastActive(userId);
+    if (!netChanged && !writeLastActive) return; // No-op, skip the Firestore write.
+
+    const payload: Record<string, unknown> = {};
+    if (netChanged) payload.net_value = netWorth;
+    if (writeLastActive) payload.lastActive = Date.now();
+
     const userRef = userPaths.root(userId);
-    await setDoc(userRef, {
-        net_value: netWorth,
-        lastActive: Date.now()
-    }, { merge: true });
+    await setDoc(userRef, payload, { merge: true });
+    if (netChanged) _lastNetValueWritten.set(userId, netWorth);
 };
 
 /**
- * Ensure root user document exists
- * This is required before creating subcollections in Firestore
+ * Ensure root user document exists. For repeat calls we throttle the
+ * lastActive bump — opening the marketplace twice in one session shouldn't
+ * cost two Firestore writes.
  */
 const ensureUserDocument = async (userId: string): Promise<void> => {
     try {
@@ -120,16 +143,13 @@ const ensureUserDocument = async (userId: string): Promise<void> => {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            // Create minimal user document
             await setDoc(userRef, {
                 createdAt: Date.now(),
-                lastActive: Date.now()
+                lastActive: Date.now(),
             }, { merge: true });
-        } else {
-            // Update last active
-            await setDoc(userRef, {
-                lastActive: Date.now()
-            }, { merge: true });
+            _lastActiveWriteAt.set(userId, Date.now());
+        } else if (shouldWriteLastActive(userId)) {
+            await setDoc(userRef, { lastActive: Date.now() }, { merge: true });
         }
     } catch (error) {
         console.error('Failed to ensure user document:', error);
@@ -196,6 +216,11 @@ export const getStarsData = async (userId: string): Promise<StarsData> => {
     }
 };
 
+// Cap stored transaction history so a long-time user's stars doc doesn't
+// grow without bound. The Profile page filters this list anyway, and the
+// star service slices to 50 — keeping 100 is generous headroom.
+const TRANSACTION_HISTORY_CAP = 100;
+
 /**
  * Save stars data to new structure
  */
@@ -208,6 +233,11 @@ export const saveStarsData = async (userId: string, data: StarsData): Promise<vo
 
         const starsRef = userPaths.stars(userId);
         data.lastUpdated = Date.now();
+        // Trim transactionHistory before write — without this the array
+        // grows forever and each star earn rewrites the entire blob.
+        if (Array.isArray(data.transactionHistory) && data.transactionHistory.length > TRANSACTION_HISTORY_CAP) {
+            data.transactionHistory = data.transactionHistory.slice(0, TRANSACTION_HISTORY_CAP);
+        }
         await setDoc(starsRef, data);
 
         // Fetch collection data to calculate net worth
@@ -418,16 +448,12 @@ export const recalculateNetWorth = async (
             ownedCollectibleIds = collectionData.collectibles.ownedCollectibleIds || [];
         }
 
+        // Reuse the throttled updater so we don't double-write net_value /
+        // lastActive when both the saveStarsData path and an explicit
+        // recalculateNetWorth call fire close together.
+        await updateNetValue(userId, balance, ownedCollectibleIds);
         const { totalValue: collectiblesValue } = calculateCollectiblesValue(ownedCollectibleIds);
-        const netWorth = balance + collectiblesValue;
-
-        const userRef = userPaths.root(userId);
-        await setDoc(userRef, {
-            net_value: netWorth,
-            lastActive: Date.now()
-        }, { merge: true });
-
-        return netWorth;
+        return balance + collectiblesValue;
     } catch (error) {
         console.error('[Net Worth] Error recalculating:', error);
         return 0;
