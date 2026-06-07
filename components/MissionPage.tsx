@@ -89,6 +89,12 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
                             </button>
                             <button
+                                onClick={() => onNavigate('schools')}
+                                className="text-base font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                            >
+                                For schools →
+                            </button>
+                            <button
                                 onClick={() => onNavigate('about')}
                                 className="text-base font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
@@ -211,6 +217,14 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                         className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
                                         Schools using Code2Coder
+                                    </button>
+                                </li>
+                                <li>
+                                    <button
+                                        onClick={() => onNavigate('schools')}
+                                        className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    >
+                                        Register your school
                                     </button>
                                 </li>
                                 <li>

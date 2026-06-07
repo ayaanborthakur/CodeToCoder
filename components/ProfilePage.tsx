@@ -15,6 +15,7 @@ import { getBadgeColor, getEarnedBadges, getAllBadges, getBadgesByType, BADGE_CA
 import { RARITY_COLORS, RARITY_BG_COLORS } from '../data/collectiblesData';
 import { resetTutorial } from '../services/tutorialService';
 import { getUserSettings, updateUserSettings } from '../services/userSettingsService';
+import { getSchool } from '../services/schoolService';
 import { Collectible, UserAchievements, BadgeTier } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { UsernameModal } from './UsernameModal';
@@ -56,7 +57,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
     const [activityFeed, setActivityFeed] = useState<ActivityItem[]>([]);
     const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+    const [schoolName, setSchoolName] = useState<string | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Resolve the user's school name for the "<Role> at <School>" tag.
+    useEffect(() => {
+        if (!user?.schoolId) { setSchoolName(null); return; }
+        let cancelled = false;
+        getSchool(user.schoolId)
+            .then(s => { if (!cancelled) setSchoolName(s?.name ?? null); })
+            .catch(() => { if (!cancelled) setSchoolName(null); });
+        return () => { cancelled = true; };
+    }, [user?.schoolId]);
 
     // Sync starBalance from prop if provided
     useEffect(() => {
@@ -310,7 +322,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 <div className="mt-8 text-center space-y-1">
                                     <h2 className="text-3xl font-bold tracking-tight">{user.name}</h2>
                                     {user.role && (
-                                        <div className="flex items-center justify-center pt-1">
+                                        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                                             <span
                                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                                                     user.role === 'teacher'
@@ -322,6 +334,17 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                 {user.role === 'teacher' ? <GraduationCap className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
                                                 {user.role === 'teacher' ? 'Teacher account' : 'Student account'}
                                             </span>
+                                            {schoolName && (
+                                                <span
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                                    title={user.schoolJoinPending ? 'Awaiting approval from this school' : `Your school: ${schoolName}`}
+                                                >
+                                                    <GraduationCap className="w-3.5 h-3.5" />
+                                                    {user.schoolJoinPending
+                                                        ? `Joining ${schoolName}…`
+                                                        : `${user.role === 'teacher' ? 'Teacher' : 'Student'} at ${schoolName}`}
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                     <div className="flex items-center justify-center gap-2">

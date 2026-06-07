@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowLeft, GraduationCap, MapPin, Search } from 'lucide-react';
+import { ArrowLeft, GraduationCap, MapPin, Search, Plus } from 'lucide-react';
 import { listSchools } from '../services/schoolService';
+import { useAuth } from '../contexts/AuthContext';
+import { RegisterSchoolModal } from './RegisterSchoolModal';
 import type { School } from '../types';
 
 interface SchoolsPageProps {
@@ -9,10 +11,14 @@ interface SchoolsPageProps {
 }
 
 export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
+    const { user } = useAuth();
     const [schools, setSchools] = useState<School[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filter, setFilter] = useState('');
+    const [registerOpen, setRegisterOpen] = useState(false);
+
+    const isTeacher = user?.role === 'teacher';
 
     useEffect(() => {
         let cancelled = false;
@@ -61,6 +67,26 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                     <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
                         Every school below has a verified teacher running classrooms on Code2Coder. If your school isn't here yet, ask a teacher to register it.
                     </p>
+
+                    {/* Register-your-school CTA. Registration lives here, separate
+                        from the classroom dashboard. Only teacher accounts can act. */}
+                    <div className="mt-6">
+                        {isTeacher ? (
+                            <button
+                                onClick={() => setRegisterOpen(true)}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Register your school
+                            </button>
+                        ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {user
+                                    ? 'Only teacher accounts can register a school.'
+                                    : 'Are you a teacher? Sign in with a teacher account to register your school here.'}
+                            </p>
+                        )}
+                    </div>
                 </header>
 
                 <div className="relative mb-8">
@@ -118,6 +144,18 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                     </ul>
                 )}
             </div>
+
+            {isTeacher && user && (
+                <RegisterSchoolModal
+                    isOpen={registerOpen}
+                    onClose={() => setRegisterOpen(false)}
+                    teacherId={user.id}
+                    teacherName={user.name}
+                    onRegistered={(s) => setSchools(prev =>
+                        [s, ...prev.filter(p => p.id !== s.id)].sort((a, b) => a.name.localeCompare(b.name)),
+                    )}
+                />
+            )}
         </div>
     );
 };

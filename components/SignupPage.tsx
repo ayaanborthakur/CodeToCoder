@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { isUsernameAvailable, claimUsername, validateUsername } from '../services/usernameService';
 import { createClassroom, joinClassroom } from '../services/classroomService';
-import { listSchools, requestSchoolJoin } from '../services/schoolService';
+import { listSchools, requestSchoolJoin, markSchoolPromptSeen } from '../services/schoolService';
 import type { UserRole, Classroom, School } from '../types';
 import { Helmet } from 'react-helmet-async';
 
@@ -208,6 +208,9 @@ export const SignupPage: React.FC = () => {
         setError(null);
         try {
             await requestSchoolJoin(user, school.id);
+            // They've answered the "are you part of a school?" question, so the
+            // one-time post-login prompt should never fire for them.
+            await markSchoolPromptSeen(user.id);
             await refreshUser();
         } catch (err: any) {
             // Non-fatal — they can still complete signup without a school.
@@ -216,6 +219,15 @@ export const SignupPage: React.FC = () => {
             setSchoolSubmitting(false);
             setStep('setup');
         }
+    };
+
+    // Skip the school step — record that they've seen the question so the
+    // one-time post-login prompt doesn't ask again.
+    const handleSkipSchool = async () => {
+        if (user) {
+            try { await markSchoolPromptSeen(user.id); await refreshUser(); } catch { /* non-fatal */ }
+        }
+        setStep('setup');
     };
 
     // ── Debounced username check ──────────────────────────────────────────────
@@ -648,7 +660,7 @@ export const SignupPage: React.FC = () => {
 
                                 <button
                                     type="button"
-                                    onClick={() => setStep('setup')}
+                                    onClick={handleSkipSchool}
                                     disabled={schoolSubmitting}
                                     className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
                                 >

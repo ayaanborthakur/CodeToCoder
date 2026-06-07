@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     Copy,
@@ -42,7 +43,6 @@ import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
 import { AssignLessonModal } from './AssignLessonModal';
 import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
-import { RegisterSchoolModal } from './RegisterSchoolModal';
 import { assignmentTitle, assignmentSubtitle } from '../utils/assignmentDisplay';
 import { getSchool, listSchoolsForRegistrar, listPendingJoinRequests, approveSchoolJoin, rejectSchoolJoin, type PendingSchoolJoin } from '../services/schoolService';
 
@@ -97,6 +97,7 @@ const GRANTABLE_COURSES = COURSES.filter(c => c.prerequisiteCourseId !== null);
 
 export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) => {
     const { user, refreshUser } = useAuth();
+    const navigate = useNavigate();
 
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
     const [activeClassId, setActiveClassId] = useState<string | null>(null);
@@ -118,7 +119,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [showArchived, setShowArchived] = useState(false);
     const [school, setSchool] = useState<School | null>(null);
-    const [registerSchoolOpen, setRegisterSchoolOpen] = useState(false);
     const [pendingJoins, setPendingJoins] = useState<PendingSchoolJoin[]>([]);
     // Per-user spinner: 'approving' or 'rejecting' or null for each pending uid.
     const [pendingActionUid, setPendingActionUid] = useState<{ uid: string; mode: 'approve' | 'reject' } | null>(null);
@@ -465,10 +465,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         </div>
                         {!school && user && (
                             <button
-                                onClick={() => setRegisterSchoolOpen(true)}
+                                onClick={() => navigate('/schools')}
                                 className="px-3 py-1.5 text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded-md flex-shrink-0"
+                                title="Register your school on the Schools page"
                             >
-                                Register school
+                                Register on Schools page
                             </button>
                         )}
                     </div>
@@ -497,16 +498,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         )}
                     </form>
                 </div>
-
-                {user && (
-                    <RegisterSchoolModal
-                        isOpen={registerSchoolOpen}
-                        onClose={() => setRegisterSchoolOpen(false)}
-                        teacherId={user.id}
-                        teacherName={user.name}
-                        onRegistered={(s) => setSchool(s)}
-                    />
-                )}
             </div>
         );
     }
@@ -642,9 +633,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         </div>
                     ) : (
                         <button
-                            onClick={() => setRegisterSchoolOpen(true)}
+                            onClick={() => navigate('/schools')}
                             className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400"
-                            title="Register your school on Code2Coder"
+                            title="Register your school on the Schools page"
                         >
                             <GraduationCap className="w-3.5 h-3.5" />
                             Register school
@@ -832,16 +823,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                         setAssignments([]);
                         setPosts([]);
                     }}
-                />
-            )}
-
-            {user && (
-                <RegisterSchoolModal
-                    isOpen={registerSchoolOpen}
-                    onClose={() => setRegisterSchoolOpen(false)}
-                    teacherId={user.id}
-                    teacherName={user.name}
-                    onRegistered={(s) => setSchool(s)}
                 />
             )}
         </div>

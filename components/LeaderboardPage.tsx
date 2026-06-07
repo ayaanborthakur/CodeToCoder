@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { getLeaderboardData, getClassLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
+import { getLeaderboardData, getClassLeaderboardData, getSchoolLeaderboardData, LeaderboardEntry } from '../services/leaderboardService';
 import { useAuth } from '../contexts/AuthContext';
-import { Medal, Star, Crown, Trophy, Calendar, Search, Globe, GraduationCap } from 'lucide-react';
+import { Medal, Star, Crown, Trophy, Calendar, Search, Globe, GraduationCap, School } from 'lucide-react';
 
-type LeaderboardScope = 'global' | 'class';
+type LeaderboardScope = 'global' | 'class' | 'school';
 
 const RankBadge = ({ rank }: { rank: number }) => {
     if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400 fill-yellow-400 animate-bounce-slow" />;
@@ -21,16 +21,23 @@ export const LeaderboardPage: React.FC = () => {
     const [scope, setScope] = useState<LeaderboardScope>('global');
 
     const hasClass = !!user?.classId;
+    // Only approved members (not pending) count as "in" a school.
+    const hasSchool = !!user?.schoolId && !user?.schoolJoinPending;
 
     useEffect(() => {
         const load = async () => {
             try {
                 setLoading(true);
-                const data = scope === 'class' && user?.classId
-                    ? await getClassLeaderboardData(user.classId)
+                let data: LeaderboardEntry[];
+                if (scope === 'class' && user?.classId) {
+                    data = await getClassLeaderboardData(user.classId);
+                } else if (scope === 'school' && user?.schoolId) {
+                    data = await getSchoolLeaderboardData(user.schoolId);
+                } else {
                     // Top 100 is plenty for the UI (podium + visible list).
                     // 500 was burning 400 extra reads per Leaderboard view.
-                    : await getLeaderboardData(100);
+                    data = await getLeaderboardData(100);
+                }
                 setEntries(data);
             } catch (error) {
                 console.error("Failed to load leaderboard:", error);
@@ -39,7 +46,7 @@ export const LeaderboardPage: React.FC = () => {
             }
         };
         load();
-    }, [scope, user?.classId]);
+    }, [scope, user?.classId, user?.schoolId]);
 
     const filteredEntries = entries.filter(e => 
         e.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -75,7 +82,9 @@ export const LeaderboardPage: React.FC = () => {
                     <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto relative z-10">
                         {scope === 'class'
                             ? <>Top performers in <span className="text-cyan-400 font-bold">your class</span>. Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>
-                            : <>Top masterminds competing for global dominance. <br/>Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>}
+                            : scope === 'school'
+                                ? <>Top performers at <span className="text-cyan-400 font-bold">your school</span>. Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>
+                                : <>Top masterminds competing for global dominance. <br/>Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>}
                     </p>
 
                     {/* Scope toggle */}
@@ -105,6 +114,21 @@ export const LeaderboardPage: React.FC = () => {
                         >
                             <GraduationCap className="w-3.5 h-3.5" />
                             My Class
+                        </button>
+                        <button
+                            onClick={() => hasSchool && setScope('school')}
+                            disabled={!hasSchool}
+                            title={hasSchool ? '' : 'Join a school to see school rankings'}
+                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                                scope === 'school'
+                                    ? 'bg-cyan-500 text-white shadow-sm'
+                                    : hasSchool
+                                        ? 'text-gray-400 hover:text-gray-200'
+                                        : 'text-gray-600 cursor-not-allowed'
+                            }`}
+                        >
+                            <School className="w-3.5 h-3.5" />
+                            My School
                         </button>
                     </div>
                 </div>
@@ -220,7 +244,7 @@ export const LeaderboardPage: React.FC = () => {
                             <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center">
                                 <h3 className="text-xl font-bold flex items-center gap-2">
                                     <Trophy className="w-5 h-5 text-cyan-500" />
-                                    Global Rankings
+                                    {scope === 'class' ? 'Class Rankings' : scope === 'school' ? 'School Rankings' : 'Global Rankings'}
                                 </h3>
                                 <div className="relative w-full sm:w-64">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />

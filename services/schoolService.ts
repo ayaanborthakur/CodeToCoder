@@ -2,6 +2,7 @@ import {
     doc,
     setDoc,
     getDoc,
+    updateDoc,
     collection,
     query,
     where,
@@ -67,6 +68,20 @@ export const registerSchool = async (
         { schoolId: ref.id, schoolJoinPending: false },
         { merge: true },
     );
+
+    // Backfill schoolId onto the teacher's existing classrooms so the
+    // same-school join guard works for classes created before they registered.
+    // Bounded — a teacher owns a handful of classrooms.
+    try {
+        const owned = await getDocs(
+            query(collection(db, 'classrooms'), where('teacherId', '==', registrarId)),
+        );
+        await Promise.all(
+            owned.docs.map(d => updateDoc(d.ref, { schoolId: ref.id }).catch(() => {})),
+        );
+    } catch {
+        // Non-fatal: registration still succeeds; backfill is best-effort.
+    }
 
     return school;
 };

@@ -138,7 +138,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
         setJoinLoading(true);
         setJoinError(null);
         try {
-            await joinClassroom(user.id, joinCode.trim());
+            await joinClassroom(user.id, joinCode.trim(), user.schoolJoinPending ? undefined : user.schoolId);
             await refreshUser();
             await loadClassroom();
         } catch (err: unknown) {

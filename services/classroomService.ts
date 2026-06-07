@@ -68,6 +68,13 @@ export const createClassroom = async (
 ): Promise<Classroom> => {
     const joinCode = await getUniqueJoinCode();
     const classRef = doc(collection(db, CLASSROOMS_COLLECTION));
+
+    // Stamp the teacher's school onto the classroom (if they have one) so the
+    // same-school join check can run client-side without reading the teacher's
+    // user doc. We read it from the teacher doc below anyway.
+    const teacherSnap = await getDoc(doc(db, 'users', teacherId));
+    const teacherSchoolId = teacherSnap.exists() ? (teacherSnap.data().schoolId as string | undefined) : undefined;
+
     const classroom: Classroom = {
         classId: classRef.id,
         className: className.trim(),
@@ -76,12 +83,12 @@ export const createClassroom = async (
         joinCode,
         studentIds: [],
         createdAt: Date.now(),
+        ...(teacherSchoolId ? { schoolId: teacherSchoolId } : {}),
     };
     await setDoc(classRef, classroom);
 
     // Append to teacher's classIds. Also set classId if absent (back-compat
     // for any code still reading the single-classroom field).
-    const teacherSnap = await getDoc(doc(db, 'users', teacherId));
     const existingClassId = teacherSnap.exists() ? (teacherSnap.data().classId as string | undefined) : undefined;
     const update: Record<string, unknown> = {
         role: 'teacher',
@@ -139,10 +146,21 @@ export const getClassroomByJoinCode = async (joinCode: string): Promise<Classroo
  * Add a student to a classroom using a join code.
  * Updates both the classroom document and the student's user doc.
  */
-export const joinClassroom = async (studentId: string, joinCode: string): Promise<Classroom> => {
+export const joinClassroom = async (
+    studentId: string,
+    joinCode: string,
+    studentSchoolId?: string,
+): Promise<Classroom> => {
     const classroom = await getClassroomByJoinCode(joinCode);
     if (!classroom) {
         throw new Error('Invalid join code. Please check with your teacher and try again.');
+    }
+
+    // Same-school guard: if BOTH the classroom and the student are attached to a
+    // school, they must match. Classes without a school (or students without
+    // one) are unaffected — joining stays open in those cases.
+    if (classroom.schoolId && studentSchoolId && classroom.schoolId !== studentSchoolId) {
+        throw new Error('This classroom belongs to a different school than yours. Ask your teacher for the right join code.');
     }
 
     const classRef = doc(db, CLASSROOMS_COLLECTION, classroom.classId);

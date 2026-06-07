@@ -7,6 +7,14 @@
         { "fieldPath": "schoolId", "order": "ASCENDING" },
         { "fieldPath": "schoolJoinPending", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolId", "order": "ASCENDING" },
+        { "fieldPath": "net_value", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

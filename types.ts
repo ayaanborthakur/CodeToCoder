@@ -109,6 +109,11 @@ export interface Classroom {
   description?: string;          // short subject/period note
   archived?: boolean;            // hidden from the active switcher
   archivedAt?: number;           // unix ms when archive flag flipped on
+  // School the owning teacher belonged to when the class was created (or when
+  // they later registered a school — see registerSchool backfill). Denormalised
+  // onto the classroom so a student can validate "same school" at join time
+  // without reading the teacher's user doc (which rules forbid pre-join).
+  schoolId?: string;
 }
 
 export interface User {

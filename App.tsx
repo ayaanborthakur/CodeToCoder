@@ -38,6 +38,7 @@ import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
 import { SchoolsPage } from './components/SchoolsPage';
+import { SchoolPromptModal } from './components/SchoolPromptModal';
 
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -200,6 +201,9 @@ const App: React.FC = () => {
 
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+    // Dismiss flag for the one-time "Are you part of a school?" prompt so it
+    // closes immediately on choose/skip (before refreshUser resolves).
+    const [schoolPromptDismissed, setSchoolPromptDismissed] = useState(false);
     const [practiceAssignTarget, setPracticeAssignTarget] = useState<PracticeItem | null>(null);
 
     const [aiAssistanceLevel, setAiAssistanceLevel] = useState(7);
@@ -1957,6 +1961,27 @@ const App: React.FC = () => {
                     onClose={() => setIsUsernameModalOpen(false)}
                     onSuccess={async () => {
                         setIsUsernameModalOpen(false);
+                        await refreshUser();
+                    }}
+                />
+            )}
+            {/* One-time "Are you part of a school?" prompt for existing students.
+                Shows only after they have a username (so it never stacks with the
+                username modal), only for non-teachers without a school, and only
+                until they answer it once (schoolPromptSeen). */}
+            {user
+                && user.username
+                && user.role !== 'teacher'
+                && !user.schoolId
+                && !user.schoolJoinPending
+                && !user.schoolPromptSeen
+                && !schoolPromptDismissed
+                && currentView !== 'signup'
+                && (
+                <SchoolPromptModal
+                    user={user}
+                    onDone={async () => {
+                        setSchoolPromptDismissed(true);
                         await refreshUser();
                     }}
                 />

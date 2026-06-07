@@ -51,6 +51,15 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId == resource.data.classId;
 
+      // Schoolmates: a signed-in user can READ another user's doc when both
+      // share a non-empty schoolId. Powers the school-scoped leaderboard.
+      // Costs a single get() per read.
+      allow read: if isSignedIn()
+        && resource.data.schoolId is string
+        && resource.data.schoolId != ''
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.schoolId == resource.data.schoolId;
+
       // School registrar: can READ user docs of users whose schoolId points to
       // a school they registered. Powers the "pending students" queue.
       allow read: if isSignedIn()

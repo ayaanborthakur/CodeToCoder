@@ -126,3 +126,45 @@ export const getClassLeaderboardData = async (classId: string): Promise<Leaderbo
         return [];
     }
 };
+
+/**
+ * School-scoped leaderboard. Returns approved members of a school ranked by
+ * net_value. Reads are gated by the users/{uid} 'same-school members can read
+ * each other' Firestore rule, and the query needs a composite index
+ * (schoolId ASC, net_value DESC).
+ *
+ * Pending join requests (schoolJoinPending === true) are filtered out — they
+ * aren't approved members yet. Limited to 100, which is plenty for the UI.
+ */
+export const getSchoolLeaderboardData = async (schoolId: string): Promise<LeaderboardEntry[]> => {
+    try {
+        const q = query(
+            collection(db, 'users'),
+            where('schoolId', '==', schoolId),
+            orderBy('net_value', 'desc'),
+            limit(100),
+        );
+        const snap = await getDocs(q);
+
+        const entries: LeaderboardEntry[] = [];
+        snap.forEach((d) => {
+            const data = d.data();
+            if (!data.username) return;
+            if (data.schoolJoinPending === true) return; // not yet an approved member
+            entries.push({
+                userId: d.id,
+                username: data.username,
+                avatar: data.avatar,
+                net_value: data.net_value ?? 0,
+                rank: 0,
+                joinedAt: data.joinedAt ?? data.createdAt,
+            });
+        });
+
+        entries.forEach((e, i) => { e.rank = i + 1; });
+        return entries;
+    } catch (error) {
+        console.error('Failed to fetch school leaderboard:', error);
+        return [];
+    }
+};
