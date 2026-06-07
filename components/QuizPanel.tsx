@@ -400,7 +400,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                         {/* Explicit correction text if wrong */}
                                         {submitted && isWrong && (
                                             <div className="mt-6 w-full p-5 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl animate-fade-in">
-                                                <p className="text-xs font-bold text-red-800 dark:text-red-300 uppercase tracking-widest mb-2 font-mono">Correction</p>
+                                                <p className="text-xs font-semibold text-red-800 dark:text-red-300 uppercase tracking-[0.08em] mb-2">Correction</p>
                                                 <p className="text-gray-800 dark:text-gray-200 text-lg">
                                                     The correct answer is <span className="font-bold text-green-600 dark:text-green-400 border-b-2 border-green-200 dark:border-green-800/50">{String.fromCharCode(65 + q.correctAnswerIndex)}: {q.options[q.correctAnswerIndex]}</span>
                                                 </p>

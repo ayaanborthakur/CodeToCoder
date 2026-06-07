@@ -213,7 +213,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                             </h3>
                                             <DifficultyBadge difficulty={item.difficulty} />
                                             {isCustom && (
-                                                <span className="text-[10px] font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
                                             )}
                                         </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-1">
@@ -275,7 +275,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                     <div className="space-y-6">
                                         <div className="flex items-center gap-3 px-1">
                                             <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.4)]" />
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-widest">Yet to Start</h3>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-[0.08em]">Yet to Start</h3>
                                             <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-2 py-0.5 rounded-md border border-cyan-100 dark:border-cyan-800/40">{availableList.length}</span>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -289,7 +289,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                     <div className="space-y-6 pt-4">
                                         <div className="flex items-center gap-3 px-1">
                                             <div className="w-1.5 h-6 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-widest">Completed</h3>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-[0.08em]">Completed</h3>
                                             <span className="text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-md border border-green-100 dark:border-green-800/40">{completedList.length}</span>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-90 transition-opacity hover:opacity-100">
@@ -341,7 +341,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50 shadow-sm">
-                            <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-widest block mb-0.5">Completed</span>
+                            <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-[0.08em] block mb-0.5">Completed</span>
                             <span className="text-lg font-bold text-green-900 dark:text-green-100">{formatCompactNumber(completedCount)} <span className="text-xs opacity-60 font-medium">/{formatCompactNumber(allItems.length)}</span></span>
                         </div>
                     </div>
@@ -385,7 +385,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                             <div className="p-3.5 bg-purple-100 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
                                 <BrainCircuit className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <span className="px-2.5 py-1 bg-purple-100/60 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-purple-200/50 dark:border-purple-800/30">
+                            <span className="px-2.5 py-1 bg-purple-100/60 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-purple-200/50 dark:border-purple-800/30">
                                 {quizCount} QUIZZES
                             </span>
                         </div>
@@ -395,7 +395,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
                             Test your knowledge with conceptual multiple-choice questions
                         </p>
-                        <div className="flex items-center text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest">
+                        <div className="flex items-center text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.08em]">
                             Browse
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -411,7 +411,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                             <div className="p-3.5 bg-blue-100 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
                                 <Terminal className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <span className="px-2.5 py-1 bg-blue-100/60 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                            <span className="px-2.5 py-1 bg-blue-100/60 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-blue-200/50 dark:border-blue-800/30">
                                 {problemCount} PROBLEMS
                             </span>
                         </div>
@@ -421,7 +421,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
                             Solve focused coding challenges with instant AI feedback
                         </p>
-                        <div className="flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                        <div className="flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.08em]">
                             Browse
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
@@ -437,7 +437,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                             <div className="p-3.5 bg-orange-100 dark:bg-orange-900/30 rounded-xl group-hover:scale-110 transition-transform">
                                 <Rocket className="w-8 h-8 text-orange-600 dark:text-orange-400" />
                             </div>
-                            <span className="px-2.5 py-1 bg-orange-100/60 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-bold uppercase tracking-widest rounded-lg border border-orange-200/50 dark:border-orange-800/30">
+                            <span className="px-2.5 py-1 bg-orange-100/60 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-orange-200/50 dark:border-orange-800/30">
                                 {projectCount} PROJECTS
                             </span>
                         </div>
@@ -447,7 +447,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
                             Build real apps and apply everything you've learned
                         </p>
-                        <div className="flex items-center text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-widest">
+                        <div className="flex items-center text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-[0.08em]">
                             Browse
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
