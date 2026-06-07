@@ -23,6 +23,8 @@ import {
     EyeOff,
     UserMinus,
     GraduationCap,
+    UserPlus,
+    X,
 } from 'lucide-react';
 import {
     getClassroom,
@@ -42,7 +44,7 @@ import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
 import { RegisterSchoolModal } from './RegisterSchoolModal';
 import { assignmentTitle, assignmentSubtitle } from '../utils/assignmentDisplay';
-import { getSchool, listSchoolsForRegistrar } from '../services/schoolService';
+import { getSchool, listSchoolsForRegistrar, listPendingJoinRequests, approveSchoolJoin, rejectSchoolJoin, type PendingSchoolJoin } from '../services/schoolService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +119,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
     const [showArchived, setShowArchived] = useState(false);
     const [school, setSchool] = useState<School | null>(null);
     const [registerSchoolOpen, setRegisterSchoolOpen] = useState(false);
+    const [pendingJoins, setPendingJoins] = useState<PendingSchoolJoin[]>([]);
+    // Per-user spinner: 'approving' or 'rejecting' or null for each pending uid.
+    const [pendingActionUid, setPendingActionUid] = useState<{ uid: string; mode: 'approve' | 'reject' } | null>(null);
 
     const activeClassroom = useMemo(
         () => classrooms.find(c => c.classId === activeClassId) ?? null,
@@ -267,6 +272,52 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
         })();
         return () => { cancelled = true; };
     }, [user?.id, user?.schoolId]);
+
+    // Load pending school-join requests whenever the registrar's school
+    // changes. Only the registrar can read these (rule-enforced); if the
+    // teacher hasn't registered a school yet, we just skip the query.
+    const loadPendingJoins = useCallback(async () => {
+        if (!school || !user || school.registrarId !== user.id) { setPendingJoins([]); return; }
+        try {
+            const list = await listPendingJoinRequests(school.id);
+            setPendingJoins(list);
+        } catch {
+            // Non-fatal — failed reads probably mean rules deny (e.g. not
+            // actually the registrar). Hide the section silently.
+            setPendingJoins([]);
+        }
+    }, [school?.id, school?.registrarId, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { loadPendingJoins(); }, [loadPendingJoins]);
+
+    const handleApprovePending = async (uid: string) => {
+        setPendingActionUid({ uid, mode: 'approve' });
+        // Optimistic: remove from the list immediately.
+        const previous = pendingJoins;
+        setPendingJoins(prev => prev.filter(p => p.userId !== uid));
+        try {
+            await approveSchoolJoin(uid);
+        } catch (e: unknown) {
+            // Rollback on failure.
+            setPendingJoins(previous);
+            setError(e instanceof Error ? e.message : 'Failed to approve student.');
+        } finally {
+            setPendingActionUid(null);
+        }
+    };
+
+    const handleRejectPending = async (uid: string) => {
+        setPendingActionUid({ uid, mode: 'reject' });
+        const previous = pendingJoins;
+        setPendingJoins(prev => prev.filter(p => p.userId !== uid));
+        try {
+            await rejectSchoolJoin(uid);
+        } catch (e: unknown) {
+            setPendingJoins(previous);
+            setError(e instanceof Error ? e.message : 'Failed to reject student.');
+        } finally {
+            setPendingActionUid(null);
+        }
+    };
     // When switching classes, drop the stale student list so the deferred
     // fetch above re-runs for the new class on tab open.
     useEffect(() => {
@@ -605,6 +656,64 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             {error && (
                 <div className="mx-4 sm:mx-6 mt-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                </div>
+            )}
+
+            {/* Pending school-join requests — only the school registrar sees this. */}
+            {school && user && school.registrarId === user.id && pendingJoins.length > 0 && (
+                <div className="mx-4 sm:mx-6 mt-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2.5">
+                        <UserPlus className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-[0.08em]">
+                            {pendingJoins.length} {pendingJoins.length === 1 ? 'student is' : 'students are'} waiting to join {school.name}
+                        </span>
+                    </div>
+                    <ul className="divide-y divide-amber-200/50 dark:divide-amber-800/30">
+                        {pendingJoins.map(p => {
+                            const isActing = pendingActionUid?.uid === p.userId;
+                            return (
+                                <li key={p.userId} className="py-2 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-200 dark:border-amber-800/50 bg-white dark:bg-gray-800 flex-shrink-0">
+                                        {p.avatar ? (
+                                            <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xs font-semibold text-white">
+                                                {p.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{p.name}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                            {p.username ? `@${p.username}` : (p.email ?? '')}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => handleApprovePending(p.userId)}
+                                            disabled={isActing}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-green-600 hover:bg-green-500 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isActing && pendingActionUid?.mode === 'approve'
+                                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                : <CheckCircle2 className="w-3 h-3" />}
+                                            Approve
+                                        </button>
+                                        <button
+                                            onClick={() => handleRejectPending(p.userId)}
+                                            disabled={isActing}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-red-400 hover:text-red-600 dark:hover:text-red-400 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isActing && pendingActionUid?.mode === 'reject'
+                                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                                : <X className="w-3 h-3" />}
+                                            Reject
+                                        </button>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 </div>
             )}
 

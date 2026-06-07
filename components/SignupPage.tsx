@@ -21,10 +21,11 @@ import {
 } from 'lucide-react';
 import { isUsernameAvailable, claimUsername, validateUsername } from '../services/usernameService';
 import { createClassroom, joinClassroom } from '../services/classroomService';
-import type { UserRole, Classroom } from '../types';
+import { listSchools, requestSchoolJoin } from '../services/schoolService';
+import type { UserRole, Classroom, School } from '../types';
 import { Helmet } from 'react-helmet-async';
 
-type Step = 'method' | 'credentials' | 'username' | 'role' | 'setup';
+type Step = 'method' | 'credentials' | 'username' | 'role' | 'school' | 'setup';
 
 export const SignupPage: React.FC = () => {
     const { loginWithGoogle, register, user, refreshUser } = useAuth();
@@ -57,6 +58,22 @@ export const SignupPage: React.FC = () => {
     const [joinCode, setJoinCode] = useState('');
     const [joinError, setJoinError] = useState<string | null>(null);
     const [joinLoading, setJoinLoading] = useState(false);
+
+    // School-picker state (student step between role and setup).
+    const [schools, setSchools] = useState<School[]>([]);
+    const [schoolsLoading, setSchoolsLoading] = useState(false);
+    const [schoolFilter, setSchoolFilter] = useState('');
+    const [schoolSubmitting, setSchoolSubmitting] = useState(false);
+
+    // Lazy-load the public school list the first time we enter the school step.
+    useEffect(() => {
+        if (step !== 'school' || schools.length > 0 || schoolsLoading) return;
+        setSchoolsLoading(true);
+        listSchools()
+            .then(setSchools)
+            .catch(() => { /* non-fatal — picker shows empty + skip option */ })
+            .finally(() => setSchoolsLoading(false));
+    }, [step, schools.length, schoolsLoading]);
 
     // Handle already-authenticated users landing on /signup.
     // We only auto-route from the 'method' step (the entry point). During the
@@ -180,6 +197,27 @@ export const SignupPage: React.FC = () => {
         }
     };
 
+    /**
+     * Student-side school pick. Writes a pending join request to the user
+     * doc and advances to the 'setup' step. The teacher who registered the
+     * school approves the request in their dashboard's pending queue.
+     */
+    const handlePickSchool = async (school: School) => {
+        if (!user) { setStep('setup'); return; }
+        setSchoolSubmitting(true);
+        setError(null);
+        try {
+            await requestSchoolJoin(user, school.id);
+            await refreshUser();
+        } catch (err: any) {
+            // Non-fatal — they can still complete signup without a school.
+            setError(err?.message || 'Could not send the school join request. You can try again later from your profile.');
+        } finally {
+            setSchoolSubmitting(false);
+            setStep('setup');
+        }
+    };
+
     // ── Debounced username check ──────────────────────────────────────────────
 
     useEffect(() => {
@@ -218,13 +256,16 @@ export const SignupPage: React.FC = () => {
 
     // ── Progress bar ─────────────────────────────────────────────────────────
 
-    // Map internal step names to progress-bar indices (0-3)
+    // Map internal step names to progress-bar indices (0-3). The student-only
+    // 'school' step shares the index with 'setup' — the visual bar doesn't
+    // need a separate dot for it (it's still part of the final "setup" phase).
     const stepIndex = (() => {
         switch (step) {
             case 'method':
             case 'credentials': return 0;
             case 'username':    return 1;
             case 'role':        return 2;
+            case 'school':
             case 'setup':       return 3;
         }
     })();
@@ -501,7 +542,7 @@ export const SignupPage: React.FC = () => {
                                 </button>
 
                                 <button
-                                    onClick={() => { setSelectedRole('student'); setStep('setup'); }}
+                                    onClick={() => { setSelectedRole('student'); setStep('school'); }}
                                     className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
                                 >
                                     <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
@@ -523,6 +564,95 @@ export const SignupPage: React.FC = () => {
                                     className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-center"
                                 >
                                     Skip for now
+                                </button>
+                            </div>
+                        )}
+
+                        {/* ── Step 4b (students only): pick your school ────── */}
+                        {step === 'school' && (
+                            <div className="space-y-6 animate-fade-in-up">
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
+                                        <GraduationCap className="w-8 h-8" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold mb-2">Are you part of a school?</h2>
+                                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                        Pick yours so your teacher can confirm you're a student. You can skip this if you're learning on your own.
+                                    </p>
+                                </div>
+
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={schoolFilter}
+                                        onChange={(e) => setSchoolFilter(e.target.value)}
+                                        className="w-full pl-4 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm"
+                                        placeholder="Search your school by name or city..."
+                                        disabled={schoolSubmitting}
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
+                                    {schoolsLoading && (
+                                        <div className="px-4 py-6 text-center text-sm text-gray-400">Loading schools…</div>
+                                    )}
+                                    {!schoolsLoading && schools.length === 0 && (
+                                        <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            No schools registered yet. Ask your teacher to register your school in their dashboard.
+                                        </div>
+                                    )}
+                                    {!schoolsLoading && schools.length > 0 && (() => {
+                                        const q = schoolFilter.trim().toLowerCase();
+                                        const matches = q
+                                            ? schools.filter(s =>
+                                                s.name.toLowerCase().includes(q)
+                                                || s.city?.toLowerCase().includes(q)
+                                                || s.state?.toLowerCase().includes(q)
+                                                || s.country?.toLowerCase().includes(q),
+                                              )
+                                            : schools;
+                                        if (matches.length === 0) {
+                                            return (
+                                                <div className="px-4 py-6 text-center text-sm text-gray-400">
+                                                    No schools match "{schoolFilter}".
+                                                </div>
+                                            );
+                                        }
+                                        return matches.map(s => (
+                                            <button
+                                                key={s.id}
+                                                onClick={() => handlePickSchool(s)}
+                                                disabled={schoolSubmitting}
+                                                className="w-full px-4 py-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-3"
+                                            >
+                                                <div className="min-w-0">
+                                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{s.name}</div>
+                                                    {(s.city || s.state || s.country) && (
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                            {[s.city, s.state, s.country].filter(Boolean).join(', ')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                            </button>
+                                        ));
+                                    })()}
+                                </div>
+
+                                {error && (
+                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => setStep('setup')}
+                                    disabled={schoolSubmitting}
+                                    className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
+                                >
+                                    Skip — I'm not part of a school
                                 </button>
                             </div>
                         )}

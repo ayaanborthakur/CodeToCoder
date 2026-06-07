@@ -52,6 +52,39 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
     const [codeCopied, setCodeCopied] = useState(false);
     const [leaving, setLeaving] = useState(false);
     const [studentTab, setStudentTab] = useState<StudentTab>('stream');
+    const [pendingSchoolName, setPendingSchoolName] = useState<string | null>(null);
+
+    // Lazily resolve the pending school's name for the "waiting for approval"
+    // banner. Avoids showing a bare schoolId.
+    useEffect(() => {
+        if (!user?.schoolJoinPending || !user.schoolId) { setPendingSchoolName(null); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const { getSchool } = await import('../services/schoolService');
+                const s = await getSchool(user.schoolId!);
+                if (!cancelled) setPendingSchoolName(s?.name ?? null);
+            } catch { /* non-fatal */ }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.schoolId, user?.schoolJoinPending]);
+
+    // Inline banner — appears at the top of any Shell when the student has a
+    // pending school join. Renders nothing when there's no pending request.
+    const SchoolPendingBanner = () => {
+        if (!user?.schoolJoinPending || !user.schoolId) return null;
+        return (
+            <div className="mb-5 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
+                <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
+                    <span className="font-semibold">Waiting for school approval.</span>{' '}
+                    {pendingSchoolName
+                        ? <>Your join request for <span className="font-semibold">{pendingSchoolName}</span> is being reviewed by a teacher there.</>
+                        : <>Your school join request is being reviewed.</>}
+                </div>
+            </div>
+        );
+    };
 
     const loadClassroom = useCallback(async () => {
         if (!user?.classId) { setClassroom(null); return; }
@@ -228,6 +261,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
         if (classroom) {
             return (
                 <Shell>
+                    <SchoolPendingBanner />
                     <header className="mb-5">
                         <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5">Classroom</div>
                         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
@@ -319,6 +353,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
     // ── Student: not in a classroom → compact join form ────────────────────────
     return (
         <Shell>
+            <SchoolPendingBanner />
             <header className="mb-5">
                 <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Student</div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Join a classroom</h1>

@@ -51,6 +51,37 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.classId == resource.data.classId;
 
+      // School registrar: can READ user docs of users whose schoolId points to
+      // a school they registered. Powers the "pending students" queue.
+      allow read: if isSignedIn()
+        && resource.data.schoolId is string
+        && resource.data.schoolId != ''
+        && exists(/databases/$(database)/documents/schools/$(resource.data.schoolId))
+        && get(/databases/$(database)/documents/schools/$(resource.data.schoolId)).data.registrarId == request.auth.uid;
+
+      // School registrar: APPROVE a pending join — set schoolJoinPending=false
+      // on a user whose schoolId points to a school the caller registered.
+      // Only that one field, only to false. Cannot touch other fields.
+      allow update: if isSignedIn()
+        && resource.data.schoolId is string
+        && resource.data.schoolId != ''
+        && exists(/databases/$(database)/documents/schools/$(resource.data.schoolId))
+        && get(/databases/$(database)/documents/schools/$(resource.data.schoolId)).data.registrarId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schoolJoinPending'])
+        && request.resource.data.schoolJoinPending == false;
+
+      // School registrar: REJECT a pending join — set schoolJoinPending=false
+      // AND clear schoolId to ''. Only those two fields, with those exact
+      // values. Lets the registrar push the user back to "no school" state.
+      allow update: if isSignedIn()
+        && resource.data.schoolId is string
+        && resource.data.schoolId != ''
+        && exists(/databases/$(database)/documents/schools/$(resource.data.schoolId))
+        && get(/databases/$(database)/documents/schools/$(resource.data.schoolId)).data.registrarId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['schoolJoinPending', 'schoolId'])
+        && request.resource.data.schoolJoinPending == false
+        && request.resource.data.schoolId == '';
+
       // Subcollections (progress, economy, etc.):
       match /{document=**} {
         // Owner: full access.

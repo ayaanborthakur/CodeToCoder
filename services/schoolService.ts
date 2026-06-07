@@ -129,3 +129,68 @@ export const markSchoolPromptSeen = async (userId: string): Promise<void> => {
         { merge: true },
     );
 };
+
+// ─── Registrar (teacher who owns a school) flows ──────────────────────────────
+
+/** A pending school-join request, denormalised to display fields needed by the
+ *  teacher dashboard. We deliberately don't expose the full User doc here. */
+export interface PendingSchoolJoin {
+    userId: string;
+    name: string;
+    username?: string;
+    email?: string;
+    avatar?: string;
+    requestedSchoolId: string;
+}
+
+/**
+ * All users with a pending join request for the given school. Caller is
+ * responsible for verifying the caller is that school's registrar — the
+ * Firestore rule will deny otherwise. Returns an empty list if nothing pending.
+ */
+export const listPendingJoinRequests = async (schoolId: string): Promise<PendingSchoolJoin[]> => {
+    const q = query(
+        collection(db, 'users'),
+        where('schoolId', '==', schoolId),
+        where('schoolJoinPending', '==', true),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => {
+        const data = d.data() as User;
+        return {
+            userId: d.id,
+            name: data.name || 'Unknown',
+            username: data.username,
+            email: data.email,
+            avatar: data.avatar,
+            requestedSchoolId: schoolId,
+        };
+    });
+};
+
+/**
+ * Approve a pending join: clears schoolJoinPending. Student keeps the
+ * schoolId they requested.
+ * Rule enforces: caller must be the registrar of the user's current schoolId.
+ */
+export const approveSchoolJoin = async (studentId: string): Promise<void> => {
+    await setDoc(
+        doc(db, 'users', studentId),
+        { schoolJoinPending: false },
+        { merge: true },
+    );
+};
+
+/**
+ * Reject a pending join: clears schoolJoinPending AND schoolId. Student is no
+ * longer associated with any school.
+ * Rule enforces: caller must be the registrar of the user's current schoolId
+ * (i.e. you can only reject join requests directed at your own school).
+ */
+export const rejectSchoolJoin = async (studentId: string): Promise<void> => {
+    await setDoc(
+        doc(db, 'users', studentId),
+        { schoolJoinPending: false, schoolId: '' },
+        { merge: true },
+    );
+};
