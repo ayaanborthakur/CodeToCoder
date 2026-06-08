@@ -2124,8 +2124,16 @@ const App: React.FC = () => {
 
                         <Route path="/about" element={<AboutTeam onBack={() => handleNavigate('home')} />} />
 
-                        {/* Public list of schools registered on Code2Coder. */}
-                        <Route path="/schools" element={<SchoolsPage onBack={() => handleNavigate(user ? 'home' : 'mission')} />} />
+                        {/* Public list of schools registered on Code2Coder.
+                            Wrap in a full-width scroll container (same as / and
+                            /dashboard) so the page's max-w-5xl mx-auto block can
+                            actually center — without w-full the flex parent shrinks
+                            it to content width and it sticks to the left. */}
+                        <Route path="/schools" element={
+                            <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                <SchoolsPage onBack={() => handleNavigate(user ? 'home' : 'mission')} />
+                            </div>
+                        } />
 
                         <Route path="/profile" element={gate(
                             <ProfilePage
