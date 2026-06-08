@@ -452,23 +452,45 @@ const App: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isAuthLoading]);
 
+    // Onboarding is still in progress whenever one of the post-signup modals
+    // still needs the user's attention. A Google user (popup) lands straight on
+    // /dashboard, sets their username in the UsernameModal, and is then asked the
+    // one-time "are you part of a school?" question — all on /dashboard. The
+    // tutorial must wait until BOTH of those are done, otherwise it fires "right
+    // after the username" and buries the role/school choice. This is the real
+    // cause of the "tutorial interrupts signup" bug: signup doesn't only live on
+    // /signup — for Google sign-ups it finishes via these modals on /dashboard.
+    const isOnboardingInProgress = !!user && (
+        // username not chosen yet (UsernameModal is/will be open)
+        !user.username
+        || isUsernameModalOpen
+        // school question not yet answered (SchoolPromptModal is/will be shown)
+        || (
+            user.role !== 'teacher'
+            && !user.schoolId
+            && !user.schoolJoinPending
+            && !user.schoolPromptSeen
+            && !schoolPromptDismissed
+        )
+    );
+
     // 3. Check if tutorial should be shown for first-time users.
     //
     // The tour starts on the dashboard (TUTORIAL_STEPS[0].route === '/dashboard')
     // and *every* new user lands there once signup is fully complete — so we
-    // auto-start the tour ONLY on the dashboard view. Whitelisting the
-    // destination (rather than blacklisting /signup) is what guarantees the
-    // overlay can never paint over the multi-step signup flow: `user.username`
-    // is claimed partway through signup (before the role + school steps), but
-    // the user is still on /signup at that point, not /dashboard, so the tour
-    // stays dormant until they actually arrive home.
+    // auto-start the tour ONLY on the dashboard view, AND only once every
+    // onboarding modal has been dismissed. Whitelisting the destination (rather
+    // than blacklisting /signup) plus deferring to the onboarding modals is what
+    // guarantees the overlay can never bury a signup step — on /signup OR on the
+    // /dashboard modals that finish a Google sign-up.
     useEffect(() => {
         if (isAuthLoading || !isProgressLoaded) return;
         if (currentView !== 'home') return;
 
         // Only show tutorial for logged-in users who have completed signup (have
-        // a username).
+        // a username) and finished every onboarding modal.
         if (!(user && user.username)) return;
+        if (isOnboardingInProgress) return;
 
         let cancelled = false;
         let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -488,7 +510,7 @@ const App: React.FC = () => {
         // Cancel any pending tutorial if deps change (e.g. user navigates) before
         // it fires — prevents a stray overlay landing on the wrong screen.
         return () => { cancelled = true; if (timeoutId) clearTimeout(timeoutId); };
-    }, [user, isAuthLoading, isProgressLoaded, currentView]);
+    }, [user, isAuthLoading, isProgressLoaded, currentView, isOnboardingInProgress]);
 
     // 4. Check if user needs to set a username (but not on signup page which handles this inline)
     useEffect(() => {
