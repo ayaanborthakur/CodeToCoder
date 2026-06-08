@@ -512,6 +512,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
 
     return (
         <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 min-h-0">
+          {/* Centered, width-capped column so the dashboard doesn't stretch
+              edge-to-edge on wide screens. Matches the student hub width for a
+              consistent, compact in-class feel. Borders/separators stay inside. */}
+          <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col min-h-0">
             {/* Top bar: classroom switcher + actions */}
             <div className="flex items-center gap-3 px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 flex-wrap">
                 <div className="relative">
@@ -825,6 +829,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                     }}
                 />
             )}
+          </div>
         </div>
     );
 };

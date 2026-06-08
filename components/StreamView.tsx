@@ -107,30 +107,27 @@ export const StreamView: React.FC<StreamViewProps> = ({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
             {canPost && (
-                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-2">
-                        Announce to class
-                    </label>
+                <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700/70 p-3 shadow-sm">
                     <textarea
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        placeholder="Share an update with your class…"
-                        rows={3}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none text-sm text-gray-900 dark:text-white resize-y"
+                        placeholder="Share an announcement with your class…"
+                        rows={2}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 outline-none text-sm text-gray-900 dark:text-white resize-y placeholder-gray-400"
                     />
                     {error && (
                         <div className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</div>
                     )}
-                    <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-400">
-                            Posts appear in every student's stream.
+                    <div className="flex items-center justify-between mt-2.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                            Visible to everyone in the class.
                         </span>
                         <button
                             type="submit"
                             disabled={submitting || !draft.trim()}
-                            className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shadow-sm shadow-cyan-500/20 transition-colors"
                         >
                             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
                         </button>
@@ -139,7 +136,10 @@ export const StreamView: React.FC<StreamViewProps> = ({
             )}
 
             {items.length === 0 ? (
-                <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-10 text-center">
+                <div className="rounded-xl bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 px-5 py-12 text-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-50 dark:bg-gray-900/60 flex items-center justify-center mx-auto mb-3">
+                        <Megaphone className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                    </div>
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
                         {canPost ? 'Nothing in the stream yet.' : 'Your teacher hasn\'t posted anything yet.'}
                     </p>
@@ -150,7 +150,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
                     </p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                     {items.map(item => (
                         item.kind === 'post' ? (
                             <PostCard
@@ -190,65 +190,62 @@ const PostCard: React.FC<{
     classroomId?: string;
     isClassTeacher?: boolean;
 }> = ({ post, canDelete, onDelete, canPin, onTogglePin, classroomId, isClassTeacher = false }) => (
-    <article className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden ${
-        post.pinned ? 'border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-500/20' : 'border-gray-200 dark:border-gray-700'
+    <article className={`bg-white dark:bg-gray-800 rounded-xl border p-4 transition-shadow hover:shadow-sm ${
+        post.pinned ? 'border-cyan-300 dark:border-cyan-700 ring-1 ring-cyan-500/20' : 'border-gray-200/80 dark:border-gray-700/70'
     }`}>
-        <div className="h-1 bg-gradient-to-r from-cyan-500 to-blue-600" />
-        <div className="p-4">
-            <header className="flex items-start justify-between gap-3 mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
-                        <Megaphone className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{post.teacherName}</span>
-                            {post.pinned && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded uppercase tracking-[0.05em]">
-                                    <Pin className="w-2.5 h-2.5" /> Pinned
-                                </span>
-                            )}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{relativeTime(post.createdAt)}</div>
-                    </div>
+        <header className="flex items-start justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-500/15 flex items-center justify-center flex-shrink-0">
+                    <Megaphone className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <div className="flex items-center gap-0.5">
-                    {canPin && onTogglePin && (
-                        <button
-                            onClick={() => onTogglePin(post)}
-                            className={`p-1.5 rounded transition-colors ${
-                                post.pinned
-                                    ? 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
-                                    : 'text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
-                            title={post.pinned ? 'Unpin' : 'Pin to top'}
-                            aria-label={post.pinned ? 'Unpin post' : 'Pin post'}
-                        >
-                            {post.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
-                        </button>
-                    )}
-                    {canDelete && onDelete && (
-                        <button
-                            onClick={() => onDelete(post)}
-                            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Delete post"
-                            aria-label="Delete post"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    )}
+                <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{post.teacherName}</span>
+                        {post.pinned && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded uppercase tracking-[0.05em]">
+                                <Pin className="w-2.5 h-2.5" /> Pinned
+                            </span>
+                        )}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{relativeTime(post.createdAt)}</div>
                 </div>
-            </header>
-            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{post.content}</div>
-            {classroomId && (
-                <CommentThread
-                    classroomId={classroomId}
-                    parentKind="post"
-                    parentId={post.id}
-                    isClassTeacher={isClassTeacher}
-                />
-            )}
-        </div>
+            </div>
+            <div className="flex items-center gap-0.5 flex-shrink-0 -mr-1">
+                {canPin && onTogglePin && (
+                    <button
+                        onClick={() => onTogglePin(post)}
+                        className={`p-1.5 rounded-md transition-colors ${
+                            post.pinned
+                                ? 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                                : 'text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                        title={post.pinned ? 'Unpin' : 'Pin to top'}
+                        aria-label={post.pinned ? 'Unpin post' : 'Pin post'}
+                    >
+                        {post.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
+                    </button>
+                )}
+                {canDelete && onDelete && (
+                    <button
+                        onClick={() => onDelete(post)}
+                        className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete post"
+                        aria-label="Delete post"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+        </header>
+        <div className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{post.content}</div>
+        {classroomId && (
+            <CommentThread
+                classroomId={classroomId}
+                parentKind="post"
+                parentId={post.id}
+                isClassTeacher={isClassTeacher}
+            />
+        )}
     </article>
 );
 
@@ -261,62 +258,61 @@ const AssignmentCard: React.FC<{
     isClassTeacher?: boolean;
 }> = ({ assignment, canDelete, onDelete, showOpen, classroomId, isClassTeacher = false }) => {
     const kindLabel = assignment.kind === 'practice' ? 'Practice' : 'Assignment';
+    const due = formatDue(assignment.dueAt);
+    const dueSoon = due === 'Overdue' || due === 'Due today';
     return (
-        <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-600" />
-            <div className="p-4">
-                <header className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                            <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div className="min-w-0">
-                            <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">{kindLabel}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{relativeTime(assignment.assignedAt)}</div>
-                        </div>
+        <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700/70 p-4 transition-shadow hover:shadow-sm">
+            <header className="flex items-start justify-between gap-3 mb-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 ring-1 ring-amber-500/15 flex items-center justify-center flex-shrink-0">
+                        <ClipboardList className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     </div>
-                    {canDelete && onDelete && (
-                        <button
-                            onClick={() => onDelete(assignment)}
-                            className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Delete assignment"
-                            aria-label="Delete assignment"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    )}
-                </header>
-                <div className="font-semibold text-sm text-gray-900 dark:text-white">{assignmentTitle(assignment)}</div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {assignmentSubtitle(assignment) && <span>{assignmentSubtitle(assignment)}</span>}
-                    <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatDue(assignment.dueAt)}
-                    </span>
-                    <span>
-                        {assignment.studentIds === null ? 'Whole class' : `${assignment.studentIds.length} student${assignment.studentIds.length === 1 ? '' : 's'}`}
-                    </span>
+                    <div className="min-w-0">
+                        <div className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">{kindLabel}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{relativeTime(assignment.assignedAt)}</div>
+                    </div>
                 </div>
-                {showOpen && (
-                    <a
-                        href={assignmentOpenPath(assignment)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md"
+                {canDelete && onDelete && (
+                    <button
+                        onClick={() => onDelete(assignment)}
+                        className="p-1.5 -mr-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0 transition-colors"
+                        title="Delete assignment"
+                        aria-label="Delete assignment"
                     >
-                        Open
-                        <ExternalLink className="w-3 h-3" />
-                    </a>
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 )}
-                {classroomId && (
-                    <CommentThread
-                        classroomId={classroomId}
-                        parentKind="assignment"
-                        parentId={assignment.id}
-                        isClassTeacher={isClassTeacher}
-                    />
-                )}
+            </header>
+            <div className="font-semibold text-sm text-gray-900 dark:text-white">{assignmentTitle(assignment)}</div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {assignmentSubtitle(assignment) && <span>{assignmentSubtitle(assignment)}</span>}
+                <span className={`inline-flex items-center gap-1 font-medium ${dueSoon ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                    <Calendar className="w-3 h-3" />
+                    {due}
+                </span>
+                <span>
+                    {assignment.studentIds === null ? 'Whole class' : `${assignment.studentIds.length} student${assignment.studentIds.length === 1 ? '' : 's'}`}
+                </span>
             </div>
+            {showOpen && (
+                <a
+                    href={assignmentOpenPath(assignment)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-sm shadow-cyan-500/20 transition-colors"
+                >
+                    Open
+                    <ExternalLink className="w-3 h-3" />
+                </a>
+            )}
+            {classroomId && (
+                <CommentThread
+                    classroomId={classroomId}
+                    parentKind="assignment"
+                    parentId={assignment.id}
+                    isClassTeacher={isClassTeacher}
+                />
+            )}
         </article>
     );
 };

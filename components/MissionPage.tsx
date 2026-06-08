@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowRight, Zap, Brain, Shield } from 'lucide-react';
+import { ArrowRight, Zap, Brain, Shield, GraduationCap } from 'lucide-react';
 import { ContactModal } from './ContactModal';
 import { AnimatedCodeBlock } from './AnimatedCodeBlock';
 import { ViewState } from './Header';
@@ -80,7 +80,12 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             gives hints instead of answers, and lessons that run the moment you press play.
                         </p>
 
-                        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                        <p className="mt-6 text-base md:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl">
+                            <span className="font-semibold text-gray-700 dark:text-gray-200">Completely free of cost</span> — for every student and every school.
+                            No fees, no subscriptions, no hidden charges. Ever.
+                        </p>
+
+                        <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <button
                                 onClick={onStart}
                                 className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
@@ -90,17 +95,19 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             </button>
                             <button
                                 onClick={() => onNavigate('schools')}
-                                className="text-base font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
-                                For schools →
-                            </button>
-                            <button
-                                onClick={() => onNavigate('about')}
-                                className="text-base font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                            >
-                                About the project →
+                                <GraduationCap className="w-5 h-5" />
+                                Register your school
                             </button>
                         </div>
+
+                        <button
+                            onClick={() => onNavigate('about')}
+                            className="mt-6 text-base font-semibold text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                        >
+                            About the project →
+                        </button>
                     </div>
 
                     <div className="relative lg:pl-4">
