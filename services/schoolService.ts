@@ -48,17 +48,25 @@ export const registerSchool = async (
     }
 
     const ref = doc(collection(db, SCHOOLS_COLLECTION));
+    // Firestore rejects `undefined` field values outright, so we only attach the
+    // optional location/notes fields when they actually have content. Leaving a
+    // field as `undefined` (what `x?.trim() || undefined` produces for an empty
+    // input) is exactly what threw "Unsupported field value: undefined".
     const school: School = {
         id: ref.id,
         name: trimmedName,
         registrarId,
         registrarName,
-        city: input.city?.trim() || undefined,
-        state: input.state?.trim() || undefined,
-        country: input.country?.trim() || undefined,
-        notes: input.notes?.trim() || undefined,
         createdAt: Date.now(),
     };
+    const city = input.city?.trim();
+    const state = input.state?.trim();
+    const country = input.country?.trim();
+    const notes = input.notes?.trim();
+    if (city) school.city = city;
+    if (state) school.state = state;
+    if (country) school.country = country;
+    if (notes) school.notes = notes;
     await setDoc(ref, school);
 
     // Associate the registrar with their own school (no pending — they're the
