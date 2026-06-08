@@ -111,7 +111,9 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                 {!loading && !error && filtered.length === 0 && (
                     <div className="text-center py-16">
                         <p className="text-gray-500 dark:text-gray-400">
-                            {filter ? `No schools match "${filter}".` : 'No schools registered yet — be the first.'}
+                            {schools.length === 0
+                                ? 'No schools registered yet — be the first.'
+                                : `No schools match "${filter}".`}
                         </p>
                     </div>
                 )}

@@ -20,7 +20,7 @@ import {
     Users,
 } from 'lucide-react';
 import { isUsernameAvailable, claimUsername, validateUsername } from '../services/usernameService';
-import { createClassroom, joinClassroom } from '../services/classroomService';
+import { createClassroom, joinClassroom, setUserRole } from '../services/classroomService';
 import { listSchools, requestSchoolJoin, markSchoolPromptSeen } from '../services/schoolService';
 import type { UserRole, Classroom, School } from '../types';
 import { Helmet } from 'react-helmet-async';
@@ -151,6 +151,29 @@ export const SignupPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // ── Role pick ─────────────────────────────────────────────────────────────
+
+    /**
+     * Persist the chosen role to the user's Firestore doc *immediately* — not
+     * just in local state. Previously the role was only written as a side-effect
+     * of createClassroom / joinClassroom, so a teacher who skipped classroom
+     * setup never got role:'teacher' on their doc. That left them unable to
+     * register a school (the Firestore create rule requires role == 'teacher')
+     * and hid the "Register your school" button. Writing it here fixes both.
+     */
+    const handlePickRole = async (role: UserRole) => {
+        setSelectedRole(role);
+        if (user) {
+            try {
+                await setUserRole(user.id, role);
+                await refreshUser();
+            } catch {
+                /* non-fatal: role also gets written on classroom create/join */
+            }
+        }
+        setStep(role === 'teacher' ? 'setup' : 'school');
     };
 
     // ── Teacher: create classroom ─────────────────────────────────────────────
@@ -536,7 +559,7 @@ export const SignupPage: React.FC = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => { setSelectedRole('teacher'); setStep('setup'); }}
+                                    onClick={() => handlePickRole('teacher')}
                                     className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl transition-all group text-left"
                                 >
                                     <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/70 transition-colors">
@@ -554,7 +577,7 @@ export const SignupPage: React.FC = () => {
                                 </button>
 
                                 <button
-                                    onClick={() => { setSelectedRole('student'); setStep('school'); }}
+                                    onClick={() => handlePickRole('student')}
                                     className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
                                 >
                                     <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
