@@ -7,7 +7,6 @@ import {
     query,
     where,
     getDocs,
-    orderBy,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { School, User } from '../types';
@@ -39,9 +38,15 @@ export const registerSchool = async (
         throw new Error('School name is required.');
     }
 
-    // Cheap dup-check: scan existing schools for a case-insensitive match.
-    // At low cardinality (schools are admin-curated) this is fine.
-    const existing = await getDocs(collection(db, SCHOOLS_COLLECTION));
+    // Cheap dup-check against *approved* schools (case-insensitive). We can't
+    // scan the whole collection anymore — the security rule denies a query that
+    // could surface other teachers' pending docs — so we constrain to approved,
+    // which are the public entries we actually care about not duplicating. A
+    // collision with someone else's still-pending submission is caught by the
+    // admin during review.
+    const existing = await getDocs(
+        query(collection(db, SCHOOLS_COLLECTION), where('status', '==', 'approved')),
+    );
     const lower = trimmedName.toLowerCase();
     if (existing.docs.some(d => (d.data() as School).name?.trim().toLowerCase() === lower)) {
         throw new Error(`A school named "${trimmedName}" is already registered.`);
@@ -58,6 +63,9 @@ export const registerSchool = async (
         registrarId,
         registrarName,
         createdAt: Date.now(),
+        // New schools are unlisted until a platform admin approves them. The
+        // Firestore rule enforces this same value on create.
+        status: 'pending',
     };
     const city = input.city?.trim();
     const state = input.state?.trim();
@@ -95,14 +103,60 @@ export const registerSchool = async (
 };
 
 /**
- * All schools registered on the platform, sorted alphabetically.
- * Public — used by the footer-linked /schools list page.
+ * All *approved* schools, sorted alphabetically. Public — used by the
+ * footer-linked /schools list page and the signup school-picker.
+ *
+ * We filter on status server-side (the security rule denies a query that
+ * could return pending/rejected docs to a non-admin) and sort client-side,
+ * which keeps us on Firestore's automatic single-field index — no composite
+ * index to deploy. School cardinality is low, so the sort is cheap.
  */
 export const listSchools = async (): Promise<School[]> => {
     const snap = await getDocs(
-        query(collection(db, SCHOOLS_COLLECTION), orderBy('name', 'asc')),
+        query(collection(db, SCHOOLS_COLLECTION), where('status', '==', 'approved')),
     );
-    return snap.docs.map(d => d.data() as School);
+    return snap.docs
+        .map(d => d.data() as School)
+        .sort((a, b) => a.name.localeCompare(b.name));
+};
+
+/**
+ * Admin-only: every school awaiting review, oldest request first so the
+ * queue is FIFO. The Firestore rule allows this query only for admins
+ * (the status=='pending' constraint isn't publicly readable).
+ */
+export const listPendingSchools = async (): Promise<School[]> => {
+    const snap = await getDocs(
+        query(collection(db, SCHOOLS_COLLECTION), where('status', '==', 'pending')),
+    );
+    return snap.docs
+        .map(d => d.data() as School)
+        .sort((a, b) => a.createdAt - b.createdAt);
+};
+
+/**
+ * Admin-only: approve a pending school so it appears on the public list.
+ * Records who reviewed it and when. The Firestore rule enforces that only
+ * an admin (custom claim) can change `status`.
+ */
+export const approveSchool = async (schoolId: string, adminId: string): Promise<void> => {
+    await updateDoc(doc(db, SCHOOLS_COLLECTION, schoolId), {
+        status: 'approved',
+        reviewedBy: adminId,
+        reviewedAt: Date.now(),
+    });
+};
+
+/**
+ * Admin-only: reject a school. It stays in the collection (audit trail) but
+ * is hidden from the public list and the registrar can see it was rejected.
+ */
+export const rejectSchool = async (schoolId: string, adminId: string): Promise<void> => {
+    await updateDoc(doc(db, SCHOOLS_COLLECTION, schoolId), {
+        status: 'rejected',
+        reviewedBy: adminId,
+        reviewedAt: Date.now(),
+    });
 };
 
 /** Fetch a single school by id. Returns null if not found. */

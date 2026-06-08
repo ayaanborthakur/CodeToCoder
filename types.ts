@@ -148,6 +148,10 @@ export interface User {
   // Set true once we've shown the "Are you part of a school?" prompt to
   // an existing user. Stops it from re-appearing every login.
   schoolPromptSeen?: boolean;
+  // Platform admin. Derived from the Firebase custom claim `admin: true`
+  // (see authService) — NOT a Firestore field, so it can't be self-granted.
+  // Admins vet school registrations.
+  isAdmin?: boolean;
 }
 
 /** A school registered on Code2Coder. Registrars are the teacher who created it. */
@@ -164,7 +168,17 @@ export interface School {
   // Free-text identifier (e.g. school district, board). Optional.
   notes?: string;
   createdAt: number;
+  // Approval workflow. New schools start 'pending' and stay hidden from the
+  // public /schools list and the signup picker until a platform admin approves.
+  // Back-compat: docs written before this field existed are treated as
+  // 'approved' (see listSchools) so the live list doesn't suddenly empty out.
+  status?: SchoolStatus;
+  // Admin (user.id) who last approved/rejected, for an audit trail.
+  reviewedBy?: string;
+  reviewedAt?: number;
 }
+
+export type SchoolStatus = 'pending' | 'approved' | 'rejected';
 
 export interface StarTransaction {
   id: string;

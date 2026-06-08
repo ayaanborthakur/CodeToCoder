@@ -64,7 +64,7 @@ export const RegisterSchoolModal: React.FC<RegisterSchoolModalProps> = ({
                         </div>
                         <div>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Register your school</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">You'll be the school's admin and approve student joins.</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">A Code2Coder admin reviews it before it goes public. You'll approve student joins.</p>
                         </div>
                     </div>
                     <button

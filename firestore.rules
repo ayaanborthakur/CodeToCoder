@@ -12,6 +12,13 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    // Platform admin, granted via the Firebase custom claim `admin: true`.
+    // Set out-of-band by the grant-admin script (Admin SDK) — clients can't
+    // self-grant because the claim lives on the auth token, not Firestore.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
  
     match /users/{userId} {
       // Owner: full access to their own user doc and subcollections.
@@ -237,18 +244,42 @@ service cloud.firestore {
     }
 
     // --- Schools ---
-    // Code2Coder's school registry. Anyone (signed-in or not) can READ — the
-    // public /schools page is the marketing surface. Only signed-in teachers
-    // can CREATE; only the original registrar can UPDATE/DELETE their school.
+    // Code2Coder's school registry, gated by an admin-approval workflow.
+    //   GET:    single-doc fetch by id is public — a school's name/location
+    //           isn't sensitive, and members need to resolve their schoolId
+    //           regardless of its review status. Discoverability is controlled
+    //           by LIST, not GET.
+    //   LIST:   only approved schools are publicly enumerable. A registrar can
+    //           list their own (any status); admins can list anything. Firestore
+    //           validates the query constraints against this rule, so the public
+    //           list MUST filter status=='approved' and registrar lists MUST
+    //           filter registrarId==uid, or the whole query is denied.
+    //   CREATE: only a signed-in teacher, only for their own id, and the doc
+    //           MUST start status=='pending' — teachers can't self-approve.
+    //   UPDATE: the registrar may edit their school but NOT flip its status;
+    //           only an admin can change status (approve/reject). Admins may
+    //           also edit anything.
+    //   DELETE: registrar or admin.
     match /schools/{schoolId} {
-      allow read: if true;
+      allow get: if true;
+
+      allow list: if resource.data.status == 'approved'
+        || (isSignedIn() && resource.data.registrarId == request.auth.uid)
+        || isAdmin();
 
       allow create: if isSignedIn()
         && request.resource.data.registrarId == request.auth.uid
+        && request.resource.data.status == 'pending'
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
 
-      allow update, delete: if isSignedIn() && resource.data.registrarId == request.auth.uid;
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && resource.data.registrarId == request.auth.uid
+            && request.resource.data.status == resource.data.status);
+
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.registrarId == request.auth.uid);
     }
 
     // --- AI Feedback Cache ---

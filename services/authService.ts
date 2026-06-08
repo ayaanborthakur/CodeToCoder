@@ -113,11 +113,23 @@ export const authService = {
   // Async version that fetches username from Firestore
   async mapFirebaseUserWithUsername(firebaseUser: FirebaseUser, fallbackName?: string): Promise<User> {
     const baseUser = this.mapFirebaseUser(firebaseUser, fallbackName);
-    
+
+    // Platform-admin flag comes from the Firebase custom claim, not Firestore,
+    // so it can't be self-granted by writing a user doc. A freshly-granted
+    // claim only shows up after the token refreshes — getIdTokenResult() with
+    // no force-refresh uses the cached token, which is fine for our cadence.
+    let isAdmin = false;
+    try {
+      const token = await firebaseUser.getIdTokenResult();
+      isAdmin = token.claims.admin === true;
+    } catch (error) {
+      console.error('Failed to read admin claim:', error);
+    }
+
     try {
       const userRef = doc(db, 'users', firebaseUser.uid);
       const userDoc = await getDoc(userRef);
-      
+
       if (userDoc.exists()) {
         const data = userDoc.data();
         // Check if joinedAt is missing (Migration for existing users)
@@ -126,7 +138,7 @@ export const authService = {
           // If createdAt exists in Firestore, use it (migration).
           // Otherwise, fall back to Auth metadata or Date.now()
           const joinDate = data.createdAt || baseUser.joinedAt || Date.now();
-          
+
           await setDoc(userRef, {
             joinedAt: joinDate
           }, { merge: true });
@@ -139,13 +151,19 @@ export const authService = {
           joinedAt: data.joinedAt || baseUser.joinedAt,
           role: data.role || undefined,
           classId: data.classId || undefined,
+          // School association — needed by the onboarding/school-prompt logic
+          // in App.tsx and by the registrar's "pending approval" banner.
+          schoolId: data.schoolId || undefined,
+          schoolJoinPending: data.schoolJoinPending || undefined,
+          schoolPromptSeen: data.schoolPromptSeen || undefined,
+          isAdmin,
         };
       }
     } catch (error) {
       console.error('Failed to fetch username:', error);
     }
-    
-    return baseUser;
+
+    return { ...baseUser, isAdmin };
   },
 
 };
