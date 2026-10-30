@@ -159,7 +159,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
     }
 
     return (
-        <div className="h-full w-full overflow-y-auto bg-background text-text-primary">
+        <div className={isEmbedded ? "text-text-primary" : "h-full w-full overflow-y-auto bg-background text-text-primary"}>
             {/* Detail Modal */}
             {selectedCollectible && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedCollectible(null)}>
@@ -226,7 +226,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                 </div>
             )}
 
-            <div className="max-w-7xl mx-auto p-6 md:p-8">
+            <div className={isEmbedded ? '' : 'max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8'}>
                 {/* Header */}
                 <div className="mb-8">
                     {!isEmbedded && (

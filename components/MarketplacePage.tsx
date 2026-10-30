@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PageHeader } from './ui';
 import { Helmet } from 'react-helmet-async';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -256,51 +257,27 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                 </div>
             )}
 
-            <div className="max-w-7xl mx-auto p-6 md:p-8">
-                {/* Header */}
-                <div className="mb-12">
-                    <button
-                        onClick={() => onNavigate('home')}
-                        className="back-btn mb-8"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                        </svg>
-                        <span>Back</span>
-                    </button>
-
-                    <div className="text-center mb-10">
-                        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4 tracking-tight">
-                            {activeTab === 'market' ? 'Star Market' : 'My Collection'}
-                        </h1>
-                        <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-                            {activeTab === 'market' 
-                                ? 'Unlock rewards, collect rare items, and dominate challenges.' 
-                                : 'Discover and collect unique programming treasures'}
-                        </p>
-                    </div>
-
-                    {/* Tab Toggle */}
-                    <div className="flex justify-center gap-4 mb-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+                <PageHeader
+                    title={activeTab === 'market' ? 'Star Market' : 'My collection'}
+                    description={activeTab === 'market'
+                        ? 'Spend the stars you earn on packs, and claim your daily prize.'
+                        : 'Everything you have collected so far.'}
+                />
+                <div className="inline-flex p-1 mb-8 rounded-lg bg-gray-100 dark:bg-gray-800" role="tablist">
+                    {([['market', 'Market'], ['collection', 'Collection']] as const).map(([id, label]) => (
                         <button
-                            onClick={() => setActiveTab('market')}
-                            className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'market'
-                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
-                                : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
-                                }`}
+                            key={id}
+                            role="tab"
+                            aria-selected={activeTab === id}
+                            onClick={() => setActiveTab(id)}
+                            className={`no-hover px-4 py-1.5 rounded-md text-sm font-semibold ${activeTab === id
+                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                         >
-                            🛒 Market
+                            {label}
                         </button>
-                        <button
-                            onClick={() => setActiveTab('collection')}
-                            className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'collection'
-                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                                : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
-                                }`}
-                        >
-                            💎 Collection
-                        </button>
-                    </div>
+                    ))}
                 </div>
 
                 {/* Conditional Rendering */}

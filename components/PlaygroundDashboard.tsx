@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { PageHeader } from './ui';
 import type { PlaygroundFile } from '../types';
 import { toPng } from 'html-to-image';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -147,7 +148,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
     };
 
     return (
-        <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col p-4 animate-fade-in overflow-y-auto">
+        <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col px-4 sm:px-6 py-6 sm:py-8 animate-fade-in overflow-y-auto">
             {fileToDelete && (
                 <ConfirmationModal
                     isOpen={!!fileToDelete}
@@ -232,22 +233,15 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                 </div>
             )}
 
-            <div className="max-w-6xl w-full mx-auto space-y-5">
+            <div className="max-w-5xl w-full mx-auto space-y-5">
                 {/* Header with stats */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Playground</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Your personal space to code and create</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300">{files.length} files</span>
-                        </div>
-                    </div>
-                </div>
+                <PageHeader
+                    title="Playground"
+                    description={`Write and run any Python you like. ${files.length} ${files.length === 1 ? 'file' : 'files'} saved.`}
+                />
 
                 {/* Main Action Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {/* Resume Card */}
                     {lastActiveFile && onResume && (
                         <button
@@ -281,27 +275,17 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     {/* Open File / Import Card */}
                     <button
                         onClick={onImportFile}
-                        className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-purple-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
+                        className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-cyan-500 transition-all text-left flex flex-col justify-between min-h-[120px] group"
                     >
-                        <div className="bg-purple-100 dark:bg-purple-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-purple-600 dark:text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        <div className="bg-cyan-100 dark:bg-cyan-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
                             <Upload className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">Import</h3>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">Import</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs">Upload .py or .txt</p>
                         </div>
                     </button>
 
-                    {/* Templates Card */}
-                    <div className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-2 border-orange-200 dark:border-orange-700 rounded-lg p-4 text-left flex flex-col justify-between min-h-[120px]">
-                        <div className="bg-orange-100 dark:bg-orange-900/30 w-10 h-10 rounded-lg flex items-center justify-center mb-2 text-orange-600 dark:text-orange-400">
-                            <FileText className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white">Templates</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs">Coming soon...</p>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Recent Files List */}

@@ -6,6 +6,7 @@ import { CoursesCatalog } from './components/CoursesCatalog';
 import { CoursePage } from './components/CoursePage';
 import { findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
 import { BottomPanel } from './components/BottomPanel';
+import { LessonBrief } from './components/LessonBrief';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
 import { LearnPanel } from './components/LearnPanel';
@@ -1674,6 +1675,10 @@ const App: React.FC = () => {
     }
 
     const activeContentItem = isClassroom ? activeLesson : practiceLessonLike;
+    // The task a coding screen is about. On desktop it gets its own reading
+    // column beside the editor so students read the task before they type.
+    const briefLesson = isClassroom ? currentLesson : (isPractice ? practiceLessonLike : null);
+    const showBriefColumn = !!briefLesson && !isMobile;
 
     // Sidebar visibility logic for mobile vs desktop
     // Sidebar (with hamburger) only exists in the actual lesson IDE — never on catalog/course pages.
@@ -1774,7 +1779,7 @@ const App: React.FC = () => {
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
                         {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
-                        {isLessonIDE && !isNavOpen && (
+                        {isLessonIDE && !isNavOpen && !showBriefColumn && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
@@ -1863,7 +1868,32 @@ const App: React.FC = () => {
                                 />
                             </div>
                         ) : (
-                            <>
+                            <div className="flex-1 flex min-h-0">
+                            {showBriefColumn && briefLesson && (
+                                <section
+                                    aria-label="Task"
+                                    className="w-[40%] min-w-[320px] max-w-[600px] flex-shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800"
+                                >
+                                    {isLessonIDE && !isNavOpen && (
+                                        <div className="sticky top-0 z-10 flex items-center h-11 px-4 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur">
+                                            <button
+                                                onClick={() => setIsNavOpen(true)}
+                                                className="no-hover inline-flex items-center gap-2 -ml-2 px-2 py-1 rounded-md text-sm font-semibold text-gray-600 hover:text-cyan-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-cyan-400 dark:hover:bg-gray-700"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4" aria-hidden="true">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                                </svg>
+                                                All lessons
+                                            </button>
+                                        </div>
+                                    )}
+                                    <LessonBrief
+                                        lesson={briefLesson}
+                                        isCompleted={isClassroom ? completedLessons.has(briefLesson.id) : completedPracticeItems.has(briefLesson.id)}
+                                    />
+                                </section>
+                            )}
+                            <div className="flex-1 flex flex-col min-w-0">
                                 <div
                                     style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
                                     className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
@@ -1901,7 +1931,7 @@ const App: React.FC = () => {
 
                                 <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
                                     <BottomPanel
-                                        lesson={currentView === 'classroom' ? currentLesson : (currentView === 'practice' ? practiceLessonLike : null)}
+                                        lesson={showBriefColumn ? null : briefLesson}
                                         isCompleted={currentView === 'classroom' && currentLesson ? completedLessons.has(currentLesson.id) : (currentView === 'practice' && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
                                         terminalOutput={terminalOutput}
                                         isTerminalLoading={isTerminalLoading}
@@ -1917,7 +1947,8 @@ const App: React.FC = () => {
                                         aiCreditsLeft={aiCreditsLeft}
                                     />
                                 </div>
-                            </>
+                            </div>
+                            </div>
                         )}
                     </div>
 
