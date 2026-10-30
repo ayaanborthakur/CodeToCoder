@@ -194,7 +194,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                         className="text-left rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 hover:shadow-md p-4 transition-all disabled:opacity-60 group"
                     >
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Teacher</span>
+                            <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 ">Teacher</span>
                             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 transition-colors" />
                         </div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">I'm a teacher</h3>
@@ -209,7 +209,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                         className="text-left rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-md p-4 transition-all disabled:opacity-60 group"
                     >
                         <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Student</span>
+                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 ">Student</span>
                             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
                         </div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">I'm a student</h3>
@@ -233,7 +233,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
         return (
             <Shell>
                 <header className="mb-5">
-                    <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Teacher</div>
+                    <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 ">Teacher</div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Classroom</h1>
                 </header>
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex items-center justify-between gap-4">
@@ -263,7 +263,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                 <Shell>
                     <SchoolPendingBanner />
                     <header className="mb-5">
-                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5">Classroom</div>
+                        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-0.5">Classroom</div>
                         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             {classroom.teacherName} · {classroom.studentIds.length} {classroom.studentIds.length === 1 ? 'student' : 'students'}
@@ -288,7 +288,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                             >
                                 {t.label}
                                 {t.count !== undefined && t.count > 0 && (
-                                    <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold ${
+                                    <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-semibold ${
                                         studentTab === t.id
                                             ? 'bg-purple-500 text-white'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
@@ -315,13 +315,13 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                     ) : (
                         <div className="space-y-3">
                             <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 px-1">
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Teacher</dt>
+                                <dt className="text-xs font-semibold text-gray-400 dark:text-gray-500 self-center">Teacher</dt>
                                 <dd className="text-sm font-medium text-gray-900 dark:text-white">{classroom.teacherName}</dd>
 
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Classmates</dt>
+                                <dt className="text-xs font-semibold text-gray-400 dark:text-gray-500 self-center">Classmates</dt>
                                 <dd className="text-sm font-medium text-gray-900 dark:text-white tabular-nums">{classroom.studentIds.length}</dd>
 
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Join code</dt>
+                                <dt className="text-xs font-semibold text-gray-400 dark:text-gray-500 self-center">Join code</dt>
                                 <dd>
                                     <button
                                         onClick={copyJoinCode}
@@ -355,7 +355,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
         <Shell>
             <SchoolPendingBanner />
             <header className="mb-5">
-                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Student</div>
+                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 ">Student</div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Join a classroom</h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     Enter the 6-letter code your teacher gave you.
@@ -363,7 +363,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
             </header>
 
             <form onSubmit={handleJoin} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Join code</label>
+                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 ">Join code</label>
                 <div className="flex gap-2">
                     <input
                         type="text"

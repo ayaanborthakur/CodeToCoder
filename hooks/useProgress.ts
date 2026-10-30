@@ -1,11 +1,18 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 import type { UserAchievements, Badge } from '../types';
 
 const BASE_PROGRESS_KEY = 'code2coder_progress';
 const BASE_PRACTICE_KEY = 'code2coder_practice_progress';
+const BASE_TODAY_KEY = 'code2coder_lessons_today';
+
+// Practice lessons inside modules ("m3-lp2", "checkpoint-a-p1") count toward
+// the practice-problem badges alongside the standalone practice problems.
+const PRACTICE_LESSON_ID = /-(lp|p)\d+$/;
+
+const todayString = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, local time
 
 export const useProgress = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -17,9 +24,26 @@ export const useProgress = () => {
     const [newlyEarnedBadges, setNewlyEarnedBadges] = useState<Badge[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
+    // Latest values for async badge checks, which outlive the render that
+    // started them and would otherwise read stale state.
+    const completedLessonsRef = useRef(completedLessons);
+    const completedPracticeRef = useRef(completedPracticeItems);
+    const rewardedLessonsRef = useRef(rewardedLessons);
+    const rewardedPracticeRef = useRef(rewardedPracticeItems);
+    const achievementsRef = useRef(achievements);
+    useEffect(() => { completedLessonsRef.current = completedLessons; }, [completedLessons]);
+    useEffect(() => { completedPracticeRef.current = completedPracticeItems; }, [completedPracticeItems]);
+    useEffect(() => { rewardedLessonsRef.current = rewardedLessons; }, [rewardedLessons]);
+    useEffect(() => { rewardedPracticeRef.current = rewardedPracticeItems; }, [rewardedPracticeItems]);
+    useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
+    // Badge checks run one at a time so two quick completions can't both
+    // award (and pay stars for) the same badge.
+    const badgeQueueRef = useRef<Promise<void>>(Promise.resolve());
+
     // Key logic: If user is logged in, append userId to key. Else use base key (guest).
     const getProgressKey = useCallback(() => user ? `${BASE_PROGRESS_KEY}_${user.id}` : BASE_PROGRESS_KEY, [user]);
     const getPracticeKey = useCallback(() => user ? `${BASE_PRACTICE_KEY}_${user.id}` : BASE_PRACTICE_KEY, [user]);
+    const getTodayKey = useCallback(() => user ? `${BASE_TODAY_KEY}_${user.id}` : BASE_TODAY_KEY, [user]);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -108,124 +132,114 @@ export const useProgress = () => {
         loadProgressData();
     }, [user, isAuthLoading, getProgressKey, getPracticeKey]);
 
-    const markLessonAsCompleted = useCallback(async (lessonId: string) => {
+    const enqueue = useCallback((task: () => Promise<void>) => {
+        badgeQueueRef.current = badgeQueueRef.current
+            .then(task)
+            .catch(error => console.error("Failed to check badges or sync progress", error));
+    }, []);
 
-        // Prevent duplicate rewards
-        if (completedLessons.has(lessonId)) {
-            return;
+    // Counts everything the badges measure, awards any newly earned ones and
+    // returns the updated achievements for the caller to persist.
+    const evaluateBadges = useCallback(async (lessons: Set<string>, practice: Set<string>) => {
+        const [{ checkAndAwardBadges }, { contentService }, { addStars, getStarsData }] = await Promise.all([
+            import('../services/achievementService'),
+            import('../services/contentService'),
+            import('../services/marketplaceService'),
+        ]);
+        const [modules, practiceItems] = await Promise.all([
+            contentService.getAllModules(),
+            contentService.getPracticeItems(),
+        ]);
+        const allLessons = modules.flatMap(m => m.lessons);
+        const doneLessons = allLessons.filter(l => lessons.has(l.id));
+        const donePractice = practiceItems.filter(p => practice.has(p.id));
+
+        let currentStreak = 0;
+        let longestStreak = 0;
+        let totalStarsEarned = 0;
+        if (user) {
+            // Completing work is what keeps a streak alive.
+            const { updateStreak } = await import('../services/streakService');
+            ({ currentStreak, longestStreak } = await updateStreak(user.id));
+            totalStarsEarned = (await getStarsData(user.id)).totalEarned || 0;
         }
 
-        setCompletedLessons(prev => {
-            const newSet = new Set(prev);
-            newSet.add(lessonId);
+        let lessonsCompletedToday = 0;
+        try {
+            const today = JSON.parse(window.localStorage.getItem(getTodayKey()) || 'null');
+            if (today?.date === todayString()) lessonsCompletedToday = today.ids.length;
+        } catch { /* storage unavailable: speed badge just waits */ }
 
-            // Save to localStorage
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.setItem(getProgressKey(), JSON.stringify(Array.from(newSet)));
-                }
-            } catch (error) {
-                console.error("Failed to save progress to localStorage", error);
-            }
-
-            // Check for new badges (async)
-            (async () => {
-                try {
-                    const { checkAndAwardBadges } = await import('../services/achievementService');
-                    const { contentService } = await import('../services/contentService');
-                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
-
-                    const modules = await contentService.getAllModules();
-                    const totalLessons = modules.reduce((sum, module) => sum + module.lessons.length, 0);
-
-                    // Update daily challenges and rewarded set (only if not already rewarded)
-                    if (user && !rewardedLessons.has(lessonId)) {
-                        // Update daily challenges
-                        updateChallengeProgress(user.id, 'lesson');
-
-                        // Update rewarded set
-                        setRewardedLessons(prev => {
-                            const newRewarded = new Set(prev);
-                            newRewarded.add(lessonId);
-                            return newRewarded;
-                        });
-                    }
-
-                    // Count quizzes from completed lessons (lessons with type === 'quiz')
-                    let quizzesCompleted = 0;
-                    let modulesCompleted = 0;
-                    for (const module of modules) {
-                        const quizLessons = module.lessons.filter(l => l.type === 'quiz');
-                        const completedQuizzes = quizLessons.filter(l => newSet.has(l.id));
-                        quizzesCompleted += completedQuizzes.length;
-                        
-                        // Check if entire module is completed
-                        const allCompleted = module.lessons.every(l => newSet.has(l.id));
-                        if (allCompleted) modulesCompleted++;
-                    }
-
-                    // Get streak and star data
-                    let currentStreak = 0;
-                    let longestStreak = 0;
-                    let totalStarsEarned = 0;
-                    if (user) {
-                        const marketData = await getMarketplaceData(user.id);
-                        totalStarsEarned = marketData.stars.totalEarned || 0;
-                        // Streak data stored in stars subcollection
-                        currentStreak = (marketData as any).currentStreak || 0;
-                        longestStreak = (marketData as any).longestStreak || 0;
-                    }
-
-                    const result = checkAndAwardBadges(achievements, {
-                        lessonsCompleted: newSet.size,
-                        practiceCompleted: completedPracticeItems.size,
-                        quizzesCompleted,
-                        projectsCompleted: 0, // Will be counted from practice items
-                        totalLessons,
-                        currentStreak,
-                        longestStreak,
-                        totalStarsEarned,
-                        modulesCompleted
-                    });
-
-                    if (result.newBadges.length > 0) {
-                        setNewlyEarnedBadges(result.newBadges);
-
-                        // Award stars for new badges
-                        if (user) {
-                            result.newBadges.forEach(badge => {
-                                addStars(user.id, 30, `Earned badge: ${badge.name}`);
-                            });
-                        }
-
-                        // Log analytics for each new badge
-                        const { logBadgeEarned } = await import('../services/analyticsService');
-                        result.newBadges.forEach(badge => {
-                            logBadgeEarned(badge.id, badge.name, badge.tier);
-                        });
-                    }
-
-                    // Always update achievements state to keep in sync
-                    setAchievements(result.updatedAchievements);
-
-                    // Sync to Firestore for logged-in users (new structure)
-                    if (user) {
-                        const { syncClassroomProgress } = await import('../services/userDataService');
-                        await syncClassroomProgress(
-                            user.id,
-                            Array.from(newSet) as string[],
-                            result.updatedAchievements,
-                            user && !rewardedLessons.has(lessonId) ? [...Array.from(rewardedLessons), lessonId] : Array.from(rewardedLessons)
-                        );
-                    }
-                } catch (error) {
-                    console.error("Failed to check badges or sync progress", error);
-                }
-            })();
-
-            return newSet;
+        const result = checkAndAwardBadges(achievementsRef.current, {
+            lessonsCompleted: doneLessons.length,
+            practiceCompleted: doneLessons.filter(l => PRACTICE_LESSON_ID.test(l.id)).length
+                + donePractice.filter(p => p.type === 'problem').length,
+            quizzesCompleted: doneLessons.filter(l => l.type === 'quiz').length
+                + donePractice.filter(p => p.type === 'quiz').length,
+            projectsCompleted: doneLessons.filter(l => l.type === 'project').length
+                + donePractice.filter(p => p.type === 'project').length,
+            totalLessons: allLessons.length,
+            totalModules: modules.length,
+            currentStreak,
+            longestStreak,
+            totalStarsEarned,
+            modulesCompleted: modules.filter(m => m.lessons.length > 0 && m.lessons.every(l => lessons.has(l.id))).length,
+            lessonsCompletedToday,
         });
-    }, [getProgressKey, user, completedLessons, completedPracticeItems, achievements, rewardedLessons]);
+
+        achievementsRef.current = result.updatedAchievements;
+        setAchievements(result.updatedAchievements);
+
+        if (result.newBadges.length > 0) {
+            setNewlyEarnedBadges(result.newBadges);
+            if (user) {
+                for (const badge of result.newBadges) {
+                    await addStars(user.id, 30, `Earned badge: ${badge.name}`);
+                }
+            }
+            const { logBadgeEarned } = await import('../services/analyticsService');
+            result.newBadges.forEach(badge => logBadgeEarned(badge.id, badge.name, badge.tier));
+        }
+
+        return result.updatedAchievements;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    const markLessonAsCompleted = useCallback(async (lessonId: string) => {
+        // Prevent duplicate rewards
+        if (completedLessonsRef.current.has(lessonId)) return;
+
+        const newSet = new Set(completedLessonsRef.current);
+        newSet.add(lessonId);
+        completedLessonsRef.current = newSet;
+        setCompletedLessons(newSet);
+
+        try {
+            window.localStorage.setItem(getProgressKey(), JSON.stringify(Array.from(newSet)));
+            const stored = JSON.parse(window.localStorage.getItem(getTodayKey()) || 'null');
+            const ids: string[] = stored?.date === todayString() ? stored.ids : [];
+            if (!ids.includes(lessonId)) ids.push(lessonId);
+            window.localStorage.setItem(getTodayKey(), JSON.stringify({ date: todayString(), ids }));
+        } catch (error) {
+            console.error("Failed to save progress to localStorage", error);
+        }
+
+        if (user && !rewardedLessonsRef.current.has(lessonId)) {
+            import('../services/marketplaceService').then(({ updateChallengeProgress }) => updateChallengeProgress(user.id, 'lesson'));
+            const rewarded = new Set(rewardedLessonsRef.current);
+            rewarded.add(lessonId);
+            rewardedLessonsRef.current = rewarded;
+            setRewardedLessons(rewarded);
+        }
+
+        enqueue(async () => {
+            const updated = await evaluateBadges(newSet, completedPracticeRef.current);
+            if (user) {
+                const { syncClassroomProgress } = await import('../services/userDataService');
+                await syncClassroomProgress(user.id, Array.from(completedLessonsRef.current), updated, Array.from(rewardedLessonsRef.current));
+            }
+        });
+    }, [getProgressKey, getTodayKey, user, enqueue, evaluateBadges]);
 
     const markLessonAsIncomplete = useCallback(async (lessonId: string) => {
         setCompletedLessons(prev => {
@@ -248,7 +262,7 @@ export const useProgress = () => {
                         try {
                             const { syncClassroomProgress } = await import('../services/userDataService');
                             // Pass current rewarded lessons to persist them even if lesson is uncompleted
-                            await syncClassroomProgress(user.id, Array.from(newSet) as string[], achievements, Array.from(rewardedLessons));
+                            await syncClassroomProgress(user.id, Array.from(newSet) as string[], achievementsRef.current, Array.from(rewardedLessonsRef.current));
                         } catch (error) {
                             console.error("Failed to sync progress to Firestore", error);
                         }
@@ -257,144 +271,55 @@ export const useProgress = () => {
             }
             return newSet;
         });
-    }, [getProgressKey, user, achievements, rewardedLessons]);
+    }, [getProgressKey, user]);
 
     const markPracticeAsCompleted = useCallback(async (itemId: string) => {
         // Prevent duplicate rewards
-        if (completedPracticeItems.has(itemId)) return;
+        if (completedPracticeRef.current.has(itemId)) return;
 
-        setCompletedPracticeItems(prev => {
-            const newSet = new Set(prev);
-            newSet.add(itemId);
+        const newSet = new Set(completedPracticeRef.current);
+        newSet.add(itemId);
+        completedPracticeRef.current = newSet;
+        setCompletedPracticeItems(newSet);
 
-            // Save to localStorage
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.setItem(getPracticeKey(), JSON.stringify(Array.from(newSet)));
-                }
-            } catch (error) {
-                console.error("Failed to save practice progress to localStorage", error);
-            }
+        try {
+            window.localStorage.setItem(getPracticeKey(), JSON.stringify(Array.from(newSet)));
+        } catch (error) {
+            console.error("Failed to save practice progress to localStorage", error);
+        }
 
-            // Check for new badges (async)
-            (async () => {
-                try {
-                    const { checkAndAwardBadges } = await import('../services/achievementService');
-                    const { contentService } = await import('../services/contentService');
-                    const modules = await contentService.getAllModules();
-                    
-                    const { addStars, updateChallengeProgress, getMarketplaceData } = await import('../services/marketplaceService');
+        if (user && !rewardedPracticeRef.current.has(itemId)) {
+            import('../services/marketplaceService').then(({ updateChallengeProgress }) => updateChallengeProgress(user.id, 'practice'));
+            const rewarded = new Set(rewardedPracticeRef.current);
+            rewarded.add(itemId);
+            rewardedPracticeRef.current = rewarded;
+            setRewardedPracticeItems(rewarded);
+        }
 
-                    const totalLessons = modules.reduce((sum: number, module: any) => sum + module.lessons.length, 0);
+        enqueue(async () => {
+            const updated = await evaluateBadges(completedLessonsRef.current, newSet);
+            if (!user) return;
 
-                    // Update daily challenges and rewarded set (only if not already rewarded)
-                    if (user && !rewardedPracticeItems.has(itemId)) {
-                        // Update daily challenges
-                        updateChallengeProgress(user.id, 'practice');
+            const [{ syncPracticeProgress, syncClassroomProgress }, { contentService }] = await Promise.all([
+                import('../services/userDataService'),
+                import('../services/contentService'),
+            ]);
+            const practiceItems = await contentService.getPracticeItems();
+            const typeOf = new Map(practiceItems.map(p => [p.id, p.type] as const));
+            const categoryOf = (id: string): 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects' =>
+                typeOf.get(id) === 'quiz' ? 'PracticeQuizzes' : typeOf.get(id) === 'project' ? 'PracticeProjects' : 'PracticeProblems';
+            const category = categoryOf(itemId);
 
-                        // Update rewarded set
-                        setRewardedPracticeItems(prev => {
-                            const newRewarded = new Set(prev);
-                            newRewarded.add(itemId);
-                            return newRewarded;
-                        });
-                    }
-
-                    // Count quizzes and modules from completed lessons
-                    let quizzesCompleted = 0;
-                    let modulesCompleted = 0;
-                    for (const module of modules) {
-                        const quizLessons = module.lessons.filter((l: any) => l.type === 'quiz');
-                        const completedQuizzes = quizLessons.filter((l: any) => completedLessons.has(l.id));
-                        quizzesCompleted += completedQuizzes.length;
-                        
-                        const allCompleted = module.lessons.every((l: any) => completedLessons.has(l.id));
-                        if (allCompleted) modulesCompleted++;
-                    }
-
-                    // Count projects from practice items
-                    const practiceItems = await contentService.getPracticeItems();
-                    const completedProjectItems = practiceItems.filter(p => p.type === 'project' && newSet.has(p.id));
-                    const projectsCompleted = completedProjectItems.length;
-
-                    // Get streak and star data
-                    let currentStreak = 0;
-                    let longestStreak = 0;
-                    let totalStarsEarned = 0;
-                    if (user) {
-                        const marketData = await getMarketplaceData(user.id);
-                        totalStarsEarned = marketData.stars.totalEarned || 0;
-                        currentStreak = (marketData as any).currentStreak || 0;
-                        longestStreak = (marketData as any).longestStreak || 0;
-                    }
-
-                    const result = checkAndAwardBadges(achievements, {
-                        lessonsCompleted: completedLessons.size,
-                        practiceCompleted: newSet.size,
-                        quizzesCompleted,
-                        projectsCompleted,
-                        totalLessons,
-                        currentStreak,
-                        longestStreak,
-                        totalStarsEarned,
-                        modulesCompleted
-                    });
-
-                    if (result.newBadges.length > 0) {
-                        setNewlyEarnedBadges(result.newBadges);
-
-                        // Award stars for new badges
-                        if (user) {
-                            result.newBadges.forEach(badge => {
-                                addStars(user.id, 30, `Earned badge: ${badge.name}`);
-                            });
-                        }
-
-                        // Log analytics for each new badge
-                        const { logBadgeEarned } = await import('../services/analyticsService');
-                        result.newBadges.forEach(badge => {
-                            logBadgeEarned(badge.id, badge.name, badge.tier);
-                        });
-                    }
-
-                    // Always update achievements state to keep in sync
-                    setAchievements(result.updatedAchievements);
-
-                    // Sync to Firestore for logged-in users (new structure)
-                    if (user) {
-                        const { syncPracticeProgress, syncClassroomProgress } = await import('../services/userDataService');
-                        
-                        // Determine category for syncing
-                        const practiceItems = await contentService.getPracticeItems();
-                        const item = practiceItems.find(p => p.id === itemId);
-                        let category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects' = 'PracticeProblems';
-                        if (item?.type === 'quiz') category = 'PracticeQuizzes';
-                        if (item?.type === 'project') category = 'PracticeProjects';
-
-                        await syncPracticeProgress(
-                            user.id,
-                            category,
-                            Array.from(newSet).filter(_id => {
-                                // Only sync IDs that belong to this category to keep data clean
-                                // (Actually, the current structure expects the full 'completed' list per category)
-                                // But since we merged them, we should ideally filter or just sync the ones that belong.
-                                // For now, the safest is to sync the relevant ones.
-                                return true; // We'll keep the full set for now to avoid losing data, 
-                                // but ideally we should only sync IDs belonging to 'category'
-                            }) as string[],
-                            user && !rewardedPracticeItems.has(itemId) ? [...Array.from(rewardedPracticeItems), itemId] : Array.from(rewardedPracticeItems)
-                        );
-                        // Also sync achievements
-                        await syncClassroomProgress(user.id, Array.from(completedLessons) as string[], result.updatedAchievements, Array.from(rewardedLessons));
-                    }
-                } catch (error) {
-                    console.error("Failed to check badges or sync progress", error);
-                }
-            })();
-
-            return newSet;
+            // Each category document holds only its own items; loading merges all three.
+            await syncPracticeProgress(
+                user.id,
+                category,
+                Array.from(completedPracticeRef.current).filter(id => categoryOf(id) === category),
+                Array.from(rewardedPracticeRef.current).filter(id => categoryOf(id) === category)
+            );
+            await syncClassroomProgress(user.id, Array.from(completedLessonsRef.current), updated, Array.from(rewardedLessonsRef.current));
         });
-    }, [getPracticeKey, user, completedLessons, completedPracticeItems, achievements, rewardedPracticeItems, rewardedLessons]);
+    }, [getPracticeKey, user, enqueue, evaluateBadges]);
 
     const clearNewBadges = useCallback(() => {
         setNewlyEarnedBadges([]);

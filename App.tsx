@@ -6,6 +6,7 @@ import { CoursesCatalog } from './components/CoursesCatalog';
 import { CoursePage } from './components/CoursePage';
 import { findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
 import { BottomPanel } from './components/BottomPanel';
+import { LessonBrief } from './components/LessonBrief';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
 import { LearnPanel } from './components/LearnPanel';
@@ -1155,7 +1156,19 @@ const App: React.FC = () => {
 
             if (result.success && contextItem) {
                 if (currentView === 'practice') {
-                    if (!completedPracticeItems.has(contextItem.id)) {
+                    if (!completedPracticeItems.has(contextItem.id) && 'difficulty' in contextItem) {
+                        // A clean run isn't a correct one: check the work
+                        // against the problem before marking it done.
+                        setTerminalOutput(prev => prev + '\n\nChecking your solution…');
+                        const { validatePracticeItem } = await import('./services/lessonValidationService');
+                        const durationSeconds = Math.round((Date.now() - lessonStartTime) / 1000);
+                        const check = await validatePracticeItem(code, result.output, contextItem, durationSeconds);
+                        if (!check.passed) {
+                            setTerminalOutput(prev => prev + `\n\n❌ ${check.reason || "This doesn't solve the problem yet. Re-read the task and try again."}`);
+                            return;
+                        }
+                        setTerminalOutput(prev => prev + '\n\n✓ Solved!');
+                        triggerConfetti();
                         markPracticeAsCompleted(contextItem.id);
                         if (user) {
                             import('./services/starService').then(({ awardStarsForActivity }) => {
@@ -1259,8 +1272,9 @@ const App: React.FC = () => {
                                 });
                             });
                         }
-                        setLessonStartTime(Date.now());
-                        advanceToNextLesson();
+                        // Re-running a finished lesson is experimenting, not
+                        // submitting — stay put. "Next lesson" moves on.
+                        setTerminalOutput(prev => prev + `\n\n✓ You've already completed this lesson. Use "Next lesson" when you're ready to move on.`);
                     }
                 }
             }
@@ -1270,7 +1284,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
+    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, currentModuleId, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -1657,6 +1671,10 @@ const App: React.FC = () => {
     }
 
     const activeContentItem = isClassroom ? activeLesson : practiceLessonLike;
+    // The task a coding screen is about. On desktop it gets its own reading
+    // column beside the editor so students read the task before they type.
+    const briefLesson = isClassroom ? currentLesson : (isPractice ? practiceLessonLike : null);
+    const showBriefColumn = !!briefLesson && !isMobile;
 
     // Sidebar visibility logic for mobile vs desktop
     // Sidebar (with hamburger) only exists in the actual lesson IDE — never on catalog/course pages.
@@ -1733,7 +1751,7 @@ const App: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                         <HamburgerIcon onClick={() => setIsNavOpen(!isNavOpen)} isOpen={isNavOpen} />
                                         {showSidebar && (
-                                            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider animate-fade-in">Curriculum</h2>
+                                            <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 animate-fade-in">Curriculum</h2>
                                         )}
                                     </div>
                                 </div>
@@ -1757,7 +1775,7 @@ const App: React.FC = () => {
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
                         {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
-                        {isLessonIDE && !isNavOpen && (
+                        {isLessonIDE && !isNavOpen && !showBriefColumn && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
@@ -1826,7 +1844,7 @@ const App: React.FC = () => {
                                                 setActivePracticeItem(null);
                                                 navigate('/practice');
                                             }}
-                                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
+                                            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-cyan-600 dark:text-gray-400 dark:hover:text-cyan-400 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 rounded-md"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
@@ -1846,7 +1864,32 @@ const App: React.FC = () => {
                                 />
                             </div>
                         ) : (
-                            <>
+                            <div className="flex-1 flex min-h-0">
+                            {showBriefColumn && briefLesson && (
+                                <section
+                                    aria-label="Task"
+                                    className="w-[40%] min-w-[320px] max-w-[620px] flex-shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+                                >
+                                    {isLessonIDE && !isNavOpen && (
+                                        <div className="sticky top-0 z-10 flex items-center h-11 px-4 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur">
+                                            <button
+                                                onClick={() => setIsNavOpen(true)}
+                                                className="inline-flex items-center gap-2 -ml-2 px-2 py-1 rounded-md text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4" aria-hidden="true">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                                </svg>
+                                                All lessons
+                                            </button>
+                                        </div>
+                                    )}
+                                    <LessonBrief
+                                        lesson={briefLesson}
+                                        isCompleted={isClassroom ? completedLessons.has(briefLesson.id) : completedPracticeItems.has(briefLesson.id)}
+                                    />
+                                </section>
+                            )}
+                            <div className="flex-1 flex flex-col min-w-0">
                                 <div
                                     style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
                                     className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
@@ -1884,7 +1927,7 @@ const App: React.FC = () => {
 
                                 <div className={`flex flex-col min-h-0 transition-all duration-300 ease-in-out ${panelsCollapsed.bottom ? 'flex-shrink-0' : 'flex-1'}`}>
                                     <BottomPanel
-                                        lesson={currentView === 'classroom' ? currentLesson : (currentView === 'practice' ? practiceLessonLike : null)}
+                                        lesson={showBriefColumn ? null : briefLesson}
                                         isCompleted={currentView === 'classroom' && currentLesson ? completedLessons.has(currentLesson.id) : (currentView === 'practice' && activePracticeItem ? completedPracticeItems.has(activePracticeItem.id) : false)}
                                         terminalOutput={terminalOutput}
                                         isTerminalLoading={isTerminalLoading}
@@ -1900,7 +1943,8 @@ const App: React.FC = () => {
                                         aiCreditsLeft={aiCreditsLeft}
                                     />
                                 </div>
-                            </>
+                            </div>
+                            </div>
                         )}
                     </div>
 
@@ -1914,6 +1958,20 @@ const App: React.FC = () => {
                                     className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm md:hidden"
                                     onClick={() => handleToggleCollapse('chat')}
                                 />
+                            )}
+
+                            {/* Mobile chat toggle: kept outside the drawer — a transformed parent
+                            would carry this fixed button off-screen with it. */}
+                            {isMobile && panelsCollapsed.chat && !isQuizMode && (
+                                <button
+                                    onClick={() => handleToggleCollapse('chat')}
+                                    className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
+                                    aria-label="Open AI Chat"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+                                    </svg>
+                                </button>
                             )}
 
                             <aside
@@ -1934,19 +1992,6 @@ const App: React.FC = () => {
                                 }
         `}
                             >
-                                {/* Mobile Chat Toggle */}
-                                {isMobile && panelsCollapsed.chat && !isQuizMode && (
-                                    <button
-                                        onClick={() => handleToggleCollapse('chat')}
-                                        className="fixed bottom-20 right-4 z-20 bg-cyan-600 text-white p-3 rounded-full shadow-lg hover:bg-cyan-500 transition-colors"
-                                        aria-label="Open AI Chat"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
-                                        </svg>
-                                    </button>
-                                )}
-
                                 {isClassroomQuiz ? (
                                     <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] flex items-center justify-center rounded-lg z-10">
                                         <div className="bg-slate-900/90 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 shadow-xl border border-slate-700">
@@ -1981,7 +2026,7 @@ const App: React.FC = () => {
             <Helmet titleTemplate="Code2Coder | %s" defaultTitle="Code2Coder: Learn Python with AI">
                 <title>Code2Coder: Learn Python with AI</title>
                 <meta name="description" content="Master Python programming with our free AI-powered coding tutor. Run Python instantly in your browser with Pyodide." />
-                <meta name="theme-color" content={theme === 'dark' ? '#0f172a' : '#ffffff'} />
+                <meta name="theme-color" content={theme === 'dark' ? '#0e1322' : '#f5f6fa'} />
             </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             {practiceAssignTarget && user?.role === 'teacher' && (
@@ -2092,7 +2137,7 @@ const App: React.FC = () => {
                         return (
                     <Routes>
                         <Route path="/" element={
-                            <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                            <div className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                 <MissionPage onStart={() => {
                                     if (user) {
                                         handleNavigate('classroom');
@@ -2104,11 +2149,11 @@ const App: React.FC = () => {
                         } />
 
                         <Route path="/dashboard" element={gate(
-                            <div className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                            <div className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                 <HomePage
                                     modules={modules} // Pass loaded modules
                                     onNavigate={handleNavigate}
-                                    onSelectLesson={loadLesson}
+                                    onSelectLesson={handleSelectLesson}
                                     completedLessons={completedLessons}
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}

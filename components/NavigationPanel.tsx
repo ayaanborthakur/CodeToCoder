@@ -26,7 +26,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
 
   return (
     <nav className="px-2 py-2">
-      <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4 px-2">Curriculum</h2>
+      <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-4 px-2">Curriculum</h2>
       <div className="space-y-3">
         {modules.map((module, index) => {
           const completedInModule = module.lessons.filter(l => completedLessons.has(l.id)).length;
@@ -123,7 +123,7 @@ export const NavigationPanel: React.FC<NavigationPanelProps> = ({ modules, curre
                             ) : isFinalLesson ? (
                               <Flag className="w-3 h-3" />
                             ) : (
-                              <span className="text-[10px] font-medium leading-none">{lessonIndex + 1}</span>
+                              <span className="text-xs font-medium leading-none">{lessonIndex + 1}</span>
                             )}
                           </div>
                           <span className={`truncate font-medium ${isCurrent ? 'text-cyan-700 dark:text-cyan-300' : ''} ${isFinalLesson && !isCompleted ? 'text-purple-600 dark:text-purple-400' : ''}`}>

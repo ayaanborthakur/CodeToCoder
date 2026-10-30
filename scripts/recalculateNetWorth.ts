@@ -81,7 +81,7 @@ const calculateCollectiblesValue = (ownedCollectibleIds: string[]): { totalValue
     const breakdown: Record<string, { count: number, value: number }> = {};
     
     for (const [rarity, count] of Object.entries(rarityCounts)) {
-        // @ts-ignore - Indexing with string
+        // @ts-expect-error - Indexing with string
         const worthPerItem = COLLECTIBLE_SELL_RATES[rarity] || 0;
         const value = count * worthPerItem;
         breakdown[rarity] = { count, value };

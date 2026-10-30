@@ -134,7 +134,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                 </div>
 
                 <header className="mb-10 flex flex-col items-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/20 dark:border-cyan-400/20 text-xs font-semibold tracking-[0.08em] uppercase text-cyan-700 dark:text-cyan-300 mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/20 dark:border-cyan-400/20 text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-4">
                         <GraduationCap className="w-3.5 h-3.5" />
                         Registered schools
                     </div>
@@ -151,7 +151,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                         {isTeacher ? (
                             <button
                                 onClick={() => setRegisterOpen(true)}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-cyan-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
                             >
                                 <Plus className="w-4 h-4" />
                                 Register your school
@@ -192,7 +192,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                     <section className="mb-10 text-left">
                         <div className="flex items-center gap-2 mb-3">
                             <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                            <h2 className="text-sm font-semibold tracking-[0.08em] uppercase text-gray-700 dark:text-gray-300">
+                            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                 Pending review {pending.length > 0 && `(${pending.length})`}
                             </h2>
                         </div>

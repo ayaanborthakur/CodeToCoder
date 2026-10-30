@@ -128,7 +128,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
         if (references.length > 0 && !selectedTopic && !itemId) {
             setSelectedTopic(references[0]);
         }
-    }, [categories.length, loading, references]); 
+    }, [categories, loading, references]); 
 
     // Sync selection with URL
     useEffect(() => {
@@ -250,7 +250,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                         <div key={category}>
                             <button
                                 onClick={() => toggleCategory(category)}
-                                className="w-full flex justify-between items-center mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                className="w-full flex justify-between items-center mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
                                 {category}
                                 <ChevronDownIcon className={`transition-transform duration-200 w-4 h-4 ${openCategories[category] ? '' : '-rotate-90'}`} />
@@ -295,7 +295,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                 {selectedTopic?.id === GENERATOR_TOPIC_ID ? (
                     <div className="max-w-2xl mx-auto animate-fade-in">
                         <div className="text-center mb-12">
-                            <div className="w-20 h-20 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                            <div className="w-20 h-20 bg-cyan-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
                                 <SparklesIcon className="w-10 h-10 text-white" />
                             </div>
                             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -357,7 +357,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                             <button
                                 type="submit"
                                 disabled={!generatorInput.trim() || isGenerating}
-                                className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isGenerating ? (
                                     <>
@@ -380,7 +380,7 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                 ) : selectedTopic ? (
                     <div className="max-w-4xl mx-auto animate-fade-in">
                         <div className="mb-8 pb-4 border-b border-gray-200 dark:border-gray-800">
-                            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-2 block">
+                            <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 mb-2 block">
                                 {selectedTopic.category}
                             </span>
                             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">{selectedTopic.title}</h1>

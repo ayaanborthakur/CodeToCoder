@@ -35,7 +35,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
         <div className="absolute inset-4 bg-white dark:bg-gray-900 rounded-full shadow-lg flex items-center justify-center p-4 border border-gray-100 dark:border-gray-800 z-10">
            <svg 
              viewBox="0 0 24 24" 
-             className="w-full h-full text-transparent bg-clip-text bg-gradient-to-br from-cyan-500 to-blue-600 animate-gradient-xy fill-current"
+             className="w-full h-full text-gray-900 dark:text-white animate-gradient-xy fill-current"
            >
              <path fill="currentColor" d="M14.25 2.25H9.75v3.75h4.5v-3.75zM5.63 4.88L2.25 8.25l2.65 2.65 3.38-3.37-2.65-2.65zM18.37 4.88l-2.65 2.65 3.38 3.37 2.65-2.65-3.38-3.37zM2.25 15.75l3.38 3.38 2.65-2.65-3.38-3.38-2.65 2.65zM18.37 19.13l3.38-3.38-2.65-2.65-3.38 3.38 2.65 2.65zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
            </svg>
@@ -43,7 +43,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
       </div>
 
       {/* Loading Text */}
-      <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-6 tracking-tight">
+      <h2 className="text-2xl font-bold bg-gray-900 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-6 tracking-tight">
         Code2Coder
       </h2>
 
@@ -79,7 +79,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
 const StatusDot: React.FC<{ active: boolean; label: string }> = ({ active, label }) => (
   <div className="flex flex-col items-center gap-2 w-16">
     <div className={`w-2 h-2 rounded-full transition-all duration-500 ${active ? 'bg-cyan-500 animate-ping' : 'bg-green-500'}`}></div>
-    <span className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${active ? 'text-cyan-600 dark:text-cyan-400' : 'text-green-600 dark:text-green-400'}`}>
+    <span className={`text-xs font-medium transition-colors duration-300 ${active ? 'text-cyan-600 dark:text-cyan-400' : 'text-green-600 dark:text-green-400'}`}>
       {label}
     </span>
   </div>

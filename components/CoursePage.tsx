@@ -46,7 +46,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
         const prog = getCourseProgress(courseId, allIds, byId, completedLessons);
         const u = course ? (isTeacher || isCourseUnlocked(course, allIds, byId, completedLessons, unlockedCourseIds)) : false;
         return { courseModules: courseMods, progress: prog, unlocked: u };
-    }, [courseId, modules, completedLessons, course]);
+    }, [courseId, modules, completedLessons, course, isTeacher, unlockedCourseIds]);
 
     // Opens the IDE for a specific lesson in a new tab.
     const openLesson = (moduleId: string, lessonId: string) => {

@@ -179,7 +179,7 @@ export const FocusTimer: React.FC<FocusTimerProps> = ({ onComplete }) => {
             {/* Config Menu */}
             {isMenuOpen && !isActive && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 z-50 animate-fade-in">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-gray-500 mb-3 flex items-center gap-2">
                         <Settings className="w-3 h-3" />
                         Set Duration
                     </h4>

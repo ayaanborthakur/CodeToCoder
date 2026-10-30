@@ -31,7 +31,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
                 <div className="text-center mb-8">
                     <h3 className="text-xl font-bold text-white">Bellarmine College Preparatory</h3>
-                    <p className="text-[#06b6d4] text-sm font-bold tracking-wider mt-1">ORGANIZATION</p>
+                    <p className="text-cyan-600 dark:text-cyan-400 text-sm font-bold mt-1">Organization</p>
                 </div>
 
                 <div className="space-y-4 mb-8">

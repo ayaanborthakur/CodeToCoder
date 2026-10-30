@@ -683,7 +683,7 @@ exports.aiValidateOutput = onCall({
   }
 
   // Exact match first
-  if (lesson.expectedOutput !== undefined) {
+  if (lesson.expectedOutput) {
     const normalizedActual = actualOutput.trim().toLowerCase();
     const normalizedExpected = lesson.expectedOutput.trim().toLowerCase();
     if (normalizedActual === normalizedExpected) {
@@ -691,16 +691,20 @@ exports.aiValidateOutput = onCall({
     }
   }
 
-  // AI fallback
+  // AI fallback. Many lessons store a description of the result in
+  // expectedOutput rather than literal text, so it is given as guidance.
+  const task = String(lesson.content || '').slice(0, 4000);
   const prompt = `You are validating Python lesson completion output.
 
+Lesson Title: ${lesson.title}
 Lesson Goal: ${lesson.goal}
 Lesson Objective: ${lesson.objective}
-
+${task ? `Lesson Task:\n${task}\n` : ''}${lesson.expectedOutput ? `Expected Result (a description or sample, not necessarily exact text): ${lesson.expectedOutput}\n` : ''}
 Actual Terminal Output:
 ${actualOutput.trim()}
 
-Determine if the output satisfies the lesson requirements.
+Determine if the output shows the program does what the lesson task asks.
+Output that depends on user input or randomness only needs to be plausible for this run.
 Respond with ONLY "VALID" or "INVALID" followed by a brief reason.`;
 
   try {
@@ -760,7 +764,7 @@ exports.aiValidateMethodology = onCall({
 Lesson Title: ${lesson.title}
 Lesson Objective: ${lesson.objective}
 Lesson Goal: ${lesson.goal}
-
+${lesson.content ? `Lesson Task:\n${String(lesson.content).slice(0, 4000)}\n` : ''}
 User's Code:
 \`\`\`python
 ${code}

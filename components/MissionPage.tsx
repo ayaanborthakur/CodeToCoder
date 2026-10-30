@@ -63,7 +63,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
             <section className="relative z-10 px-6 pt-32 pb-32 md:pt-40 md:pb-40">
                 <div className="max-w-7xl mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-20 lg:gap-24 items-center">
                     <div>
-                        <div className="inline-flex items-center gap-2.5 mb-10 px-3 py-1.5 rounded-full bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/20 dark:border-cyan-400/20 text-xs font-semibold tracking-[0.08em] uppercase text-cyan-700 dark:text-cyan-300">
+                        <div className="inline-flex items-center gap-2.5 mb-10 px-3 py-1.5 rounded-full bg-cyan-500/10 dark:bg-cyan-400/10 border border-cyan-500/20 dark:border-cyan-400/20 text-xs font-semibold text-cyan-700 dark:text-cyan-300">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.7)]" />
                             Free forever · No installs · No accounts needed
                         </div>
@@ -72,7 +72,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             Learn Python.
                             <br />
                             Right in your{' '}
-                            <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">browser.</span>
+                            <span className="text-gray-900 dark:text-white">browser.</span>
                         </h1>
 
                         <p className="mt-10 text-xl md:text-2xl text-gray-500 dark:text-gray-400 leading-relaxed max-w-xl">
@@ -88,7 +88,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         <div className="mt-12 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <button
                                 onClick={onStart}
-                                className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
+                                className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
                             >
                                 Start coding
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
@@ -142,7 +142,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
             <section className="relative z-10 px-6 py-28 md:py-36 border-t border-gray-200 dark:border-gray-700">
                 <div className="max-w-7xl mx-auto grid md:grid-cols-[1fr_1.4fr] gap-20 md:gap-28">
                     <div>
-                        <div className="text-xs font-semibold tracking-[0.08em] uppercase text-cyan-600 dark:text-cyan-400 mb-5">
+                        <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-5">
                             The path
                         </div>
                         <h2 className="text-4xl md:text-5xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white leading-[1.1]">
@@ -181,7 +181,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                     <h2 className="text-4xl md:text-6xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white leading-[1.05]">
                         Open the editor.
                         <br />
-                        <span className="bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">Write your first line.</span>
+                        <span className="text-gray-900 dark:text-white">Write your first line.</span>
                     </h2>
                     <p className="mt-8 text-lg md:text-xl text-gray-500 dark:text-gray-400">
                         Free forever. No credit card. No download.
@@ -189,7 +189,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                     <div className="mt-12">
                         <button
                             onClick={onStart}
-                            className="group inline-flex items-center gap-2.5 px-8 py-4 text-base font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all"
+                            className="group inline-flex items-center gap-2.5 px-8 py-4 text-base font-semibold bg-cyan-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all"
                         >
                             Start coding
                             <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
@@ -214,7 +214,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </div>
 
                         <nav>
-                            <h4 className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
+                            <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-5">
                                 Project
                             </h4>
                             <ul className="space-y-3.5 text-base">
@@ -254,7 +254,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </nav>
 
                         <nav>
-                            <h4 className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
+                            <h4 className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-5">
                                 Legal
                             </h4>
                             <ul className="space-y-3.5 text-base">

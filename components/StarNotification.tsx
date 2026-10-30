@@ -27,11 +27,11 @@ export const StarNotification: React.FC<StarNotificationProps> = ({ amount, reas
             className={`fixed top-24 right-4 z-50 transition-all duration-300 transform ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                 }`}
         >
-            <div className="bg-gradient-to-br from-cyan-500 to-purple-500 p-1 rounded-xl shadow-2xl">
+            <div className="bg-cyan-500 p-1 rounded-xl shadow-2xl">
                 <div className="bg-white dark:bg-gray-900 rounded-lg p-4 min-w-[280px]">
                     <div className="flex items-center gap-3">
                         {/* Animated Token Icon */}
-                        <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
                             <span className="text-2xl">⚡</span>
                         </div>
 
@@ -41,7 +41,7 @@ export const StarNotification: React.FC<StarNotificationProps> = ({ amount, reas
                                 {reason}
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-purple-600 dark:from-cyan-400 dark:to-purple-400">
+                                <span className="text-2xl font-bold text-gray-900 dark:text-white dark:from-cyan-400 dark:to-purple-400">
                                     +{amount.toLocaleString()}
                                 </span>
                                 <span className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">

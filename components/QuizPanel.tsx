@@ -131,7 +131,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                     <div className="flex items-center gap-4">
                         <div className="hidden sm:block w-48 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 ease-out"
+                                className="h-full bg-cyan-500 transition-all duration-500 ease-out"
                                 style={{ width: `${progressPercentage}%` }}
                             />
                         </div>
@@ -154,7 +154,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                     {/* Question Sidebar */}
                     <div className="hidden lg:flex w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col shadow-sm">
                         <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-wider">Questions</h4>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-2 ">Questions</h4>
                             <div className="flex items-center justify-between text-xs">
                                 <span className="text-gray-500 dark:text-gray-400 font-medium">
                                     {Object.keys(answers).length} of {questions.length} answered
@@ -236,14 +236,14 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                 <button
                                     onClick={handleSubmit}
                                     disabled={!allAnswered}
-                                    className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm uppercase tracking-widest"
+                                    className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 hover:shadow-lg disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed transition-all text-sm "
                                 >
                                     Submit Quiz
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleRetry}
-                                    className="w-full py-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm uppercase tracking-widest border border-gray-200 dark:border-gray-600"
+                                    className="w-full py-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-sm border border-gray-200 dark:border-gray-600"
                                 >
                                     Retake Quiz
                                 </button>
@@ -268,7 +268,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                             </svg>
                                             <div className="absolute flex flex-col items-center">
                                                 <span className={`text-4xl font-bold tracking-tight ${scoreColor}`}>{score?.toFixed(0)}%</span>
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">Score</span>
+                                                <span className="text-xs font-bold text-gray-400 mt-1">Score</span>
                                             </div>
                                         </div>
                                     </div>
@@ -400,7 +400,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
                                         {/* Explicit correction text if wrong */}
                                         {submitted && isWrong && (
                                             <div className="mt-6 w-full p-5 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl animate-fade-in">
-                                                <p className="text-xs font-semibold text-red-800 dark:text-red-300 uppercase tracking-[0.08em] mb-2">Correction</p>
+                                                <p className="text-xs font-semibold text-red-800 dark:text-red-300 mb-2">Correction</p>
                                                 <p className="text-gray-800 dark:text-gray-200 text-lg">
                                                     The correct answer is <span className="font-bold text-green-600 dark:text-green-400 border-b-2 border-green-200 dark:border-green-800/50">{String.fromCharCode(65 + q.correctAnswerIndex)}: {q.options[q.correctAnswerIndex]}</span>
                                                 </p>

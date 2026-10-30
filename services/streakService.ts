@@ -3,7 +3,9 @@
  * Tracks consecutive days of user activity for gamification
  */
 
-import { getStarsData, saveStarsData } from './marketplaceService';
+import { setDoc } from 'firebase/firestore';
+import { getStarsData } from './marketplaceService';
+import { userPaths } from './firestorePathHelper';
 
 /**
  * Get today's date in YYYY-MM-DD format
@@ -71,7 +73,13 @@ export const updateStreak = async (userId: string): Promise<{ currentStreak: num
     }
 
     starsData.lastActiveDate = today;
-    await saveStarsData(userId, starsData);
+    // Merge only the streak fields: a full-document write here would race with
+    // star awards written at the same moment and silently drop them.
+    await setDoc(userPaths.stars(userId), {
+        currentStreak: starsData.currentStreak,
+        longestStreak: starsData.longestStreak,
+        lastActiveDate: today,
+    }, { merge: true });
 
     return { 
         currentStreak: starsData.currentStreak, 

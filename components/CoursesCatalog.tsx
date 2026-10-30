@@ -77,7 +77,7 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
                 {/* ─── Hero: overall progress ───────────────────────────── */}
                 <header className="flex items-end justify-between flex-wrap gap-6">
                     <div>
-                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-1">Curriculum</div>
+                        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1">Curriculum</div>
                         <h1 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">Your Python journey.</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             Five courses, in order. Each unlocks once you finish the previous.
@@ -125,14 +125,14 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({
 
 const SectionLabel: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
     <div className="flex items-center justify-between mb-2 px-1">
-        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">{children}</div>
+        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 ">{children}</div>
         {right}
     </div>
 );
 
 const Stat: React.FC<{ label: string; value: React.ReactNode; suffix?: string }> = ({ label, value, suffix }) => (
     <div className="flex flex-col">
-        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">{label}</div>
+        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 ">{label}</div>
         <div className="text-xl font-semibold text-gray-900 dark:text-white tabular-nums">
             {value}{suffix && <span className="text-sm text-gray-400 font-normal ml-1">{suffix}</span>}
         </div>
@@ -159,19 +159,19 @@ const FeaturedCard: React.FC<{ row: CourseRow; isTeacher: boolean; onSelect: () 
                 <div className="flex items-start justify-between gap-6 flex-wrap">
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/80">Course</span>
+                            <span className="text-xs font-semibold text-white/80">Course</span>
                             {complete && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.05em] text-white/95 bg-white/20 px-1.5 py-0.5 rounded">
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-white/95 bg-white/20 px-1.5 py-0.5 rounded">
                                     <CheckCircle2 className="w-2.5 h-2.5" /> Complete
                                 </span>
                             )}
                             {!unlocked && !isTeacher && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-white/90 bg-white/20 px-1.5 py-0.5 rounded">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/90 bg-white/20 px-1.5 py-0.5 rounded">
                                     <Lock className="w-2.5 h-2.5" /> Locked
                                 </span>
                             )}
                             {course.comingSoon && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-white/90 bg-white/20 px-1.5 py-0.5 rounded">
+                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-white/90 bg-white/20 px-1.5 py-0.5 rounded">
                                     <Sparkles className="w-2.5 h-2.5" /> Coming Soon
                                 </span>
                             )}
@@ -184,11 +184,11 @@ const FeaturedCard: React.FC<{ row: CourseRow; isTeacher: boolean; onSelect: () 
                     {!course.comingSoon && unlocked && (
                         <div className="flex items-end gap-5 text-white tabular-nums">
                             <div className="text-right">
-                                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/75">Progress</div>
+                                <div className="text-xs font-semibold text-white/75">Progress</div>
                                 <div className="text-2xl font-semibold">{pct}<span className="text-base text-white/70">%</span></div>
                             </div>
                             <div className="text-right">
-                                <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-white/75">Lessons</div>
+                                <div className="text-xs font-semibold text-white/75">Lessons</div>
                                 <div className="text-2xl font-semibold">{progress.completed}<span className="text-base text-white/70"> / {progress.total}</span></div>
                             </div>
                         </div>
@@ -252,17 +252,17 @@ const CourseRowItem: React.FC<{ row: CourseRow; isTeacher: boolean; onSelect: ()
                 <div className="flex items-center gap-2 mb-0.5">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">{course.title}</h3>
                     {complete && !isTeacher && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.05em] text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
                             <CheckCircle2 className="w-2.5 h-2.5" /> Complete
                         </span>
                     )}
                     {!unlocked && !isTeacher && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
                             <Lock className="w-2.5 h-2.5" /> Locked
                         </span>
                     )}
                     {course.comingSoon && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
                             <Sparkles className="w-2.5 h-2.5" /> Coming Soon
                         </span>
                     )}

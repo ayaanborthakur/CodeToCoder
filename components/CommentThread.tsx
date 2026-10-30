@@ -117,9 +117,9 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
                                             <div className="flex items-baseline gap-2">
                                                 <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{c.authorName}</span>
                                                 {c.authorRole === 'teacher' && (
-                                                    <span className="text-[9px] font-bold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1 py-0.5 rounded uppercase tracking-[0.05em]">Teacher</span>
+                                                    <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1 py-0.5 rounded ">Teacher</span>
                                                 )}
-                                                <span className="text-[10px] text-gray-400">{relativeTime(c.createdAt)}</span>
+                                                <span className="text-xs text-gray-400">{relativeTime(c.createdAt)}</span>
                                             </div>
                                             <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap mt-0.5">{c.content}</div>
                                         </div>

@@ -274,10 +274,10 @@ export const BADGES: Badge[] = [
     {
         id: 'python_master',
         name: 'Python Master',
-        description: 'Complete all 12 modules',
+        description: 'Complete every module',
         type: 'special',
         tier: 'platinum',
-        requirement: 12,
+        requirement: 999, // Will be updated dynamically
         icon: '🐍'
     },
 
@@ -325,6 +325,7 @@ export interface BadgeCheckStats {
     quizzesCompleted: number;
     projectsCompleted: number;
     totalLessons?: number;
+    totalModules?: number;
     currentStreak?: number;
     longestStreak?: number;
     totalStarsEarned?: number;
@@ -337,7 +338,8 @@ export const checkAndAwardBadges = (
     currentAchievements: UserAchievements | undefined,
     stats: BadgeCheckStats
 ): { newBadges: Badge[]; updatedAchievements: UserAchievements } => {
-    const earnedBadgeIds = currentAchievements?.earnedBadgeIds || (currentAchievements as any)?.earnedBadges || [];
+    // Copy: this array is React state owned by the caller and must not be mutated.
+    const earnedBadgeIds: string[] = [...(currentAchievements?.earnedBadgeIds || (currentAchievements as any)?.earnedBadges || [])];
     const newlyEarnedBadges: Badge[] = [];
 
     // Determine the actual platinum requirement - use a LOCAL variable, NOT mutation of global BADGES!
@@ -371,6 +373,9 @@ export const checkAndAwardBadges = (
         // Use dynamic local requirement for platinum lesson badge
         if (badge.id === 'lesson_platinum') {
             requirement = platinumRequirement;
+        } else if (badge.id === 'python_master') {
+            // "Every module" — unreachable until the module count is known.
+            requirement = stats.totalModules && stats.totalModules > 0 ? stats.totalModules : Infinity;
         }
         
         switch (badge.type) {
@@ -452,7 +457,8 @@ export const getAllBadges = (): Badge[] => {
 export const getBadgeProgress = (
     badgeType: BadgeType,
     currentCount: number,
-    earnedBadgeIds: string[]
+    earnedBadgeIds: string[],
+    totalLessons?: number
 ): { nextBadge: Badge | null; progress: number; current: number; required: number } => {
     // Get all badges of this type, sorted by requirement
     const typeBadges = BADGES
@@ -466,13 +472,15 @@ export const getBadgeProgress = (
         return { nextBadge: null, progress: 100, current: currentCount, required: currentCount };
     }
 
-    const progress = Math.min(100, (currentCount / nextBadge.requirement) * 100);
+    // lesson_platinum's stored requirement is a placeholder for "all lessons".
+    const required = nextBadge.id === 'lesson_platinum' && totalLessons ? totalLessons : nextBadge.requirement;
+    const progress = Math.min(100, (currentCount / required) * 100);
 
     return {
         nextBadge,
         progress,
         current: currentCount,
-        required: nextBadge.requirement
+        required
     };
 };
 

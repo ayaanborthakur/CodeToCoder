@@ -13,7 +13,7 @@ body {
   padding: 0;
   overflow: hidden;
   /* App handles scrolling internally */
-  font-family: "Outfit", sans-serif;
+  font-family: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -22,354 +22,69 @@ button {
   cursor: pointer;
 }
 
-/* Global Hover Effect for all buttons (except .no-hover) - Gel Ripple Effect */
-button:not(.no-hover):not([disabled]) {
-  --btn-glow-color: currentColor;
-  /* Bouncy elastic transition */
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease, background-color 0.2s ease, border-color 0.2s ease;
-  transform-origin: center;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+/* Interaction: calm, quick colour/shadow changes only. No transforms on
+   every button — they moved layouts and fought absolutely-positioned UI. */
+button,
+a {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
 }
 
-/* Gel ripple effect on hover */
-/* Gel ripple effect on hover */
-button:not(.no-hover):not([disabled])::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.05) 35%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 1;
-  border-radius: inherit;
+/* One visible keyboard focus style across the app. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Click ripple effect */
-/* Click ripple effect */
-button:not(.no-hover):not([disabled])::after {
-  content: "";
-  position: absolute;
-  top: var(--ripple-y, 50%);
-  left: var(--ripple-x, 50%);
-  width: 0;
-  height: 0;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.4) 0%,
-    rgba(255, 255, 255, 0.2) 40%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-}
-
-button:not(.no-hover):not([disabled]):hover::before {
-  opacity: 1;
-}
-
-button:not(.no-hover):not([disabled]):hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-
-button:not(.no-hover):not([disabled]):active {
-  transform: translateY(0px) scale(0.99);
-  transition: transform 0.1s ease;
-}
-
-/* Trigger click ripple animation via class */
-button.active-ripple:not(.no-hover):not([disabled])::after {
-  animation: click-ripple 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-/* Click ripple keyframes */
-@keyframes click-ripple {
-  0% {
-    width: 0;
-    height: 0;
-    opacity: 0.6;
-  }
-
-  100% {
-    width: 300%;
-    height: 300%;
-    opacity: 0;
-  }
-}
-
-/* Clickable links and interactive elements - Bouncy */
-a:not(.no-hover) {
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease,
-    text-shadow 0.2s ease;
-}
-
-a:not(.no-hover):hover {
-  transform: translateY(-2px) scale(1.02);
-  transform: translateY(-2px) scale(1.02);
-  /* Reduced glow by ~35% */
-  filter: drop-shadow(0 0 4px currentColor);
-}
-
-/* Gel ripple animation */
-@keyframes gel-ripple {
-  0% {
-    transform: scale(0);
-    opacity: 0.6;
-  }
-
-  100% {
-    transform: scale(2.5);
-    opacity: 0;
-  }
-}
-
-/* Liquid bounce animation keyframes */
-@keyframes liquid-bounce {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-
-  30% {
-    transform: translateY(-8px) scale(1.05, 0.95);
-  }
-
-  50% {
-    transform: translateY(-4px) scale(0.98, 1.02);
-  }
-
-  70% {
-    transform: translateY(-6px) scale(1.02, 0.98);
-  }
-
-  100% {
-    transform: translateY(-3px) scale(1.02);
-  }
-}
-
-@keyframes liquid-press {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(0.95, 1.05);
-  }
-
-  100% {
-    transform: scale(0.98);
-  }
-}
-
-/* Navigation Tab Styles - Gel Bubble Effect */
+/* Header nav tabs */
 .nav-tab {
-  --btn-glow-color: currentColor;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.2s ease, color 0.2s ease, box-shadow 0.3s ease;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 
-/* Gel ripple for nav tabs */
-/* Gel ripple for nav tabs */
-.nav-tab::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.05) 40%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 1;
-  border-radius: inherit;
-}
-
-/* Click ripple for nav tabs */
-/* Click ripple for nav tabs */
-.nav-tab::after {
-  content: "";
-  position: absolute;
-  top: var(--ripple-y, 50%);
-  left: var(--ripple-x, 50%);
-  width: 0;
-  height: 0;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.2) 40%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.nav-tab:hover::before {
-  opacity: 1;
-}
-
-.nav-tab:hover {
-  background-color: rgba(6, 182, 212, 0.15) !important;
-  color: #0891b2 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.nav-tab:active {
-  transform: translateY(0) scale(0.98);
-  transition: transform 0.1s ease;
-}
-
-.nav-tab.active-ripple::after {
-  animation: click-ripple 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.dark .nav-tab:hover {
-  background-color: rgba(34, 211, 238, 0.15) !important;
-  color: #22d3ee !important;
-}
-
-/* Back Button Styles - Gel Bubble Effect */
+/* Back buttons */
 .back-btn {
-  --btn-glow-color: currentColor;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  border-radius: 9999px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #0891b2;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease;
+  transition: color 150ms ease, background-color 150ms ease;
 }
 
-/* Gel ripple for back button */
-/* Gel ripple for back button */
-.back-btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.25) 0%,
-    rgba(255, 255, 255, 0.08) 40%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 1;
-  border-radius: inherit;
-}
-
-/* Click ripple for back button */
-/* Click ripple for back button */
-.back-btn::after {
-  content: "";
-  position: absolute;
-  top: var(--ripple-y, 50%);
-  left: var(--ripple-x, 50%);
-  width: 0;
-  height: 0;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.2) 40%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-}
-
-.back-btn:hover::before {
-  opacity: 1;
-}
-
-.back-btn:hover {
-  background-color: rgba(6, 182, 212, 0.2);
-  border-color: rgba(6, 182, 212, 0.5);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  color: #06b6d4;
-}
-
-.back-btn:active {
-  transform: translateY(0) scale(0.95);
-  transition: transform 0.1s ease;
-}
-
-/* Trigger click ripple animation via class */
-.back-btn.active-ripple::after {
-  animation: click-ripple 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.dark .back-btn {
-  background-color: rgba(34, 211, 238, 0.1);
-  border-color: rgba(34, 211, 238, 0.3);
-  color: #22d3ee;
-}
-
-.dark .back-btn:hover {
-  background-color: rgba(34, 211, 238, 0.2);
-  border-color: rgba(34, 211, 238, 0.5);
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5),
-    0 0 24px rgba(34, 211, 238, 0.25);
-  color: #67e8f9;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 :root {
-  --background: #f8fafc;
-  /* slate-50 */
+  /* Ink neutrals + Python blue. Values mirror tailwind.config.js. */
+  --background: #f5f6fa;
   --surface: #ffffff;
-  /* white */
-  --surface-highlight: #f1f5f9;
-  /* slate-100 */
-  --text-primary: #0f172a;
-  /* slate-900 */
-  --text-secondary: #64748b;
-  /* slate-500 */
-  --border-default: #e2e8f0;
-  /* slate-200 */
+  --surface-highlight: #eceef5;
+  --text-primary: #161c2e;
+  --text-secondary: #586179;
+  --border-default: #dde1ec;
+  --focus-ring: #3a78b4;
+  color-scheme: light;
 }
 
 .dark {
-  --background: #020617;
-  /* slate-950 */
-  --surface: #0f172a;
-  /* slate-900 */
-  --surface-highlight: #1e293b;
-  /* slate-800 */
-  --text-primary: #f1f5f9;
-  /* slate-100 */
-  --text-secondary: #94a3b8;
-  /* slate-400 */
-  --border-default: #1e293b;
-  /* slate-800 */
+  --background: #0e1322;
+  --surface: #151b2d;
+  --surface-highlight: #1d2439;
+  --text-primary: #eef0f6;
+  --text-secondary: #9aa3ba;
+  --border-default: #262e46;
+  --focus-ring: #7fb0e0;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
 }
 
 #root {
@@ -449,7 +164,7 @@ pre[class*="language-"] {
   color: #374151;
   /* gray-700 */
   text-shadow: none;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
   direction: ltr;
   text-align: left;
   white-space: pre;
@@ -631,7 +346,7 @@ pre[class*="language-"] {
   color: #0e7490; /* cyan-700 */
   padding: 0.2rem 0.4rem;
   border-radius: 0.25rem;
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
   font-size: 0.875em;
   font-weight: 500;
 }
@@ -770,7 +485,7 @@ pre[class*="language-"] {
   border-top-left-radius: 0.3rem;
   /* Matches parent slightly less */
   letter-spacing: 0.05em;
-  font-family: "Outfit", sans-serif;
+  font-family: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
 }
 
 .dark .prose pre {

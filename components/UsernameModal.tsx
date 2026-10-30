@@ -109,7 +109,7 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
                 onClick={e => e.stopPropagation()}
             >
                 {/* Decorative elements */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500"></div>
+                <div className="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div className="relative z-10">
@@ -192,7 +192,7 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({
                             <button
                                 type="submit"
                                 disabled={!canSubmit}
-                                className={`flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-xl shadow-lg transition-all ${
+                                className={`flex-1 py-3 bg-cyan-600 text-white font-bold rounded-xl shadow-lg transition-all ${
                                     canSubmit 
                                         ? 'hover:from-cyan-500 hover:to-blue-500 cursor-pointer' 
                                         : 'opacity-50 cursor-not-allowed'
