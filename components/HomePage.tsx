@@ -27,6 +27,7 @@ interface HomePageProps {
   onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
   onSelectLesson: (moduleId: string, lessonId: string) => void;
   completedLessons: Set<string>;
+  completedPracticeItems: Set<string>;
   playgroundFiles: PlaygroundFile[];
   mostRecentPlaygroundFile: PlaygroundFile | null;
   onPlaygroundResume: (fileId: string) => void;
@@ -45,6 +46,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigate,
   onSelectLesson,
   completedLessons,
+  completedPracticeItems,
   playgroundFiles,
   mostRecentPlaygroundFile,
   onPlaygroundResume,
@@ -343,10 +345,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             {/* RIGHT RAIL: Assignments + Daily Challenges + Quick actions */}
             <aside className="space-y-6 min-w-0">
 
-              {user?.classId && (
+              {user?.classId && user.role !== 'teacher' && (
                 <section>
-                  <SectionLabel>Assignments</SectionLabel>
-                  <AssignmentsCard studentId={user.id} classroomId={user.classId} />
+                  <SectionLabel>Assignments to do</SectionLabel>
+                  <AssignmentsCard studentId={user.id} classroomId={user.classId} completedLessons={completedLessons} completedPracticeItems={completedPracticeItems} />
                 </section>
               )}
 

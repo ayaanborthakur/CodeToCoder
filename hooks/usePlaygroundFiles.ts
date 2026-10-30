@@ -12,10 +12,11 @@ const DEFAULT_PLAYGROUND_CODE = '# Welcome to the Playground!\n# Experiment with
 
 export const usePlaygroundFiles = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
+    const userId = user?.id;
     const [files, setFiles] = useState<PlaygroundFile[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    const getFilesKey = useCallback(() => user ? `${BASE_FILES_KEY}_${user.id}` : BASE_FILES_KEY, [user]);
+    const getFilesKey = useCallback(() => userId ? `${BASE_FILES_KEY}_${userId}` : BASE_FILES_KEY, [userId]);
 
     const saveFilesToStorage = useCallback(async (currentFiles: PlaygroundFile[]) => {
         try {
@@ -78,7 +79,10 @@ export const usePlaygroundFiles = () => {
         };
 
         loadFiles();
-    }, [user, isAuthLoading, getFilesKey, saveFilesToStorage]);
+    // Keyed on the id: refreshing the profile (same user, new object) must
+    // not reload everything and flash the full-screen loader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, isAuthLoading, getFilesKey, saveFilesToStorage]);
 
     const createFile = useCallback((name: string, content: string = DEFAULT_PLAYGROUND_CODE) => {
         const newFile: PlaygroundFile = {

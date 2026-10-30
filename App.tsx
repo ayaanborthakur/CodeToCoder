@@ -312,7 +312,8 @@ const App: React.FC = () => {
         // We now load once per user. Newly-logged activities show up on the
         // next user state change, or via explicit refresh in the surfaces that
         // need fresh data.
-    }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id so a profile refresh doesn't re-run it
+    }, [user?.id]);
 
     // Load teacher's classroom for the Lessons-tab assign button + student assignments lookup.
     useEffect(() => {
@@ -360,7 +361,8 @@ const App: React.FC = () => {
 
     const getStorageKey = useCallback((type: 'lesson' | 'practice', id: string) => {
         return user ? `code2coder_autosave_${type}_${id}_${user.id} ` : `code2coder_autosave_${type}_${id} `;
-    }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id so a profile refresh doesn't re-run it
+    }, [user?.id]);
 
     // Reset/Reload state when user context changes (Login/Logout)
     useEffect(() => {
@@ -370,7 +372,7 @@ const App: React.FC = () => {
         setChatHistory([{ role: 'model', content: "Hello! I'm your AI assistant. I'm here to help you learn Python. What's your first question?" }]);
         setActivePlaygroundFileId(null);
         setPlaygroundView('dashboard');
-    }, [user]);
+    }, [user?.id]);
 
 
     // Load user settings from Firebase.
@@ -390,7 +392,8 @@ const App: React.FC = () => {
             });
         });
         return () => { cancelled = true; };
-    }, [user, setTheme, setAiAssistanceLevel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id so a profile refresh doesn't re-run it
+    }, [user?.id, setTheme, setAiAssistanceLevel]);
 
     const loadStarBalance = useCallback(async () => {
         if (!user) {
@@ -415,7 +418,8 @@ const App: React.FC = () => {
             ownedCollectibleIds: data.ownedCollectibles ?? [],
         });
         setNetWorth(net);
-    }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id so a profile refresh doesn't re-run it
+    }, [user?.id]);
 
     // Load star balance
     useEffect(() => {
@@ -431,7 +435,7 @@ const App: React.FC = () => {
 
         window.addEventListener('starUpdate' as any, handleStarUpdate);
         return () => window.removeEventListener('starUpdate' as any, handleStarUpdate);
-    }, [user, loadStarBalance]);
+    }, [user?.id, loadStarBalance]);
 
     // Auth-based Routing Logic
 
@@ -2124,6 +2128,7 @@ const App: React.FC = () => {
                                     onNavigate={handleNavigate}
                                     onSelectLesson={handleSelectLesson}
                                     completedLessons={completedLessons}
+                                    completedPracticeItems={completedPracticeItems}
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
                                     onPlaygroundResume={handlePlaygroundResume}
@@ -2215,14 +2220,16 @@ const App: React.FC = () => {
                         <Route path="/reference/:itemId" element={gate(<ReferencePanel />)} />
 
                         {/* Classroom hub — join/create a classroom, pick a role */}
-                        <Route path="/classroom" element={gate(<ClassroomHub onNavigate={handleNavigate} />)} />
+                        <Route path="/classroom" element={gate(<ClassroomHub onNavigate={handleNavigate} completedLessons={completedLessons} completedPracticeItems={completedPracticeItems} />)} />
 
                         {/* Teacher dashboard — only shown to teachers */}
-                        <Route path="/teacher" element={
-                            user?.role === 'teacher'
-                                ? <TeacherDashboard modules={modules} />
-                                : <Navigate to="/" replace />
-                        } />
+                        {['/teacher', '/teacher/:classId/:tab?/:sub?'].map(path => (
+                            <Route key={path} path={path} element={
+                                user?.role === 'teacher'
+                                    ? <TeacherDashboard modules={modules} />
+                                    : <Navigate to="/" replace />
+                            } />
+                        ))}
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

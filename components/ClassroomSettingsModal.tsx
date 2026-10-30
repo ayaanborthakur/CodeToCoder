@@ -27,6 +27,8 @@ interface ClassroomSettingsModalProps {
     onArchived?: (archived: boolean) => void;
     /** Called after a successful delete. The modal closes itself first. */
     onDeleted?: () => void;
+    /** Render as a page section instead of a popup over the page. */
+    inline?: boolean;
 }
 
 export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
@@ -36,6 +38,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
     onUpdated,
     onArchived,
     onDeleted,
+    inline = false,
 }) => {
     const [name, setName] = useState(classroom.className);
     const [description, setDescription] = useState(classroom.description ?? '');
@@ -130,9 +133,11 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-lg border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        <div className={inline ? '' : 'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in'}>
+            <div className={inline
+                ? 'bg-white dark:bg-gray-800 rounded-xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 flex flex-col'
+                : 'bg-white dark:bg-gray-900 rounded-xl w-full max-w-lg border border-gray-200 dark:border-gray-800 shadow-xl flex flex-col max-h-[90vh]'}>
+                <div className={`${inline ? 'hidden' : 'flex'} items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0`}>
                     <div>
                         <h2 className="font-semibold text-sm text-gray-900 dark:text-white">Classroom settings</h2>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{classroom.className}</p>
@@ -142,12 +147,12 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                     </button>
                 </div>
 
-                <div className="overflow-y-auto p-5 space-y-6">
+                <div className={`${inline ? '' : 'overflow-y-auto'} p-5 space-y-6`}>
                     {/* ─── Name + description ──────────────────────────────── */}
                     <section className="space-y-3">
                         <SectionHeader>Details</SectionHeader>
                         <div>
-                            <label htmlFor="cls-name" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em] block mb-1.5">Name</label>
+                            <label htmlFor="cls-name" className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Name</label>
                             <input
                                 id="cls-name"
                                 type="text"
@@ -158,7 +163,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                             />
                         </div>
                         <div>
-                            <label htmlFor="cls-desc" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em] block mb-1.5">Description (optional)</label>
+                            <label htmlFor="cls-desc" className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Description (optional)</label>
                             <textarea
                                 id="cls-desc"
                                 value={description}
@@ -313,6 +318,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={onClose}
+                            hidden={inline}
                             disabled={saving || deleting}
                             className="px-3 py-1.5 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md disabled:opacity-50"
                         >
@@ -335,7 +341,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
 
 const SectionHeader: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
     <div className="flex items-center justify-between mb-0.5">
-        <h3 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">{children}</h3>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">{children}</h3>
         {right}
     </div>
 );

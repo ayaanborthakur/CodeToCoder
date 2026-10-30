@@ -16,6 +16,7 @@ const todayString = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD,
 
 export const useProgress = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
+    const userId = user?.id;
     const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
     const [completedPracticeItems, setCompletedPracticeItems] = useState<Set<string>>(new Set());
     const [rewardedLessons, setRewardedLessons] = useState<Set<string>>(new Set());
@@ -41,9 +42,9 @@ export const useProgress = () => {
     const badgeQueueRef = useRef<Promise<void>>(Promise.resolve());
 
     // Key logic: If user is logged in, append userId to key. Else use base key (guest).
-    const getProgressKey = useCallback(() => user ? `${BASE_PROGRESS_KEY}_${user.id}` : BASE_PROGRESS_KEY, [user]);
-    const getPracticeKey = useCallback(() => user ? `${BASE_PRACTICE_KEY}_${user.id}` : BASE_PRACTICE_KEY, [user]);
-    const getTodayKey = useCallback(() => user ? `${BASE_TODAY_KEY}_${user.id}` : BASE_TODAY_KEY, [user]);
+    const getProgressKey = useCallback(() => userId ? `${BASE_PROGRESS_KEY}_${userId}` : BASE_PROGRESS_KEY, [userId]);
+    const getPracticeKey = useCallback(() => userId ? `${BASE_PRACTICE_KEY}_${userId}` : BASE_PRACTICE_KEY, [userId]);
+    const getTodayKey = useCallback(() => userId ? `${BASE_TODAY_KEY}_${userId}` : BASE_TODAY_KEY, [userId]);
 
     useEffect(() => {
         if (isAuthLoading) return;
@@ -130,7 +131,10 @@ export const useProgress = () => {
         };
 
         loadProgressData();
-    }, [user, isAuthLoading, getProgressKey, getPracticeKey]);
+    // Keyed on the id: refreshing the profile (same user, new object) must
+    // not reload everything and flash the full-screen loader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, isAuthLoading, getProgressKey, getPracticeKey]);
 
     const enqueue = useCallback((task: () => Promise<void>) => {
         badgeQueueRef.current = badgeQueueRef.current

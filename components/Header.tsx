@@ -78,10 +78,24 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
     </button>
   );
 
-  // The Classroom-area tab swaps between teacher dashboard and student/role hub.
-  const classroomTab = user?.role === 'teacher'
-    ? { view: 'teacher' as ViewState, label: 'My Class', icon: <GraduationCap className="w-4 h-4" /> }
-    : { view: 'classhub' as ViewState, label: 'Classroom', icon: null };
+  // Teachers live in their classes, so that comes first for them; students
+  // reach their one class after the learning areas.
+  const isTeacher = user?.role === 'teacher';
+  const primaryNav: { view: ViewState; label: string; icon?: React.ReactNode }[] = isTeacher
+    ? [
+        { view: 'home', label: 'Home' },
+        { view: 'teacher', label: 'Classes', icon: <GraduationCap className="w-4 h-4" /> },
+        { view: 'classroom', label: 'Lessons' },
+        { view: 'practice', label: 'Practice' },
+        { view: 'playground', label: 'Playground' },
+      ]
+    : [
+        { view: 'home', label: 'Home' },
+        { view: 'classroom', label: 'Lessons' },
+        { view: 'practice', label: 'Practice' },
+        { view: 'playground', label: 'Playground' },
+        { view: 'classhub', label: 'Class' },
+      ];
 
   const MenuItem: React.FC<{
     onClick: () => void;
@@ -119,10 +133,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             the landing page and the Sign In CTA on the right. */}
         {user && (
           <nav className="hidden md:flex items-center gap-0.5">
-            <NavLink view="classroom" label="Lessons" />
-            <NavLink view="practice" label="Practice" />
-            <NavLink view="playground" label="Playground" />
-            <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
+            {primaryNav.map(item => <NavLink key={item.view} {...item} />)}
           </nav>
         )}
       </div>
@@ -228,10 +239,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         <div className="md:hidden absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3 space-y-1 shadow-lg animate-slide-up">
           {user && (
             <>
-              <NavLink view="classroom" label="Lessons" />
-              <NavLink view="practice" label="Practice" />
-              <NavLink view="playground" label="Playground" />
-              <NavLink view={classroomTab.view} label={classroomTab.label} icon={classroomTab.icon} />
+              {primaryNav.map(item => <NavLink key={item.view} {...item} />)}
               <div className="my-2 border-t border-gray-100 dark:border-gray-800" />
               <MenuItem onClick={() => go('profile')} icon={<User className="w-4 h-4" />} label="Profile" />
               <MenuItem onClick={() => go('marketplace')} icon={<ShoppingBag className="w-4 h-4" />} label="Star Market" />

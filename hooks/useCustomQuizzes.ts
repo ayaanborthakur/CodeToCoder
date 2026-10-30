@@ -7,10 +7,11 @@ const BASE_QUIZ_KEY = 'code2coder_custom_quizzes';
 
 export const useCustomQuizzes = () => {
     const { user, isLoading: isAuthLoading } = useAuth();
+    const userId = user?.id;
     const [customQuizzes, setCustomQuizzes] = useState<PracticeItem[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    const getKey = useCallback(() => user ? `${BASE_QUIZ_KEY}_${user.id}` : BASE_QUIZ_KEY, [user]);
+    const getKey = useCallback(() => userId ? `${BASE_QUIZ_KEY}_${userId}` : BASE_QUIZ_KEY, [userId]);
 
     const saveToStorage = useCallback(async (items: PracticeItem[]) => {
         try {
@@ -73,7 +74,10 @@ export const useCustomQuizzes = () => {
         };
 
         loadQuizzes();
-    }, [user, isAuthLoading, getKey]);
+    // Keyed on the id: refreshing the profile (same user, new object) must
+    // not reload everything and flash the full-screen loader.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, isAuthLoading, getKey]);
 
     const addCustomQuiz = useCallback((quiz: PracticeItem) => {
         setCustomQuizzes(prev => {

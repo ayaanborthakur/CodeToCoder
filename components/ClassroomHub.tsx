@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     ArrowRight,
@@ -7,9 +8,12 @@ import {
     Copy,
     CheckCheck,
     LogOut,
-    Calendar,
-    ExternalLink,
     ClipboardList,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    GraduationCap,
+    Users,
 } from 'lucide-react';
 import {
     joinClassroom,
@@ -19,75 +23,31 @@ import {
 } from '../services/classroomService';
 import { listAssignmentsForStudent } from '../services/assignmentsService';
 import { listPostsForClassroom } from '../services/postsService';
+import { isAssignmentDone } from '../services/classroomProgressService';
 import type { Classroom, Post, Assignment } from '../types';
 import type { ViewState } from './Header';
 import { StreamView } from './StreamView';
-import { assignmentTitle, assignmentSubtitle, assignmentOpenPath } from '../utils/assignmentDisplay';
+import { assignmentTitle, assignmentSubtitle, assignmentOpenPath, dueLabel } from '../utils/assignmentDisplay';
+import { Page, PageHeader, Section, Card, List, Button, Pill, EmptyState, Alert, Spinner, Field, inputClass } from './ui';
 
 interface ClassroomHubProps {
     onNavigate: (view: ViewState) => void;
+    completedLessons: Set<string>;
+    completedPracticeItems: Set<string>;
 }
 
-type StudentTab = 'stream' | 'assignments' | 'info';
-
-// Module-level so its identity is stable across renders — defining this inside
-// the component would remount its children on every keystroke (losing input focus).
-const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">{children}</div>
-    </div>
-);
-
-export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
+export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, completedLessons, completedPracticeItems }) => {
     const { user, refreshUser } = useAuth();
 
     const [settingRole, setSettingRole] = useState(false);
-    const [joinCode, setJoinCode] = useState('');
-    const [joinError, setJoinError] = useState<string | null>(null);
-    const [joinLoading, setJoinLoading] = useState(false);
     const [classroom, setClassroom] = useState<Classroom | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
-    const [classLoading, setClassLoading] = useState(false);
-    const [codeCopied, setCodeCopied] = useState(false);
-    const [leaving, setLeaving] = useState(false);
-    const [studentTab, setStudentTab] = useState<StudentTab>('stream');
-    const [pendingSchoolName, setPendingSchoolName] = useState<string | null>(null);
-
-    // Lazily resolve the pending school's name for the "waiting for approval"
-    // banner. Avoids showing a bare schoolId.
-    useEffect(() => {
-        if (!user?.schoolJoinPending || !user.schoolId) { setPendingSchoolName(null); return; }
-        let cancelled = false;
-        (async () => {
-            try {
-                const { getSchool } = await import('../services/schoolService');
-                const s = await getSchool(user.schoolId!);
-                if (!cancelled) setPendingSchoolName(s?.name ?? null);
-            } catch { /* non-fatal */ }
-        })();
-        return () => { cancelled = true; };
-    }, [user?.schoolId, user?.schoolJoinPending]);
-
-    // Inline banner — appears at the top of any Shell when the student has a
-    // pending school join. Renders nothing when there's no pending request.
-    const SchoolPendingBanner = () => {
-        if (!user?.schoolJoinPending || !user.schoolId) return null;
-        return (
-            <div className="mb-5 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50 flex items-start gap-3">
-                <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-800 dark:text-amber-200 leading-snug">
-                    <span className="font-semibold">Waiting for school approval.</span>{' '}
-                    {pendingSchoolName
-                        ? <>Your join request for <span className="font-semibold">{pendingSchoolName}</span> is being reviewed by a teacher there.</>
-                        : <>Your school join request is being reviewed.</>}
-                </div>
-            </div>
-        );
-    };
+    const [classLoading, setClassLoading] = useState(!!user?.classId);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     const loadClassroom = useCallback(async () => {
-        if (!user?.classId) { setClassroom(null); return; }
+        if (!user?.classId) { setClassroom(null); setClassLoading(false); return; }
         setClassLoading(true);
         try {
             const cls = await getClassroom(user.classId);
@@ -100,8 +60,9 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
                 setPosts(postList);
                 setAssignments(assignmentList);
             }
-        } catch {
-            setClassroom(null);
+            setLoadError(null);
+        } catch (e: unknown) {
+            setLoadError(e instanceof Error ? e.message : 'Could not load your class.');
         } finally {
             setClassLoading(false);
         }
@@ -110,356 +71,286 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate }) => {
     useEffect(() => { loadClassroom(); }, [loadClassroom]);
 
     if (!user) return null;
+    // Teachers manage their classes from the Classes area.
+    if (user.role === 'teacher') return <Navigate to="/teacher" replace />;
 
-    const chooseTeacher = async () => {
+    const chooseRole = async (role: 'teacher' | 'student') => {
         setSettingRole(true);
         try {
-            await setUserRole(user.id, 'teacher');
+            await setUserRole(user.id, role);
             await refreshUser();
-            onNavigate('teacher');
+            if (role === 'teacher') onNavigate('teacher');
         } finally {
             setSettingRole(false);
         }
     };
 
-    const chooseStudent = async () => {
-        setSettingRole(true);
-        try {
-            await setUserRole(user.id, 'student');
-            await refreshUser();
-        } finally {
-            setSettingRole(false);
-        }
-    };
+    // ── No role yet ──
+    if (!user.role) {
+        return (
+            <Page width="narrow">
+                <PageHeader title="Class" description="Are you a teacher or a student? This sets up the right class tools for you." />
+                <div className="grid sm:grid-cols-2 gap-3">
+                    {([
+                        { role: 'student' as const, title: "I'm a student", body: "Join your teacher's class with a 6-letter code.", icon: <Users className="w-5 h-5" /> },
+                        { role: 'teacher' as const, title: "I'm a teacher", body: 'Create classes, assign work and follow student progress.', icon: <GraduationCap className="w-5 h-5" /> },
+                    ]).map(opt => (
+                        <button
+                            key={opt.role}
+                            onClick={() => chooseRole(opt.role)}
+                            disabled={settingRole}
+                            className="no-hover text-left rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 p-5 disabled:opacity-60"
+                        >
+                            <span className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-3">{opt.icon}</span>
+                            <span className="block font-bold text-gray-900 dark:text-white">{opt.title}</span>
+                            <span className="block mt-1 text-sm text-gray-500 dark:text-gray-400">{opt.body}</span>
+                        </button>
+                    ))}
+                </div>
+                {settingRole && <Spinner label="Setting up" />}
+            </Page>
+        );
+    }
+
+    if (user.classId && classLoading) return <Page><Spinner label="Loading your class" /></Page>;
+
+    if (user.classId && classroom) {
+        return (
+            <StudentClassPage
+                classroom={classroom}
+                posts={posts}
+                assignments={assignments}
+                completedLessons={completedLessons}
+                completedPracticeItems={completedPracticeItems}
+                onLeft={async () => { await refreshUser(); setClassroom(null); }}
+            />
+        );
+    }
+
+    // ── Not in a class (or the class no longer exists) ──
+    return <JoinClass error={loadError} onJoined={async () => { await refreshUser(); }} />;
+};
+
+// ─── Join ────────────────────────────────────────────────────────────────────
+
+const JoinClass: React.FC<{ error: string | null; onJoined: () => Promise<void> }> = ({ error, onJoined }) => {
+    const { user } = useAuth();
+    const [code, setCode] = useState('');
+    const [joinError, setJoinError] = useState<string | null>(null);
+    const [joining, setJoining] = useState(false);
+
+    if (!user) return null;
 
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (joinCode.length !== 6) return;
-        setJoinLoading(true);
+        if (code.length !== 6) return;
+        setJoining(true);
         setJoinError(null);
         try {
-            await joinClassroom(user.id, joinCode.trim(), user.schoolJoinPending ? undefined : user.schoolId);
-            await refreshUser();
-            await loadClassroom();
+            await joinClassroom(user.id, code.trim(), user.schoolJoinPending ? undefined : user.schoolId);
+            await onJoined();
         } catch (err: unknown) {
-            setJoinError(err instanceof Error ? err.message : 'Invalid join code');
-        } finally {
-            setJoinLoading(false);
+            setJoinError(err instanceof Error ? err.message : "That code didn't work. Check it with your teacher.");
+            setJoining(false);
         }
     };
 
-    const copyJoinCode = () => {
-        if (!classroom) return;
-        navigator.clipboard.writeText(classroom.joinCode).catch(() => {});
-        setCodeCopied(true);
-        setTimeout(() => setCodeCopied(false), 2000);
-    };
+    return (
+        <Page width="narrow">
+            <PageHeader title="Join your class" description="Your teacher will give you a 6-letter code. Enter it here to see your assignments and class announcements." />
+            <SchoolPending />
+            {error && <Alert tone="danger" icon={<AlertCircle className="w-4 h-4" />} className="mb-4">{error}</Alert>}
+            <Card>
+                <form onSubmit={handleJoin} className="space-y-4">
+                    <Field label="Class code" htmlFor="join-code">
+                        <input
+                            id="join-code"
+                            type="text"
+                            value={code}
+                            onChange={(e) => { setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, '')); setJoinError(null); }}
+                            className={`${inputClass} !text-2xl font-mono font-bold tracking-[0.4em] text-center !py-3`}
+                            placeholder="ABCDEF"
+                            maxLength={6}
+                            autoFocus
+                            autoCapitalize="characters"
+                            autoComplete="off"
+                            aria-invalid={!!joinError}
+                        />
+                    </Field>
+                    {joinError && (
+                        <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                            <AlertCircle className="w-4 h-4" /> {joinError}
+                        </p>
+                    )}
+                    <Button type="submit" variant="primary" className="w-full" loading={joining} disabled={code.length !== 6}>
+                        Join class <ArrowRight className="w-4 h-4" />
+                    </Button>
+                </form>
+            </Card>
+        </Page>
+    );
+};
+
+/** Shown while a student's request to join a school waits for approval. */
+const SchoolPending: React.FC = () => {
+    const { user } = useAuth();
+    const [schoolName, setSchoolName] = useState<string | null>(null);
+    useEffect(() => {
+        if (!user?.schoolJoinPending || !user.schoolId) return;
+        let cancelled = false;
+        import('../services/schoolService')
+            .then(({ getSchool }) => getSchool(user.schoolId!))
+            .then(s => { if (!cancelled) setSchoolName(s?.name ?? null); })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [user?.schoolId, user?.schoolJoinPending]);
+
+    if (!user?.schoolJoinPending || !user.schoolId) return null;
+    return (
+        <Alert tone="warning" icon={<Loader2 className="w-4 h-4 animate-spin" />} className="mb-4">
+            <span className="font-semibold">Waiting for school approval.</span>{' '}
+            {schoolName ? <>A teacher at {schoolName} is reviewing your request.</> : <>A teacher is reviewing your request.</>}
+        </Alert>
+    );
+};
+
+// ─── The student's class ─────────────────────────────────────────────────────
+
+const StudentClassPage: React.FC<{
+    classroom: Classroom;
+    posts: Post[];
+    assignments: Assignment[];
+    completedLessons: Set<string>;
+    completedPracticeItems: Set<string>;
+    onLeft: () => Promise<void>;
+}> = ({ classroom, posts, assignments, completedLessons, completedPracticeItems, onLeft }) => {
+    const { user } = useAuth();
+    const [showDone, setShowDone] = useState(false);
+    const [codeCopied, setCodeCopied] = useState(false);
+    const [leaving, setLeaving] = useState(false);
+
+    const { todo, done } = useMemo(() => {
+        const byDue = [...assignments].sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity));
+        const isDone = (a: Assignment) => isAssignmentDone(a, completedLessons, completedPracticeItems);
+        return { todo: byDue.filter(a => !isDone(a)), done: byDue.filter(isDone) };
+    }, [assignments, completedLessons, completedPracticeItems]);
+
+    const classmates = Array.isArray(classroom.studentIds) ? classroom.studentIds.length : 0;
 
     const handleLeave = async () => {
-        if (!classroom) return;
-        // Confirm before leaving — accidental click here costs the student their
-        // place in the class roster and the teacher loses visibility of their
-        // progress until they rejoin with the code.
-        const className = classroom.className || 'this classroom';
-        const ok = window.confirm(
-            `Leave ${className}?\n\nYou'll be removed from the class roster. You can rejoin later with the class code if your teacher shares it again.`
-        );
+        if (!user) return;
+        const ok = window.confirm(`Leave ${classroom.className || 'this class'}?\n\nYour teacher will stop seeing your progress. You can rejoin later with the class code.`);
         if (!ok) return;
         setLeaving(true);
         try {
             await leaveClassroom(user.id, classroom.classId);
-            await refreshUser();
-            setClassroom(null);
-            setJoinCode('');
+            await onLeft();
         } finally {
             setLeaving(false);
         }
     };
 
-    // ── No role yet → compact chooser ──────────────────────────────────────────
-    if (!user.role) {
-        return (
-            <Shell>
-                <header className="mb-5">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Classroom</h1>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Are you a teacher or a student? This sets up the right classroom tools for you.
-                    </p>
-                </header>
+    const copyCode = () => {
+        navigator.clipboard.writeText(classroom.joinCode).catch(() => {});
+        setCodeCopied(true);
+        setTimeout(() => setCodeCopied(false), 2000);
+    };
 
-                <div className="grid sm:grid-cols-2 gap-3">
-                    <button
-                        onClick={chooseTeacher}
-                        disabled={settingRole}
-                        className="text-left rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 hover:shadow-md p-4 transition-all disabled:opacity-60 group"
-                    >
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Teacher</span>
-                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 transition-colors" />
-                        </div>
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">I'm a teacher</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Create a class, share a join code, and track student progress.
-                        </p>
-                    </button>
+    return (
+        <Page width="default">
+            <PageHeader
+                eyebrow="Your class"
+                title={classroom.className}
+                description={`Taught by ${classroom.teacherName}`}
+            />
+            <SchoolPending />
 
-                    <button
-                        onClick={chooseStudent}
-                        disabled={settingRole}
-                        className="text-left rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-md p-4 transition-all disabled:opacity-60 group"
-                    >
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Student</span>
-                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-purple-500 transition-colors" />
-                        </div>
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">I'm a student</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Join your teacher's class with a 6-letter code.
-                        </p>
-                    </button>
-                </div>
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
+                <div className="min-w-0">
+                    <Section title={todo.length ? `To do (${todo.length})` : 'To do'}>
+                        {todo.length === 0 ? (
+                            <EmptyState
+                                icon={<CheckCircle2 className="w-5 h-5" />}
+                                title={assignments.length ? "You're all caught up" : 'Nothing assigned yet'}
+                                description={assignments.length
+                                    ? 'Every assignment is finished. Nice work.'
+                                    : 'When your teacher assigns a lesson or practice, it shows up here.'}
+                            />
+                        ) : (
+                            <List>{todo.map(a => <AssignmentRow key={a.id} assignment={a} done={false} />)}</List>
+                        )}
+                    </Section>
 
-                {settingRole && (
-                    <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Setting up…
-                    </div>
-                )}
-            </Shell>
-        );
-    }
-
-    // ── Teacher → compact pointer to My Class ──────────────────────────────────
-    if (user.role === 'teacher') {
-        return (
-            <Shell>
-                <header className="mb-5">
-                    <div className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide">Teacher</div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Classroom</h1>
-                </header>
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                            Manage your class, share your join code, and track student progress from <span className="font-semibold">My Class</span>.
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => onNavigate('teacher')}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-md transition-colors flex-shrink-0"
-                    >
-                        Open <ArrowRight className="w-4 h-4" />
-                    </button>
-                </div>
-            </Shell>
-        );
-    }
-
-    // ── Student: already in a classroom ────────────────────────────────────────
-    if (user.classId) {
-        if (classLoading) {
-            return <Shell><div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 text-purple-500 animate-spin" /></div></Shell>;
-        }
-        if (classroom) {
-            return (
-                <Shell>
-                    <SchoolPendingBanner />
-                    <header className="mb-5">
-                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] mb-0.5">Classroom</div>
-                        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white truncate">{classroom.className}</h1>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            {classroom.teacherName} · {classroom.studentIds.length} {classroom.studentIds.length === 1 ? 'student' : 'students'}
-                        </div>
-                    </header>
-
-                    {/* Student tabs */}
-                    <div className="flex gap-0 mb-5 border-b border-gray-200 dark:border-gray-800">
-                        {([
-                            { id: 'stream' as StudentTab, label: 'Stream', count: posts.length + assignments.length },
-                            { id: 'assignments' as StudentTab, label: 'Assignments', count: assignments.length },
-                            { id: 'info' as StudentTab, label: 'Class info' },
-                        ]).map(t => (
+                    {done.length > 0 && (
+                        <Section>
                             <button
-                                key={t.id}
-                                onClick={() => setStudentTab(t.id)}
-                                className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-                                    studentTab === t.id
-                                        ? 'text-gray-900 dark:text-white'
-                                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                                }`}
+                                onClick={() => setShowDone(s => !s)}
+                                className="no-hover flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                aria-expanded={showDone}
                             >
-                                {t.label}
-                                {t.count !== undefined && t.count > 0 && (
-                                    <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold ${
-                                        studentTab === t.id
-                                            ? 'bg-purple-500 text-white'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                                    }`}>{t.count}</span>
-                                )}
-                                {studentTab === t.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
-                                )}
+                                {showDone ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                Finished ({done.length})
                             </button>
-                        ))}
-                    </div>
+                            {showDone && <List className="mt-3">{done.map(a => <AssignmentRow key={a.id} assignment={a} done />)}</List>}
+                        </Section>
+                    )}
 
-                    {studentTab === 'stream' ? (
-                        <StreamView
-                            posts={posts}
-                            assignments={assignments}
-                            canPost={false}
-                            showOpenButton
-                            classroomId={classroom.classId}
-                            isClassTeacher={false}
-                        />
-                    ) : studentTab === 'assignments' ? (
-                        <StudentAssignmentsList assignments={assignments} />
-                    ) : (
-                        <div className="space-y-3">
-                            <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3 px-1">
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Teacher</dt>
-                                <dd className="text-sm font-medium text-gray-900 dark:text-white">{classroom.teacherName}</dd>
+                    <Section title="Announcements">
+                        {posts.length === 0 ? (
+                            <EmptyState icon={<ClipboardList className="w-5 h-5" />} title="No announcements yet" />
+                        ) : (
+                            <StreamView posts={posts} assignments={[]} canPost={false} classroomId={classroom.classId} isClassTeacher={false} />
+                        )}
+                    </Section>
+                </div>
 
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Classmates</dt>
-                                <dd className="text-sm font-medium text-gray-900 dark:text-white tabular-nums">{classroom.studentIds.length}</dd>
-
-                                <dt className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em] self-center">Join code</dt>
+                <aside className="space-y-4">
+                    <Card>
+                        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Class details</h2>
+                        <dl className="space-y-3 text-sm">
+                            <div className="flex justify-between gap-3">
+                                <dt className="text-gray-500 dark:text-gray-400">Teacher</dt>
+                                <dd className="font-medium text-gray-900 dark:text-white text-right truncate">{classroom.teacherName}</dd>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                                <dt className="text-gray-500 dark:text-gray-400">Students</dt>
+                                <dd className="font-medium text-gray-900 dark:text-white tabular-nums">{classmates}</dd>
+                            </div>
+                            <div className="flex justify-between items-center gap-3">
+                                <dt className="text-gray-500 dark:text-gray-400">Class code</dt>
                                 <dd>
-                                    <button
-                                        onClick={copyJoinCode}
-                                        className="inline-flex items-center gap-1.5 font-mono font-semibold tracking-[0.2em] text-sm text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-400"
-                                    >
+                                    <button onClick={copyCode} className="no-hover inline-flex items-center gap-1.5 font-mono font-semibold tracking-[0.2em] text-gray-900 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400" title="Copy class code">
                                         {classroom.joinCode}
-                                        {codeCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                                        {codeCopied ? <CheckCheck className="w-3.5 h-3.5 text-green-500" aria-label="Copied" /> : <Copy className="w-3.5 h-3.5 text-gray-400" aria-hidden="true" />}
                                     </button>
                                 </dd>
-                            </dl>
-                            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
-                                <button
-                                    onClick={handleLeave}
-                                    disabled={leaving}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors disabled:opacity-60"
-                                >
-                                    {leaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
-                                    Leave classroom
-                                </button>
                             </div>
-                        </div>
-                    )}
-                </Shell>
-            );
-        }
-        // classId set but classroom doc missing → fall through to the join form.
-    }
-
-    // ── Student: not in a classroom → compact join form ────────────────────────
-    return (
-        <Shell>
-            <SchoolPendingBanner />
-            <header className="mb-5">
-                <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide">Student</div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Join a classroom</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Enter the 6-letter code your teacher gave you.
-                </p>
-            </header>
-
-            <form onSubmit={handleJoin} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3">
-                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Join code</label>
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={joinCode}
-                        onChange={(e) => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, '')); setJoinError(null); }}
-                        className={`flex-1 px-3 py-2 text-lg font-bold font-mono tracking-[0.3em] text-center rounded-lg bg-gray-50 dark:bg-gray-900 border outline-none transition-all ${
-                            joinError ? 'border-red-400 focus:ring-2 focus:ring-red-500' : 'border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500'
-                        }`}
-                        placeholder="ABCDEF"
-                        maxLength={6}
-                        autoFocus
-                        autoCapitalize="characters"
-                    />
-                    <button
-                        type="submit"
-                        disabled={joinLoading || joinCode.length !== 6}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        {joinLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Join <ArrowRight className="w-4 h-4" /></>}
-                    </button>
-                </div>
-                {joinError && (
-                    <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                        <AlertCircle className="w-4 h-4" /> {joinError}
-                    </p>
-                )}
-            </form>
-        </Shell>
+                        </dl>
+                    </Card>
+                    <Button variant="ghost" size="sm" icon={<LogOut className="w-3.5 h-3.5" />} onClick={handleLeave} loading={leaving} className="!text-red-600 dark:!text-red-400">
+                        Leave class
+                    </Button>
+                </aside>
+            </div>
+        </Page>
     );
 };
 
-// Read-only list of assignments for the joined student.
-// Sorted by due-date (overdue first → soonest → no-due-date last).
-const StudentAssignmentsList: React.FC<{
-    assignments: Assignment[];
-}> = ({ assignments }) => {
-    const sorted = [...assignments].sort((a, b) => {
-        const A = a.dueAt ?? Number.POSITIVE_INFINITY;
-        const B = b.dueAt ?? Number.POSITIVE_INFINITY;
-        return A - B;
-    });
-
-    const formatDue = (dueAt: number | null) => {
-        if (dueAt === null) return { label: 'No due date', tone: 'none' as const };
-        const d = dueAt - Date.now();
-        const day = 24 * 60 * 60 * 1000;
-        if (d < 0) return { label: 'Overdue', tone: 'overdue' as const };
-        if (d < day) return { label: 'Due today', tone: 'soon' as const };
-        if (d < 3 * day) return { label: `Due in ${Math.ceil(d / day)} days`, tone: 'soon' as const };
-        return { label: `Due ${new Date(dueAt).toLocaleDateString()}`, tone: 'later' as const };
-    };
-
-    if (sorted.length === 0) {
-        return (
-            <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-5 py-10 text-center">
-                <ClipboardList className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">No assignments yet.</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    When your teacher assigns a lesson, it'll show up here.
-                </p>
-            </div>
-        );
-    }
-
+const AssignmentRow: React.FC<{ assignment: Assignment; done: boolean }> = ({ assignment: a, done }) => {
+    const due = dueLabel(a.dueAt);
     return (
-        <ul className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-            {sorted.map(a => {
-                const due = formatDue(a.dueAt);
-                const toneClass =
-                    due.tone === 'overdue' ? 'text-red-600 dark:text-red-400' :
-                    due.tone === 'soon' ? 'text-amber-700 dark:text-amber-400' :
-                    'text-gray-500 dark:text-gray-400';
-                return (
-                    <li key={a.id} className="flex items-center gap-3 px-5 py-3">
-                        <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-3 mt-0.5">
-                                {assignmentSubtitle(a) && <span className="truncate">{assignmentSubtitle(a)}</span>}
-                                <span className={`flex items-center gap-1 font-medium ${toneClass}`}>
-                                    <Calendar className="w-3 h-3" />
-                                    {due.label}
-                                </span>
-                            </div>
-                        </div>
-                        <a
-                            href={assignmentOpenPath(a)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-md flex-shrink-0"
-                        >
-                            Open
-                            <ExternalLink className="w-3 h-3" />
-                        </a>
-                    </li>
-                );
-            })}
-        </ul>
+        <li>
+            <Link to={assignmentOpenPath(a)} className="no-hover flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40 group">
+                {done
+                    ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" aria-label="Finished" />
+                    : <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" aria-label="Not finished" />}
+                <div className="min-w-0 flex-1">
+                    <div className={`font-semibold truncate ${done ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>{assignmentTitle(a)}</div>
+                    {assignmentSubtitle(a) && <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{assignmentSubtitle(a)}</div>}
+                </div>
+                {!done && <Pill tone={due.tone}>{due.text}</Pill>}
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 flex-shrink-0" aria-hidden="true" />
+            </Link>
+        </li>
     );
 };
