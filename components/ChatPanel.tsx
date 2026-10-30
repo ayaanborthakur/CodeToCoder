@@ -140,11 +140,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
         if (!isCollapsed) {
             scrollToBottom();
         }
-        if (typeof window !== 'undefined' && window.Prism) {
-            setTimeout(() => {
-                window.Prism.highlightAll();
-            }, 0);
-        }
     }, [messages, isLoading, isCollapsed, isInputOpen]);
 
     useEffect(() => {
@@ -226,12 +221,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                             <TypewriterText
                                                 content={msg.content}
                                                 speed={120}
-                                                onComplete={() => {
-                                                    // Re-highlight code blocks after typewriter completes
-                                                    if (typeof window !== 'undefined' && window.Prism) {
-                                                        setTimeout(() => window.Prism.highlightAll(), 0);
-                                                    }
-                                                }}
                                                 renderContent={renderMarkdownContent}
                                             />
                                         ) : (

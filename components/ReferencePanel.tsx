@@ -7,6 +7,7 @@ import { generateReference } from '../services/geminiService';
 import { useAuth } from '../contexts/AuthContext';
 import { saveReferenceMaterial, loadReferenceMaterials } from '../services/userDataService';
 import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 
 declare global {
@@ -180,12 +181,6 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
         return filtered;
     }, [categories, searchQuery]);
 
-    // Highlight code when topic changes
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.Prism && selectedTopic?.id !== GENERATOR_TOPIC_ID) {
-            setTimeout(() => window.Prism.highlightAll(), 0);
-        }
-    }, [selectedTopic, customTopics]);
 
     const handleGenerate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -391,7 +386,10 @@ export const ReferencePanel: React.FC<ReferencePanelProps> = ({ embedded = false
                                        prose-p:text-gray-600 dark:prose-p:text-gray-300
                                        prose-code:text-cyan-700 dark:prose-code:text-cyan-300 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded"
                         >
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {/* Highlighted by rehype-highlight. A global Prism pass here
+                                used to rewrite React-owned nodes across the whole page and
+                                crash the app on the next lesson change. */}
+                            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                                 {selectedTopic.content}
                             </ReactMarkdown>
                         </div>

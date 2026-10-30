@@ -7,6 +7,8 @@ import { CoursePage } from './components/CoursePage';
 import { findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
 import { BottomPanel } from './components/BottomPanel';
 import { LessonBrief } from './components/LessonBrief';
+import { LessonCompleteCard, type LessonCompleteInfo } from './components/LessonCompleteCard';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
 import { LearnPanel } from './components/LearnPanel';
@@ -992,51 +994,50 @@ const App: React.FC = () => {
         changeLesson(moduleId, lessonId, false);
     }, [changeLesson, user, handleOpenAuth]);
 
-    const advanceToNextLesson = useCallback(() => {
-        const currentModule = modules.find(m => m.id === currentModuleId);
-        if (currentModule && currentLesson) {
-            const currentIndex = currentModule.lessons.findIndex(l => l.id === currentLesson.id);
-            if (currentIndex !== -1 && currentIndex < currentModule.lessons.length - 1) {
-                const nextLesson = currentModule.lessons[currentIndex + 1];
-                setTimeout(() => {
-                    changeLesson(currentModule.id, nextLesson.id, true);
-                    setActiveBottomTab('lesson');
-                }, 500);
-            }
-        }
-    }, [currentModuleId, currentLesson, changeLesson, modules]);
-
+    // Previous/next lesson in course order. Crosses module boundaries, so the
+    // last lesson of a module leads into the first lesson of the next one.
     const navigationState = useMemo(() => {
-        if (!currentModuleId || !currentLessonId || !modules.length) {
-            return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
-        }
-
-        const module = modules.find(m => m.id === currentModuleId);
-        if (!module) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
-
-        const lessonIndex = module.lessons.findIndex(l => l.id === currentLessonId);
-        if (lessonIndex === -1) return { hasPrevious: false, hasNext: false, prevId: null, nextId: null };
-
-        const hasPrevious = lessonIndex > 0;
-        const hasNext = lessonIndex < module.lessons.length - 1;
-
+        const empty = { hasPrevious: false, hasNext: false, prevId: null as string | null, nextId: null as string | null, prevModuleId: null as string | null, nextModuleId: null as string | null };
+        if (!currentModuleId || !currentLessonId || !modules.length) return empty;
+        const order = (courseModules.some(m => m.id === currentModuleId) ? courseModules : modules)
+            .flatMap(m => m.lessons.map(l => ({ moduleId: m.id, lessonId: l.id })));
+        const index = order.findIndex(x => x.moduleId === currentModuleId && x.lessonId === currentLessonId);
+        if (index === -1) return empty;
+        const prev = order[index - 1];
+        const next = order[index + 1];
         return {
-            hasPrevious,
-            hasNext,
-            prevId: hasPrevious ? module.lessons[lessonIndex - 1].id : null,
-            nextId: hasNext ? module.lessons[lessonIndex + 1].id : null
+            hasPrevious: !!prev,
+            hasNext: !!next,
+            prevId: prev?.lessonId ?? null,
+            nextId: next?.lessonId ?? null,
+            prevModuleId: prev?.moduleId ?? null,
+            nextModuleId: next?.moduleId ?? null,
         };
+    }, [currentModuleId, currentLessonId, modules, courseModules]);
 
-    }, [currentModuleId, currentLessonId, modules]);
+    const advanceToNextLesson = useCallback(() => {
+        if (navigationState.nextId && navigationState.nextModuleId) {
+            changeLesson(navigationState.nextModuleId, navigationState.nextId, true);
+            setActiveBottomTab('lesson');
+        } else {
+            // End of the course: back to the course overview.
+            navigate(selectedCourseId ? `/courses/${selectedCourseId}` : '/lessons');
+        }
+    }, [navigationState, changeLesson, navigate, selectedCourseId]);
+
+    // Shown over the editor when a coding lesson is passed: what's next, and a
+    // short countdown before moving on (cancellable).
+    const [lessonComplete, setLessonComplete] = useState<LessonCompleteInfo | null>(null);
+    useEffect(() => { setLessonComplete(null); }, [currentLessonId]);
 
     const handlePreviousLessonNav = useCallback(() => {
-        if (navigationState.hasPrevious && navigationState.prevId && currentModuleId) {
-            changeLesson(currentModuleId, navigationState.prevId);
+        if (navigationState.prevId && navigationState.prevModuleId) {
+            changeLesson(navigationState.prevModuleId, navigationState.prevId);
         }
-    }, [navigationState, currentModuleId, changeLesson]);
+    }, [navigationState, changeLesson]);
 
     const handleNextLessonNav = useCallback(() => {
-        if (navigationState.hasNext && navigationState.nextId && currentModuleId) {
+        if (navigationState.nextId && navigationState.nextModuleId) {
             // For text-based lessons, mark as completed immediately when clicking Next
             if (currentLesson && (currentLesson.type === 'learn' || !currentLesson.type)) {
                 if (!completedLessons.has(currentLesson.id)) {
@@ -1059,9 +1060,9 @@ const App: React.FC = () => {
                     });
                 }
             }
-            changeLesson(currentModuleId, navigationState.nextId);
+            changeLesson(navigationState.nextModuleId, navigationState.nextId);
         }
-    }, [navigationState, currentModuleId, changeLesson, currentLesson, completedLessons, markLessonAsCompleted, user]);
+    }, [navigationState, changeLesson, currentLesson, completedLessons, markLessonAsCompleted, user]);
 
     const handleQuizComplete = useCallback(() => {
         if (currentView === 'practice' && activePracticeItem) {
@@ -1245,8 +1246,19 @@ const App: React.FC = () => {
                                     console.error('[App] Failed to log analytics:', err);
                                 }
 
+                                setTerminalOutput(prev => prev + `\n\n✓ Lesson passed!`);
                                 setLessonStartTime(Date.now());
-                                advanceToNextLesson();
+                                const nextModule = modules.find(m => m.id === navigationState.nextModuleId);
+                                const nextLesson = nextModule?.lessons.find(l => l.id === navigationState.nextId);
+                                setLessonComplete({
+                                    lessonTitle: contextItem.title,
+                                    runs: sessionRunCount + 1,
+                                    seconds: durationSeconds,
+                                    next: nextModule && nextLesson ? { title: nextLesson.title, moduleTitle: nextModule.title } : null,
+                                    finishedModule: !!nextModule && nextModule.id !== currentModuleId
+                                        ? modules.find(m => m.id === currentModuleId)?.title ?? null
+                                        : null,
+                                });
                             } else {
                                 setTerminalOutput(prev => prev + `\n\n❌ ${validation.reason || "Lesson requirements not met. Please check your code and try again."}`);
                             }
@@ -1288,7 +1300,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, currentModuleId, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons]);
+    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, currentModuleId, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons, navigationState, modules]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -1706,7 +1718,8 @@ const App: React.FC = () => {
                     message={currentView === 'playground' ? "Your current code will be cleared." : "Your code will be lost. This will also remove your star for this lesson."}
                 />
             )}
-            {completedModuleBannerInfo && (
+            {/* The completion card already celebrates finishing a module. */}
+            {completedModuleBannerInfo && !lessonComplete && (
                 <ModuleCompletionBanner
                     moduleTitle={completedModuleBannerInfo.title}
                     onClose={() => setCompletedModuleBannerInfo(null)}
@@ -1812,6 +1825,7 @@ const App: React.FC = () => {
                                 isTeacher={user?.role === 'teacher'}
                             />
                         ) : isLearnMode && activeLesson ? (
+                            <ErrorBoundary resetKey={activeLesson.id}>
                             <LearnPanel
                                 lesson={activeLesson}
                                 onComplete={() => {
@@ -1839,6 +1853,7 @@ const App: React.FC = () => {
                                 runCount={sessionRunCount}
                                 onBackToCourse={selectedCourseId ? () => navigate(`/courses/${selectedCourseId}`) : undefined}
                             />
+                            </ErrorBoundary>
                         ) : isQuizMode && activeContentItem ? (
                             <div className="h-full flex flex-col">
                                 {isPracticeQuiz && (
@@ -1887,13 +1902,22 @@ const App: React.FC = () => {
                                             </button>
                                         </div>
                                     )}
-                                    <LessonBrief
-                                        lesson={briefLesson}
-                                        isCompleted={isClassroom ? completedLessons.has(briefLesson.id) : completedPracticeItems.has(briefLesson.id)}
-                                    />
+                                    <ErrorBoundary resetKey={briefLesson.id}>
+                                        <LessonBrief
+                                            lesson={briefLesson}
+                                            isCompleted={isClassroom ? completedLessons.has(briefLesson.id) : completedPracticeItems.has(briefLesson.id)}
+                                        />
+                                    </ErrorBoundary>
                                 </section>
                             )}
-                            <div className="flex-1 flex flex-col min-w-0">
+                            <div className="flex-1 flex flex-col min-w-0 relative">
+                                {lessonComplete && isClassroom && (
+                                    <LessonCompleteCard
+                                        info={lessonComplete}
+                                        onNext={() => { setLessonComplete(null); setCompletedModuleBannerInfo(null); advanceToNextLesson(); }}
+                                        onStay={() => { setLessonComplete(null); setCompletedModuleBannerInfo(null); }}
+                                    />
+                                )}
                                 <div
                                     style={{ height: isMobile ? '55%' : (panelsCollapsed.ide ? 'auto' : `${panelSizes.ide}%`) }}
                                     className={`flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${!panelsCollapsed.ide && panelsCollapsed.bottom ? 'flex-1' : 'flex-shrink-0'}`}
