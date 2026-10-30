@@ -84,47 +84,6 @@ const FileNameEditor: React.FC<{ name: string; onChange: (newName: string) => vo
 };
 
 
-// Editor themes matched to the app's ink/python palette (tailwind.config.js).
-const defineEditorThemes = (monaco: Monaco) => {
-    monaco.editor.defineTheme('c2c-dark', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-            { token: 'comment', foreground: '8d96ad', fontStyle: 'italic' },
-            { token: 'keyword', foreground: '89b6e2' },
-            { token: 'string', foreground: 'ffd43b' },
-            { token: 'number', foreground: 'f2a65a' },
-        ],
-        colors: {
-            'editor.background': '#0e1322',
-            'editor.lineHighlightBackground': '#151b2d',
-            'editorLineNumber.foreground': '#4a5470',
-            'editorLineNumber.activeForeground': '#c3c9d9',
-            'editor.selectionBackground': '#2a5a8566',
-            'editorCursor.foreground': '#ffd43b',
-            'editorIndentGuide.background1': '#232a41',
-        },
-    });
-    monaco.editor.defineTheme('c2c-light', {
-        base: 'vs',
-        inherit: true,
-        rules: [
-            { token: 'comment', foreground: '646e87', fontStyle: 'italic' },
-            { token: 'keyword', foreground: '2a5a85' },
-            { token: 'string', foreground: '8a5a00' },
-            { token: 'number', foreground: 'b4531a' },
-        ],
-        colors: {
-            'editor.background': '#ffffff',
-            'editor.lineHighlightBackground': '#f5f6fa',
-            'editorLineNumber.foreground': '#8d96ad',
-            'editorLineNumber.activeForeground': '#232a41',
-            'editor.selectionBackground': '#b7d3ef99',
-            'editorCursor.foreground': '#30689a',
-        },
-    });
-};
-
 export const IdePanel: React.FC<IdePanelProps> = ({
     code,
     setCode,
@@ -179,14 +138,10 @@ export const IdePanel: React.FC<IdePanelProps> = ({
             editor.setValue(code);
         }
 
-        // Monaco measures glyphs once; re-measure after the web font arrives
-        // so the cursor lines up with the text.
-        document.fonts?.ready.then(() => monaco.editor.remeasureFonts());
-
         // Configure editor options
         editor.updateOptions({
             fontSize: 14,
-            fontFamily: '"Atkinson Hyperlegible Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
+            fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
             lineHeight: 24,
             tabSize: 4,
             insertSpaces: true,
@@ -439,12 +394,11 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             defaultLanguage="python"
                             value={code}
                             onChange={handleEditorChange}
-                            beforeMount={defineEditorThemes}
                             onMount={handleEditorDidMount}
-                            theme={isDarkMode ? 'c2c-dark' : 'c2c-light'}
+                            theme={isDarkMode ? 'vs-dark' : 'vs-light'}
                             options={{
                                 fontSize: 14,
-                                fontFamily: '"Atkinson Hyperlegible Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
+                                fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
                                 lineHeight: 24,
                                 tabSize: 4,
                                 insertSpaces: true,

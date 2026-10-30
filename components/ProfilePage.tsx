@@ -265,7 +265,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl relative overflow-hidden">
                             {/* Accent Background */}
-                            <div className="absolute top-0 left-0 right-0 h-32 bg-cyan-600 opacity-10 dark:opacity-20" />
+                            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-cyan-600 to-blue-700 opacity-10 dark:opacity-20" />
                             
                             <div className="relative flex flex-col items-center">
                                 {/* Avatar */}
@@ -280,7 +280,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     />
                                     
                                     {/* Avatar Display */}
-                                    <div className="w-full h-full rounded-3xl bg-cyan-400 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
+                                    <div className="w-full h-full rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
                                         {isUploadingPicture ? (
                                             <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
                                         ) : user.avatar ? (
@@ -301,7 +301,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         <Camera className="w-8 h-8 text-white mb-1 drop-shadow-md" />
-                                        <span className="text-white text-xs font-bold drop-shadow-md">Edit</span>
+                                        <span className="text-white text-[10px] font-bold uppercase tracking-wider drop-shadow-md">Edit</span>
 
                                         {/* Remove Button (Inside Overlay) */}
                                         {user.avatar && !isUploadingPicture && (
@@ -390,12 +390,12 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-lg text-center group hover:border-cyan-500/50 transition-colors">
                                 <Layout className="w-6 h-6 text-gray-400 mb-3 mx-auto group-hover:text-cyan-500 transition-colors" />
                                 <div className="text-2xl font-bold">{stats.lessons}</div>
-                                <div className="text-xs font-bold text-gray-500 mt-1">Lessons</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Lessons</div>
                             </div>
                             <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-lg text-center group hover:border-purple-500/50 transition-colors">
                                 <Code className="w-6 h-6 text-gray-400 mb-3 mx-auto group-hover:text-purple-500 transition-colors" />
                                 <div className="text-2xl font-bold">{stats.practice}</div>
-                                <div className="text-xs font-bold text-gray-500 mt-1">Projects</div>
+                                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Projects</div>
                             </div>
                         </div>
                     </div>
@@ -442,7 +442,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                         <p className="font-bold">Module Master</p>
                                                         <p className="text-sm text-gray-500">Complete logic and loops</p>
                                                     </div>
-                                                    <span className="text-xs font-bold bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
                                                 </div>
                                                 <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                                     <div className="h-full bg-cyan-500 w-[65%]" />
@@ -470,7 +470,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 {new Date(activity.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                             </p>
                                                         </div>
-                                                        <div className="text-xs font-bold px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-gray-500 ">
+                                                        <div className="text-[10px] font-bold px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-gray-500 uppercase tracking-wider">
                                                             {activity.type}
                                                         </div>
                                                     </div>
@@ -493,13 +493,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 <div className="p-8 animate-fade-in space-y-10">
                                     {/* Stats Summary */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                        <div className="bg-amber-400 rounded-2xl p-4 text-amber-950 shadow-lg">
+                                        <div className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg">
                                             <div className="text-3xl font-bold">{earnedBadges.length}</div>
-                                            <div className="text-xs font-bold opacity-80">Badges Earned</div>
+                                            <div className="text-xs font-bold uppercase tracking-wider opacity-80">Badges Earned</div>
                                         </div>
                                         <div className="bg-white dark:bg-gray-700 rounded-2xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm">
                                             <div className="text-3xl font-bold text-gray-400">{getAllBadges().length}</div>
-                                            <div className="text-xs font-bold text-gray-400">Total Available</div>
+                                            <div className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Available</div>
                                         </div>
                                     </div>
 
@@ -561,11 +561,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 
                                                                 <div className="mt-2 w-full text-center">
                                                                     {isEarned ? (
-                                                                        <span className="inline-block text-xs font-bold text-white px-2 py-0.5 rounded-full shadow-sm" style={{ backgroundColor: badgeColor }}>
+                                                                        <span className="inline-block text-[10px] font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm" style={{ backgroundColor: badgeColor }}>
                                                                             Earned
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-xs font-medium text-gray-400">
+                                                                        <span className="text-[10px] font-medium text-gray-400">
                                                                             {badge.requirement} {type === 'collection' ? 'Stars' : type === 'streak' ? 'Days' : 'Completed'}
                                                                         </span>
                                                                     )}
@@ -575,7 +575,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none flex items-center justify-center p-2">
                                                                     <div className="bg-gray-900 text-white text-xs p-2 rounded-lg shadow-xl translate-y-8 max-w-full text-center z-10">
                                                                         <p className="font-bold mb-1">{badge.description}</p>
-                                                                        <p className="text-gray-400 text-xs ">{badge.tier} Tier</p>
+                                                                        <p className="text-gray-400 text-[10px] uppercase tracking-wider">{badge.tier} Tier</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -608,7 +608,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                         <div className="space-y-1">
                                                             <p className="font-bold text-sm truncate">{item.name}</p>
                                                             <div className="flex items-center justify-between">
-                                                                    <span className="text-xs font-bold px-1.5 py-0.5 rounded " style={{ color: RARITY_COLORS[item.rarity] || '#999', backgroundColor: RARITY_COLORS[item.rarity] ? `${RARITY_COLORS[item.rarity]}15` : '#eee' }}>
+                                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ color: RARITY_COLORS[item.rarity] || '#999', backgroundColor: RARITY_COLORS[item.rarity] ? `${RARITY_COLORS[item.rarity]}15` : '#eee' }}>
                                                                         {item.rarity}
                                                                     </span>
                                                             </div>
@@ -653,7 +653,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                 }}
                                                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-600"
                                             />
-                                            <div className="flex justify-between text-xs font-bold text-gray-400 ">
+                                            <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
                                                 <span>Manual</span>
                                                 <span>Balanced</span>
                                                 <span>Auto</span>

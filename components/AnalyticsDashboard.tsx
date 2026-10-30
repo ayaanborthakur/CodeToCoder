@@ -171,7 +171,7 @@ export const AnalyticsDashboard: React.FC = () => {
             <section>
                 <SectionLabel
                     right={
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                             <span>Less</span>
                             {[0, 1, 2, 3, 4].map(level => (
                                 <span key={level} className={`w-2.5 h-2.5 rounded-sm ${intensityClass(level as 0 | 1 | 2 | 3 | 4)}`} />
@@ -254,7 +254,7 @@ export const AnalyticsDashboard: React.FC = () => {
 
 const SectionLabel: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
     <div className="flex items-center justify-between mb-2 px-1">
-        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 ">{children}</div>
+        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">{children}</div>
         {right}
     </div>
 );
@@ -267,7 +267,7 @@ const Stat: React.FC<{
     accent?: string;
 }> = ({ label, value, sub, icon, accent }) => (
     <div className="flex flex-col min-w-0">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 ">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">
             {icon}
             {label}
         </div>

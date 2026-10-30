@@ -131,13 +131,13 @@ export const AssignLessonModal: React.FC<AssignLessonModalProps> = ({
 
                 <div className="p-5 space-y-4">
                     <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-1">Lesson</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold mb-1">Lesson</div>
                         <div className="font-semibold text-sm text-gray-900 dark:text-white">{lessonTitle}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{courseTitle}</div>
                     </div>
 
                     <div>
-                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">Assign to</label>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-2">Assign to</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 type="button"
@@ -209,7 +209,7 @@ export const AssignLessonModal: React.FC<AssignLessonModalProps> = ({
                     )}
 
                     <div>
-                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">Due date (optional)</label>
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-2">Due date (optional)</label>
                         <input
                             type="date"
                             value={dueDate}

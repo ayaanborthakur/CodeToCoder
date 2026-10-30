@@ -147,7 +147,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                     <section className="space-y-3">
                         <SectionHeader>Details</SectionHeader>
                         <div>
-                            <label htmlFor="cls-name" className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Name</label>
+                            <label htmlFor="cls-name" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em] block mb-1.5">Name</label>
                             <input
                                 id="cls-name"
                                 type="text"
@@ -158,7 +158,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                             />
                         </div>
                         <div>
-                            <label htmlFor="cls-desc" className="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-1.5">Description (optional)</label>
+                            <label htmlFor="cls-desc" className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em] block mb-1.5">Description (optional)</label>
                             <textarea
                                 id="cls-desc"
                                 value={description}
@@ -168,7 +168,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                                 placeholder="Grade level, subject, schedule..."
                                 className="w-full px-3 py-2 rounded-md bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
                             />
-                            <div className="text-xs text-gray-400 mt-0.5 text-right">{description.length} / 200</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5 text-right">{description.length} / 200</div>
                         </div>
                     </section>
 
@@ -177,7 +177,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
                         <SectionHeader right={
                             <button
                                 onClick={copyJoinCode}
-                                className="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 inline-flex items-center gap-1"
+                                className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 inline-flex items-center gap-1"
                             >
                                 {codeCopied ? <CheckCheck className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                                 {codeCopied ? 'Copied' : 'Copy'}
@@ -335,7 +335,7 @@ export const ClassroomSettingsModal: React.FC<ClassroomSettingsModalProps> = ({
 
 const SectionHeader: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
     <div className="flex items-center justify-between mb-0.5">
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 ">{children}</h3>
+        <h3 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-[0.08em]">{children}</h3>
         {right}
     </div>
 );

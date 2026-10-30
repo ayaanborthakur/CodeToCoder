@@ -249,7 +249,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ userId, onComp
                             )}
                             <button
                                 onClick={handleNext}
-                                className="px-4 py-1.5 text-sm bg-blue-500 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl"
+                                className="px-4 py-1.5 text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium shadow-lg hover:shadow-xl"
                             >
                                 {isLastStep ? 'Finish' : 'Next'}
                             </button>

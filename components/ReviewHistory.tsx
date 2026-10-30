@@ -52,7 +52,7 @@ export const ReviewHistory: React.FC = () => {
                 {history.map((log, i) => (
                     <div key={i} className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border-l-4 border-indigo-500">
                         <div className="flex justify-between items-start mb-2">
-                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                            <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                                 {log.topic || 'General'}
                             </span>
                             <span className="text-xs text-gray-400">

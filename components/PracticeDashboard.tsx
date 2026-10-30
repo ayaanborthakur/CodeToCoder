@@ -148,7 +148,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     {currentType === 'quiz' && onAddCustomItem && (
                         <button
                             onClick={() => setIsGenerateModalOpen(true)}
-                            className="bg-cyan-600 p-5 rounded-xl hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-6 shadow-md border border-cyan-400/30"
+                            className="bg-gradient-to-r from-cyan-600 to-cyan-500 p-5 rounded-xl hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-6 shadow-md border border-cyan-400/30"
                         >
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">
@@ -213,7 +213,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                             </h3>
                                             <DifficultyBadge difficulty={item.difficulty} />
                                             {isCustom && (
-                                                <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
                                             )}
                                         </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-1">
@@ -221,7 +221,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                         </p>
                                         
                                         {(attempts > 0 || lastScore !== undefined) && (
-                                            <div className="flex items-center gap-4 text-xs font-bold ">
+                                            <div className="flex items-center gap-4 text-xs font-bold uppercase tracking-wider">
                                                 {attempts > 0 && (
                                                     <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/80 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700">
                                                         <History className="w-3.5 h-3.5" />
@@ -275,7 +275,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                     <div className="space-y-6">
                                         <div className="flex items-center gap-3 px-1">
                                             <div className="w-1.5 h-6 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.4)]" />
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white ">Yet to Start</h3>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-[0.08em]">Yet to Start</h3>
                                             <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 px-2 py-0.5 rounded-md border border-cyan-100 dark:border-cyan-800/40">{availableList.length}</span>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -289,7 +289,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                     <div className="space-y-6 pt-4">
                                         <div className="flex items-center gap-3 px-1">
                                             <div className="w-1.5 h-6 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
-                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white ">Completed</h3>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-[0.08em]">Completed</h3>
                                             <span className="text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-md border border-green-100 dark:border-green-800/40">{completedList.length}</span>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-90 transition-opacity hover:opacity-100">
@@ -319,83 +319,184 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
         );
     }
 
-    const modes: { type: PracticeType; title: string; blurb: string; icon: React.ReactNode }[] = [
-        { type: 'quiz', title: 'Quizzes', blurb: 'Check you understand the ideas with short multiple-choice questions.', icon: <BrainCircuit className="w-5 h-5" aria-hidden="true" /> },
-        { type: 'problem', title: 'Coding problems', blurb: 'Write small programs and get feedback on your solution.', icon: <Terminal className="w-5 h-5" aria-hidden="true" /> },
-        { type: 'project', title: 'Mini projects', blurb: 'Build something bigger that uses everything so far.', icon: <Rocket className="w-5 h-5" aria-hidden="true" /> },
-    ];
+    // Calculate stats for display
+    const quizCount = allItems.filter(i => i.type === 'quiz').length;
+    const problemCount = allItems.filter(i => i.type === 'problem').length;
+    const projectCount = allItems.filter(i => i.type === 'project').length;
     const completedCount = allItems.filter(i => completedItems.has(i.id)).length;
 
     return (
-        <div className="h-full w-full bg-gray-50 dark:bg-gray-950 overflow-y-auto">
+        <div className="h-full w-full bg-gray-50 dark:bg-gray-900 overflow-y-auto">
             <Helmet>
                 <title>Practice Dashboard</title>
                 <meta name="description" content="Choose your practice mode: Quizzes, Problems, or Projects. Hone your Python skills." />
             </Helmet>
-
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-                <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            
+            <div className="max-w-6xl mx-auto p-4 space-y-6">
+                {/* Header with Stats */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Practice</h1>
-                        <p className="mt-1 text-gray-600 dark:text-gray-400">
-                            {formatCompactNumber(completedCount)} of {formatCompactNumber(allItems.length)} done. Work through them in order, or jump in anywhere.
-                        </p>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Practice Center</h1>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Master Python through interactive challenges</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
+                        <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50 shadow-sm">
+                            <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-[0.08em] block mb-0.5">Completed</span>
+                            <span className="text-lg font-bold text-green-900 dark:text-green-100">{formatCompactNumber(completedCount)} <span className="text-xs opacity-60 font-medium">/{formatCompactNumber(allItems.length)}</span></span>
+                        </div>
+                    </div>
+                </div>
+
+
+                {/* Featured: Create Quiz CTA */}
+                {onAddCustomItem && (
+                    <button
+                        onClick={() => { onSelectType('quiz'); setIsGenerateModalOpen(true); }}
+                        className="w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 rounded-lg p-5 text-left group hover:shadow-lg transition-all"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-lg">
+                                    <Sparkles className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">Generate Custom Quiz</h3>
+                                    <p className="text-sm text-white/80">Use AI to create a quiz on any Python topic</p>
+                                </div>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/20 rounded-lg text-white font-semibold group-hover:bg-white group-hover:text-purple-600 transition-colors">
+                                Create
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                            </div>
+                        </div>
+                    </button>
+                )}
+
+                {/* Main Category Grid */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Category Cards... (keeping same as before for brevity in chunking but applying better shadows/padding) */}
+                    <button
+                        onClick={() => onSelectType('quiz')}
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-purple-500 dark:hover:border-purple-500 hover:shadow-xl transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-purple-100 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <BrainCircuit className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <span className="px-2.5 py-1 bg-purple-100/60 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-purple-200/50 dark:border-purple-800/30">
+                                {quizCount} QUIZZES
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                            Practice Quizzes
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Test your knowledge with conceptual multiple-choice questions
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-[0.08em]">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                            </svg>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => onSelectType('problem')}
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-blue-100 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <Terminal className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <span className="px-2.5 py-1 bg-blue-100/60 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                                {problemCount} PROBLEMS
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            Coding Problems
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Solve focused coding challenges with instant AI feedback
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.08em]">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                            </svg>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => onSelectType('project')}
+                        className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-100 dark:border-gray-700/50 p-6 text-left hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-xl transition-all group relative overflow-hidden"
+                    >
+                        <div className="flex items-start justify-between mb-5">
+                            <div className="p-3.5 bg-orange-100 dark:bg-orange-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                                <Rocket className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <span className="px-2.5 py-1 bg-orange-100/60 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 text-[10px] font-bold uppercase tracking-[0.08em] rounded-lg border border-orange-200/50 dark:border-orange-800/30">
+                                {projectCount} PROJECTS
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                            Mini Projects
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium leading-relaxed">
+                            Build real apps and apply everything you've learned
+                        </p>
+                        <div className="flex items-center text-sm font-bold text-orange-600 dark:text-orange-400 uppercase tracking-[0.08em]">
+                            Browse
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+
+
+
+                {/* Reference Section */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border-2 border-green-200 dark:border-green-800 p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                                <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Reference Material</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Browse Python documentation, cheat sheets, and guides</p>
+                            </div>
+                        </div>
                         <button
                             onClick={() => onNavigate?.('/reference')}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800"
+                            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-lg transition-colors"
                         >
-                            <BookOpen className="w-4 h-4" aria-hidden="true" />
-                            Reference
+                            Open Reference
                         </button>
-                        {onAddCustomItem && (
-                            <button
-                                onClick={() => { onSelectType('quiz'); setIsGenerateModalOpen(true); }}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-sm font-semibold text-white"
-                            >
-                                <Sparkles className="w-4 h-4" aria-hidden="true" />
-                                Make a quiz with AI
-                            </button>
-                        )}
                     </div>
-                </header>
+                </div>
 
-                <ol className="mt-8 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800 overflow-hidden">
-                    {modes.map((mode, index) => {
-                        const items = allItems.filter(i => i.type === mode.type);
-                        const done = items.filter(i => completedItems.has(i.id)).length;
-                        const percent = items.length ? Math.round((done / items.length) * 100) : 0;
-                        return (
-                            <li key={mode.type}>
-                                <button
-                                    onClick={() => onSelectType(mode.type)}
-                                    className="w-full flex items-center gap-4 sm:gap-5 px-4 sm:px-6 py-5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/60 group"
-                                >
-                                    <span className="flex-shrink-0 w-9 h-9 rounded-full border border-gray-300 dark:border-gray-700 flex items-center justify-center text-sm font-bold text-gray-600 dark:text-gray-400" aria-hidden="true">
-                                        {index + 1}
-                                    </span>
-                                    <span className="flex-shrink-0 hidden sm:flex w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 items-center justify-center">
-                                        {mode.icon}
-                                    </span>
-                                    <span className="flex-1 min-w-0">
-                                        <span className="block text-lg font-bold text-gray-900 dark:text-white">{mode.title}</span>
-                                        <span className="block text-sm text-gray-600 dark:text-gray-400">{mode.blurb}</span>
-                                        <span className="mt-3 flex items-center gap-3">
-                                            <span className="flex-1 max-w-xs h-1.5 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden">
-                                                <span className="block h-full rounded-full bg-cyan-500" style={{ width: `${percent}%` }} />
-                                            </span>
-                                            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 tabular-nums">{done} / {items.length}</span>
-                                        </span>
-                                    </span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400" aria-hidden="true">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                                    </svg>
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ol>
+                {/* Tips Section */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-5">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3">💡 Practice Tips</h3>
+                    <div className="grid sm:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-start gap-2">
+                            <span className="text-purple-500 font-bold">1.</span>
+                            <span>Start with quizzes to test your understanding of concepts</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-blue-500 font-bold">2.</span>
+                            <span>Move to problems for hands-on coding practice</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <span className="text-orange-500 font-bold">3.</span>
+                            <span>Tackle projects to apply everything you've learned</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

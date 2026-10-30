@@ -162,7 +162,7 @@ export const RegisterSchoolModal: React.FC<RegisterSchoolModalProps> = ({
                         <button
                             type="submit"
                             disabled={loading || !name.trim()}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-cyan-500 text-white rounded-lg shadow-md shadow-cyan-500/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-lg shadow-md shadow-cyan-500/25 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GraduationCap className="w-4 h-4" />}
                             Register school

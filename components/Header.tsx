@@ -154,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-cyan-600 flex items-center justify-center text-sm font-bold text-white">
+                  <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold text-white">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                 )}

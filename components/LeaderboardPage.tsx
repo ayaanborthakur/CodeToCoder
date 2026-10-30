@@ -76,7 +76,7 @@ export const LeaderboardPage: React.FC = () => {
                 {/* Header Section */}
                 <div className="text-center space-y-4 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-cyan-500/20 blur-[100px] rounded-full pointer-events-none" />
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-gray-900 dark:text-white relative z-10">
+                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 relative z-10">
                         LEADERBOARD
                     </h1>
                     <p className="text-slate-400 text-lg md:text-xl font-medium max-w-2xl mx-auto relative z-10">
@@ -186,7 +186,7 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-950 font-bold text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
                                                 CHAMPION
                                             </div>
                                         </div>
@@ -196,8 +196,8 @@ export const LeaderboardPage: React.FC = () => {
                                                 <p className="text-yellow-200/60 text-sm mt-1 font-medium">{getMemberSince(top3[0].joinedAt)}</p>
                                             </div>
                                             <div className="space-y-2">
-                                                <div className="text-yellow-500 text-xs font-bold ">Net Worth</div>
-                                                <div className="flex items-center justify-center gap-2 text-amber-950 font-bold text-3xl bg-amber-400/20 py-3 rounded-2xl border border-yellow-500/30">
+                                                <div className="text-yellow-500 text-xs font-bold uppercase tracking-widest">Net Worth</div>
+                                                <div className="flex items-center justify-center gap-2 text-white font-bold text-3xl bg-yellow-500/20 py-3 rounded-2xl border border-yellow-500/30">
                                                     <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
                                                     {top3[0].net_value.toLocaleString()}
                                                 </div>
@@ -261,7 +261,7 @@ export const LeaderboardPage: React.FC = () => {
                             {/* Table */}
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-slate-900/80 text-xs text-slate-400 font-bold">
+                                    <thead className="bg-slate-900/80 text-xs text-slate-400 uppercase tracking-wider font-bold">
                                         <tr>
                                             <th className="px-6 py-4 text-center w-24">Rank</th>
                                             <th className="px-6 py-4 text-left">Coder</th>

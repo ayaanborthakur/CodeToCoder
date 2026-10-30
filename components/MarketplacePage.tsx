@@ -235,7 +235,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                         <div className={`absolute inset-0 opacity-20 ${RARITY_BG_COLORS[collectible.rarity]}`} />
                                         <div className="relative z-10">
                                             <div className="text-6xl mb-4 animate-bounce" style={{ animationDelay: `${index * 100}ms` }}>{collectible.image}</div>
-                                            <div className={`text-sm font-bold mb-2 ${RARITY_COLORS[collectible.rarity]}`}>
+                                            <div className={`text-sm font-bold mb-2 uppercase tracking-wider ${RARITY_COLORS[collectible.rarity]}`}>
                                                 {collectible.rarity}
                                             </div>
                                             <h4 className="text-xl font-bold text-text-primary mb-2">{collectible.name}</h4>
@@ -270,7 +270,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                     </button>
 
                     <div className="text-center mb-10">
-                        <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 mb-4 tracking-tight">
                             {activeTab === 'market' ? 'Star Market' : 'My Collection'}
                         </h1>
                         <p className="text-text-secondary text-lg max-w-2xl mx-auto">
@@ -285,7 +285,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                         <button
                             onClick={() => setActiveTab('market')}
                             className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'market'
-                                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/30'
+                                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
                                 : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
                                 }`}
                         >
@@ -294,7 +294,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                         <button
                             onClick={() => setActiveTab('collection')}
                             className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${activeTab === 'collection'
-                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30'
+                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
                                 : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
                                 }`}
                         >
@@ -313,7 +313,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                             <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default px-10 py-6 relative group overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="relative z-10">
-                                    <div className="text-xs text-cyan-400 font-bold mb-2 text-center ">Your Balance</div>
+                                    <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                     <div className="text-5xl font-bold text-text-primary font-mono flex items-center gap-4 justify-center">
                                         <span className="text-4xl animate-pulse text-yellow-500">★</span>
                                         <span className="text-text-primary">{formatCompactNumber(starBalance ?? stars?.balance ?? 0)}</span>
@@ -334,13 +334,13 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                         <button
                                             onClick={handleClaimDailyPrize}
                                             disabled={claimingPrize}
-                                            className="w-full bg-amber-400 text-amber-950 font-bold text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-orange-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                                            className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-orange-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
                                         >
                                             {claimingPrize ? 'Claiming...' : '✨ Claim Your Daily Prize! ✨'}
                                         </button>
                                     ) : (
                                         <div className="text-center py-8 bg-surface-highlight/30 rounded-xl border border-border-default/50">
-                                            <div className="text-text-secondary mb-3 text-sm font-medium">Next prize available in</div>
+                                            <div className="text-text-secondary mb-3 text-sm uppercase tracking-wider font-medium">Next prize available in</div>
                                             <div className="text-5xl font-bold text-yellow-500 font-mono tracking-tight text-center">
                                                 {hoursUntilPrize} <span className="text-2xl text-yellow-500/50">hours</span>
                                             </div>
@@ -415,7 +415,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                                     </button>
                                                 )}
                                                 {challenge.claimed && (
-                                                    <span className="text-xs font-bold text-text-secondary ">Claimed</span>
+                                                    <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">Claimed</span>
                                                 )}
                                             </div>
                                         </div>

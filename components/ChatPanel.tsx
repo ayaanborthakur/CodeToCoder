@@ -169,7 +169,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
         }
     }
 
-    const renderMarkdownContent = (content: string) => <Markdown>{content}</Markdown>;
+    const renderMarkdownContent = (content: string) => (
+        <Markdown>{content}</Markdown>
+    );
 
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -215,7 +217,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                             <div key={index} className="animate-fade-in">
                                 {msg.role === 'user' ? (
                                     <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-800">
-                                        <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 block mb-1">You Asked</span>
+                                        <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block mb-1">You Asked</span>
                                         <p className="text-gray-800 dark:text-gray-200 font-medium">{msg.content}</p>
                                     </div>
                                 ) : (
@@ -258,7 +260,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                 </div>
                                 <div className="space-y-0.5">
                                     <h4 className="text-xs font-bold text-red-700 dark:text-red-400">AI Limit Reached</h4>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[260px]">
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-[260px]">
                                         You have asked 5 questions this hour. Your next question will unlock in <span className="font-bold text-gray-700 dark:text-gray-200">{formatCountdown(secondsUntilNext)}</span>.
                                     </p>
                                 </div>

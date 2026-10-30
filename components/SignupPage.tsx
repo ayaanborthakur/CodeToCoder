@@ -332,7 +332,7 @@ export const SignupPage: React.FC = () => {
                     </div>
                 </div>
                 <div className="relative z-10 p-12 max-w-lg">
-                    <h1 className="text-5xl font-bold tracking-tight mb-6 text-gray-900 dark:text-white drop-shadow-sm">
+                    <h1 className="text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 drop-shadow-sm">
                         Build your future in code.
                     </h1>
                     <p className="text-xl text-gray-300 leading-relaxed mb-8">
@@ -376,7 +376,7 @@ export const SignupPage: React.FC = () => {
 
                     {/* Mobile header */}
                     <div className="lg:hidden mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Code2Coder</h1>
+                        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-600 to-purple-600">Code2Coder</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-2">Master Python with AI</p>
                     </div>
 
@@ -423,7 +423,7 @@ export const SignupPage: React.FC = () => {
 
                                 <button
                                     onClick={() => setStep('credentials')}
-                                    className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-gray-50 dark:from-gray-800 dark:to-gray-900 dark:hover:from-gray-700 dark:hover:to-gray-800 rounded-2xl text-lg font-semibold transition-all"
+                                    className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700 dark:hover:to-gray-800 rounded-2xl text-lg font-semibold transition-all"
                                 >
                                     <Mail className="w-6 h-6 text-gray-600 dark:text-gray-400" />
                                     <span>Sign up with Email</span>
@@ -486,7 +486,7 @@ export const SignupPage: React.FC = () => {
                                 )}
 
                                 <button type="submit" disabled={loading}
-                                    className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
+                                    className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
                                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Account</span>}
                                 </button>
                             </form>
@@ -496,7 +496,7 @@ export const SignupPage: React.FC = () => {
                         {step === 'username' && (
                             <div className="space-y-6 animate-fade-in-up">
                                 <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-purple-500 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
                                         <Sparkles className="w-8 h-8" />
                                     </div>
                                     <h2 className="text-3xl font-bold">Choose your Identity</h2>
@@ -543,7 +543,7 @@ export const SignupPage: React.FC = () => {
                                     )}
 
                                     <button type="submit" disabled={loading || !isUsernameValid}
-                                        className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                                         {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Continue →'}
                                     </button>
                                 </form>
@@ -607,7 +607,7 @@ export const SignupPage: React.FC = () => {
                         {step === 'school' && (
                             <div className="space-y-6 animate-fade-in-up">
                                 <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
                                         <GraduationCap className="w-8 h-8" />
                                     </div>
                                     <h2 className="text-2xl font-bold mb-2">Are you part of a school?</h2>
@@ -696,7 +696,7 @@ export const SignupPage: React.FC = () => {
                         {step === 'setup' && selectedRole === 'teacher' && (
                             <div className="space-y-6 animate-fade-in-up">
                                 <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-cyan-500/20">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-cyan-500/20">
                                         <GraduationCap className="w-8 h-8" />
                                     </div>
                                     <h2 className="text-3xl font-bold">Create your Classroom</h2>
@@ -729,7 +729,7 @@ export const SignupPage: React.FC = () => {
                                         )}
 
                                         <button type="submit" disabled={loading || !className.trim()}
-                                            className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
                                             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Create Classroom <ArrowRight className="w-5 h-5" /></>}
                                         </button>
 
@@ -741,8 +741,8 @@ export const SignupPage: React.FC = () => {
                                 ) : (
                                     /* ── Join code reveal ─── */
                                     <div className="space-y-6">
-                                        <div className="p-6 rounded-2xl bg-cyan-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-800 text-center">
-                                            <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-3 ">
+                                        <div className="p-6 rounded-2xl bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-800 text-center">
+                                            <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-3 uppercase tracking-wider">
                                                 Class Join Code
                                             </p>
                                             <div className="flex items-center justify-center gap-3 mb-4">
@@ -770,7 +770,7 @@ export const SignupPage: React.FC = () => {
 
                                         <button
                                             onClick={() => navigate('/dashboard')}
-                                            className="w-full py-4 bg-cyan-600 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                                             Go to Dashboard <ArrowRight className="w-5 h-5" />
                                         </button>
                                     </div>
@@ -781,7 +781,7 @@ export const SignupPage: React.FC = () => {
                         {step === 'setup' && selectedRole === 'student' && (
                             <div className="space-y-6 animate-fade-in-up">
                                 <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-purple-500/20">
                                         <BookOpen className="w-8 h-8" />
                                     </div>
                                     <h2 className="text-3xl font-bold">Join a Classroom</h2>
@@ -816,7 +816,7 @@ export const SignupPage: React.FC = () => {
                                     </div>
 
                                     <button type="submit" disabled={joinLoading || joinCode.length !== 6}
-                                        className="w-full py-4 bg-purple-600 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                                        className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
                                         {joinLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Join Classroom <ArrowRight className="w-5 h-5" /></>}
                                     </button>
 

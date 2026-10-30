@@ -132,7 +132,7 @@ export const ReviewTab: React.FC<ReviewTabProps> = ({ onSelectLesson }) => {
                         <div className="relative z-10">
                             <div className="flex items-center gap-2 mb-2">
                                 <AlertCircle className="w-5 h-5 text-indigo-200" />
-                                <span className="text-xs font-bold text-indigo-200">Pro Tip</span>
+                                <span className="text-xs font-bold uppercase tracking-wide text-indigo-200">Pro Tip</span>
                             </div>
                             <h3 className="text-xl font-bold mb-2">Why Spaced Repetition?</h3>
                             <p className="text-indigo-100 text-sm">

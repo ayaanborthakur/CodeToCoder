@@ -23,7 +23,7 @@ import type { FlowchartNodeType, FlowchartData, FlowchartNodeData } from '../typ
 
 // Custom node components with improved styling and connection handles
 const StartEndNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`px-8 py-4 bg-green-400 text-white rounded-full border-3 shadow-xl font-bold text-center min-w-[140px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-green-300 ring-offset-2' : ''}`}>
+    <div className={`px-8 py-4 bg-gradient-to-br from-green-400 to-green-600 text-white rounded-full border-3 shadow-xl font-bold text-center min-w-[140px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-green-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -41,7 +41,7 @@ const StartEndNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({
 );
 
 const VariableNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`px-6 py-4 bg-blue-400 text-white rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-blue-300 ring-offset-2' : ''}`}>
+    <div className={`px-6 py-4 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-blue-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -64,7 +64,7 @@ const VariableNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({
 );
 
 const ConditionalNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`relative px-8 py-6 bg-amber-400 text-amber-950 border-3 shadow-xl min-w-[180px] transform rotate-45 hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-yellow-300 ring-offset-2' : ''}`}>
+    <div className={`relative px-8 py-6 bg-gradient-to-br from-yellow-400 to-yellow-600 text-white border-3 shadow-xl min-w-[180px] transform rotate-45 hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-yellow-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -87,7 +87,7 @@ const ConditionalNode: React.FC<{ data: any; id: string; selected?: boolean }> =
 );
 
 const LoopNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`px-6 py-4 bg-amber-400 text-amber-950 rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-orange-300 ring-offset-2' : ''}`}>
+    <div className={`px-6 py-4 bg-gradient-to-br from-orange-400 to-orange-600 text-white rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-orange-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -110,7 +110,7 @@ const LoopNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ dat
 );
 
 const FunctionNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`px-6 py-4 bg-purple-400 text-white rounded-2xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-purple-300 ring-offset-2' : ''}`}>
+    <div className={`px-6 py-4 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-2xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-purple-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -133,7 +133,7 @@ const FunctionNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({
 );
 
 const OutputNode: React.FC<{ data: any; id: string; selected?: boolean }> = ({ data, selected }) => (
-    <div className={`px-6 py-4 bg-cyan-400 text-white rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-cyan-300 ring-offset-2' : ''}`}>
+    <div className={`px-6 py-4 bg-gradient-to-br from-cyan-400 to-cyan-600 text-white rounded-xl border-3 shadow-xl min-w-[180px] hover:shadow-2xl transition-all ${selected ? 'ring-4 ring-cyan-300 ring-offset-2' : ''}`}>
         <Handle 
             type="target" 
             position={Position.Top} 
@@ -336,7 +336,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'start')}
-                        className="p-3 bg-green-100 dark:from-green-900/30 dark:to-green-800/30 text-green-800 dark:text-green-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-green-300 dark:border-green-700"
+                        className="p-3 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 text-green-800 dark:text-green-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-green-300 dark:border-green-700"
                     >
                         <div className="font-semibold">○ Start</div>
                         <div className="text-xs opacity-75 mt-1">Program entry point</div>
@@ -345,7 +345,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'variable')}
-                        className="p-3 bg-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-800 dark:text-blue-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-blue-300 dark:border-blue-700"
+                        className="p-3 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 text-blue-800 dark:text-blue-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-blue-300 dark:border-blue-700"
                     >
                         <div className="font-semibold">□ Variable</div>
                         <div className="text-xs opacity-75 mt-1">Assign a value</div>
@@ -354,7 +354,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'conditional')}
-                        className="p-3 bg-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-yellow-300 dark:border-yellow-700"
+                        className="p-3 bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/30 dark:to-yellow-800/30 text-yellow-800 dark:text-yellow-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-yellow-300 dark:border-yellow-700"
                     >
                         <div className="font-semibold">◇ If/Else</div>
                         <div className="text-xs opacity-75 mt-1">Decision point</div>
@@ -363,7 +363,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'loop')}
-                        className="p-3 bg-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-orange-300 dark:border-orange-700"
+                        className="p-3 bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/30 dark:to-orange-800/30 text-orange-800 dark:text-orange-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-orange-300 dark:border-orange-700"
                     >
                         <div className="font-semibold">⬡ Loop</div>
                         <div className="text-xs opacity-75 mt-1">Repeat actions</div>
@@ -372,7 +372,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'function')}
-                        className="p-3 bg-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-purple-300 dark:border-purple-700"
+                        className="p-3 bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 text-purple-800 dark:text-purple-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-purple-300 dark:border-purple-700"
                     >
                         <div className="font-semibold">▭ Function</div>
                         <div className="text-xs opacity-75 mt-1">Call a function</div>
@@ -381,7 +381,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'output')}
-                        className="p-3 bg-cyan-100 dark:from-cyan-900/30 dark:to-cyan-800/30 text-cyan-800 dark:text-cyan-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-cyan-300 dark:border-cyan-700"
+                        className="p-3 bg-gradient-to-r from-cyan-100 to-cyan-200 dark:from-cyan-900/30 dark:to-cyan-800/30 text-cyan-800 dark:text-cyan-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-cyan-300 dark:border-cyan-700"
                     >
                         <div className="font-semibold">▱ Output</div>
                         <div className="text-xs opacity-75 mt-1">Print/display</div>
@@ -390,7 +390,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                     <div
                         draggable
                         onDragStart={(e) => onDragStart(e, 'end')}
-                        className="p-3 bg-green-100 dark:from-green-900/30 dark:to-green-800/30 text-green-800 dark:text-green-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-green-300 dark:border-green-700"
+                        className="p-3 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/30 dark:to-green-800/30 text-green-800 dark:text-green-300 rounded-lg cursor-move hover:shadow-md transition-shadow border-2 border-green-300 dark:border-green-700"
                     >
                         <div className="font-semibold">○ End</div>
                         <div className="text-xs opacity-75 mt-1">Program exit</div>
@@ -435,7 +435,7 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                         <button
                             onClick={handleGenerate}
                             disabled={nodes.length === 0}
-                            className="px-6 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-bold transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
+                            className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg text-sm font-bold hover:from-purple-500 hover:to-purple-600 transition-colors shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl"
                         >
                             🚀 Generate Code
                         </button>
@@ -491,8 +491,8 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                                     <div>• <strong>Connect:</strong> Drag from white circle</div>
                                     <div>• <strong>Select:</strong> Single click</div>
                                     <div>• <strong>Edit:</strong> Double click</div>
-                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Del/Bksp</kbd> Remove</div>
-                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Shift</kbd> Multi-select</div>
+                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Del/Bksp</kbd> Remove</div>
+                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Shift</kbd> Multi-select</div>
                                 </div>
                             </div>
                         </Panel>

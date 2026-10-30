@@ -167,7 +167,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         <div className={`absolute inset-0 opacity-20 ${RARITY_BG_COLORS[selectedCollectible.rarity]}`} />
                         <div className="relative z-10">
                             <div className="text-8xl mb-4">{selectedCollectible.image}</div>
-                            <div className={`text-sm font-bold mb-2 ${RARITY_COLORS[selectedCollectible.rarity]}`}>
+                            <div className={`text-sm font-bold mb-2 uppercase tracking-wider ${RARITY_COLORS[selectedCollectible.rarity]}`}>
                                 {selectedCollectible.rarity}
                             </div>
                             <h3 className="text-3xl font-bold text-text-primary mb-3">{selectedCollectible.name}</h3>
@@ -175,11 +175,11 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
                             <div className="flex items-center justify-center gap-4 mb-6">
                                 <div className="bg-surface-highlight px-4 py-2 rounded-lg border border-border-default">
-                                    <span className="text-text-secondary text-xs block">Owned</span>
+                                    <span className="text-text-secondary text-xs uppercase block">Owned</span>
                                     <span className="text-xl font-mono font-bold text-text-primary">{selectedCollectible.count}</span>
                                 </div>
                                 <div className="bg-surface-highlight px-4 py-2 rounded-lg border border-border-default">
-                                    <span className="text-text-secondary text-xs block">Sell Value</span>
+                                    <span className="text-text-secondary text-xs uppercase block">Sell Value</span>
                                     <span className="text-xl font-mono font-bold text-yellow-500 flex items-center gap-1">
                                         {getSellValue(selectedCollectible.rarity) * sellAmount} <span className="text-sm">★</span>
                                     </span>
@@ -243,7 +243,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
                     {!isEmbedded && (
                         <div className="text-center mb-8">
-                            <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
+                            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
                                 My Collection
                             </h1>
                             <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>
@@ -253,7 +253,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                     {/* Stats Overview */}
                     <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default p-6 mb-8">
                         <div className="text-center mb-6">
-                            <div className="text-sm text-text-secondary mb-2 ">Collection Progress</div>
+                            <div className="text-sm text-text-secondary mb-2 uppercase tracking-wider">Collection Progress</div>
                             <div className="text-5xl font-bold text-text-primary mb-2">
                                 {stats.owned} / {stats.total}
                             </div>
@@ -263,7 +263,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         {/* Progress Bar */}
                         <div className="h-4 bg-surface-highlight rounded-full overflow-hidden mb-6">
                             <div
-                                className="h-full bg-purple-500 transition-all duration-500 relative"
+                                className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 transition-all duration-500 relative"
                                 style={{ width: `${stats.percentage}%` }}
                             >
                                 <div className="absolute inset-0 bg-white/20 animate-pulse" />
@@ -274,7 +274,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                             {(Object.keys(stats.byRarity) as Rarity[]).map(rarity => (
                                 <div key={rarity} className={`bg-surface/50 rounded-lg p-3 border ${RARITY_BORDER_COLORS[rarity]}`}>
-                                    <div className={`text-xs font-bold mb-1 ${RARITY_COLORS[rarity]}`}>
+                                    <div className={`text-xs font-bold uppercase mb-1 ${RARITY_COLORS[rarity]}`}>
                                         {rarity}
                                     </div>
                                     <div className="text-text-primary font-mono text-sm">
@@ -290,7 +290,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                 <button
                                     onClick={handleSellAllDuplicates}
                                     disabled={sellingAll}
-                                    className="w-full bg-orange-600 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/25"
+                                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/25"
                                 >
                                     {sellingAll ? (
                                         <>Selling...</>
@@ -314,8 +314,8 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         <button
                             key={rarity}
                             onClick={() => setSelectedRarity(rarity)}
-                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${selectedRarity === rarity
- ? rarity === 'all'
+                            className={`px-4 py-2 rounded-lg font-bold text-sm uppercase tracking-wider transition-all ${selectedRarity === rarity
+                                ? rarity === 'all'
                                     ? 'bg-text-primary text-background'
                                     : `${RARITY_BG_COLORS[rarity as Rarity]} ${RARITY_COLORS[rarity as Rarity]} border-2 ${RARITY_BORDER_COLORS[rarity as Rarity]}`
                                 : 'bg-surface-highlight text-text-secondary hover:bg-border-default'
@@ -364,7 +364,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                             <LockIcon className="w-8 h-8 text-text-secondary/50" />
                                         )}
                                     </div>
-                                    <div className={`text-xs font-bold text-center mb-1 ${isOwned ? RARITY_COLORS[collectible.rarity] : 'text-text-disabled'}`}>
+                                    <div className={`text-xs font-bold uppercase text-center mb-1 ${isOwned ? RARITY_COLORS[collectible.rarity] : 'text-text-disabled'}`}>
                                         {collectible.rarity}
                                     </div>
                                     <div className={`text-sm font-bold text-center ${isOwned ? 'text-text-primary' : 'text-text-disabled'}`}>

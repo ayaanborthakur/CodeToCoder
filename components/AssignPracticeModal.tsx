@@ -144,7 +144,7 @@ export const AssignPracticeModal: React.FC<AssignPracticeModalProps> = ({
                 <div className="p-5 space-y-4">
                     {/* Item summary */}
                     <div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-1">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold mb-1">
                             {PRACTICE_LABEL[practiceItem.type] ?? 'Practice'} · {practiceItem.difficulty}
                         </div>
                         <div className="font-semibold text-sm text-gray-900 dark:text-white">{practiceItem.title}</div>
@@ -164,7 +164,7 @@ export const AssignPracticeModal: React.FC<AssignPracticeModalProps> = ({
                         </div>
                     ) : classrooms.length > 1 ? (
                         <div>
-                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">Classroom</label>
+                            <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-2">Classroom</label>
                             <select
                                 value={selectedClassId ?? ''}
                                 onChange={(e) => setSelectedClassId(e.target.value)}
@@ -185,7 +185,7 @@ export const AssignPracticeModal: React.FC<AssignPracticeModalProps> = ({
                     {classrooms.length > 0 && (
                         <>
                             <div>
-                                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">Assign to</label>
+                                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-2">Assign to</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
@@ -257,7 +257,7 @@ export const AssignPracticeModal: React.FC<AssignPracticeModalProps> = ({
                             )}
 
                             <div>
-                                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">Due date (optional)</label>
+                                <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block mb-2">Due date (optional)</label>
                                 <input
                                     type="date"
                                     value={dueDate}

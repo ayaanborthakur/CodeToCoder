@@ -63,7 +63,7 @@ export const BadgeDisplay: React.FC<BadgeDisplayProps> = ({
                 <div className="w-full max-w-[100px]">
                     <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-cyan-500 transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
                             style={{ width: `${progress}%` }}
                         />
                     </div>
