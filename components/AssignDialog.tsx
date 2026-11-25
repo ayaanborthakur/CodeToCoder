@@ -8,8 +8,11 @@ import { endOfLocalDay } from '../services/submissionsService';
 import type { Assignment, Classroom, PracticeItem } from '../types';
 import { Button, Field, inputClass } from './ui';
 
+export interface LessonTarget { courseId: string; courseTitle: string; moduleId: string; lessonId: string; lessonTitle: string }
+
 export type AssignTarget =
-    | { kind: 'lesson'; courseId: string; courseTitle: string; moduleId: string; lessonId: string; lessonTitle: string }
+    | ({ kind: 'lesson' } & LessonTarget)
+    | { kind: 'lessons'; items: LessonTarget[] }
     | { kind: 'practice'; practiceItem: PracticeItem }
     | { kind: 'custom' };
 
@@ -24,6 +27,8 @@ interface AssignDialogProps {
     students?: StudentInfo[];
     onClose: () => void;
     onAssigned: (assignment: Assignment) => void;
+    /** Called once with everything created (several when assigning many lessons). */
+    onDone?: (created: Assignment[]) => void;
 }
 
 const loadRoster = async (classroom: Classroom): Promise<StudentInfo[]> => {
@@ -45,7 +50,7 @@ const loadRoster = async (classroom: Classroom): Promise<StudentInfo[]> => {
  * Assign a curriculum lesson, a practice item, or a coding assignment the
  * teacher writes here, with due date, points and who it's for.
  */
-export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, classroom, students: studentsProp, onClose, onAssigned }) => {
+export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, classroom, students: studentsProp, onClose, onAssigned, onDone }) => {
     const [classrooms, setClassrooms] = useState<Classroom[]>(classroom ? [classroom] : []);
     const [classId, setClassId] = useState<string | null>(classroom?.classId ?? null);
     const [students, setStudents] = useState<StudentInfo[] | null>(studentsProp ?? null);
@@ -57,6 +62,9 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
     const [title, setTitle] = useState('');
     const [instructions, setInstructions] = useState('');
     const [starterCode, setStarterCode] = useState('');
+    // Several lessons: optionally give each the next due date, N days apart.
+    const [spacing, setSpacing] = useState('0');
+    const [progress, setProgress] = useState(0);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -91,8 +99,11 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose, saving]);
 
-    const heading = target.kind === 'lesson' ? target.lessonTitle : target.kind === 'practice' ? target.practiceItem.title : 'New coding assignment';
-    const icon = target.kind === 'lesson' ? <BookOpen className="w-4 h-4" /> : target.kind === 'practice' ? <Dumbbell className="w-4 h-4" /> : <PencilLine className="w-4 h-4" />;
+    const multi = target.kind === 'lessons';
+    const heading = target.kind === 'lesson' ? target.lessonTitle
+        : target.kind === 'lessons' ? `${target.items.length} ${target.items.length === 1 ? 'lesson' : 'lessons'}`
+        : target.kind === 'practice' ? target.practiceItem.title : 'New coding assignment';
+    const icon = target.kind === 'lesson' || target.kind === 'lessons' ? <BookOpen className="w-4 h-4" /> : target.kind === 'practice' ? <Dumbbell className="w-4 h-4" /> : <PencilLine className="w-4 h-4" />;
 
     const handleAssign = async () => {
         setError(null);
@@ -108,6 +119,25 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
         const dueAt = dueDate ? (dueTime ? new Date(`${dueDate}T${dueTime}:00`).getTime() : endOfLocalDay(dueDate)) : null;
         const studentIds = everyone ? null : Array.from(picked);
         setSaving(true);
+        if (target.kind === 'lessons') {
+            const gap = Math.max(0, Math.round(Number(spacing) || 0));
+            const made: Assignment[] = [];
+            try {
+                for (const [i, item] of target.items.entries()) {
+                    const due = dueAt === null ? null : dueAt + i * gap * 24 * 60 * 60 * 1000;
+                    const created = await createAssignment({ classroomId: active.classId, teacherId, ...item, dueAt: due, studentIds, points: pts });
+                    made.push(created);
+                    onAssigned(created);
+                    setProgress(made.length);
+                }
+                onDone?.(made);
+                onClose();
+            } catch (e: unknown) {
+                setError(`${made.length ? `Assigned ${made.length} of ${target.items.length}. ` : ''}${e instanceof Error ? e.message : 'Could not create the assignments.'}`);
+                setSaving(false);
+            }
+            return;
+        }
         try {
             let created: Assignment;
             if (target.kind === 'lesson') {
@@ -134,6 +164,7 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
                 });
             }
             onAssigned(created);
+            onDone?.([created]);
             onClose();
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Could not create the assignment.');
@@ -147,7 +178,7 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
                 <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
-                            {icon} {target.kind === 'lesson' ? 'Assign lesson' : target.kind === 'practice' ? 'Assign practice' : 'Create assignment'}
+                            {icon} {target.kind === 'lesson' ? 'Assign lesson' : multi ? 'Assign lessons' : target.kind === 'practice' ? 'Assign practice' : 'Create assignment'}
                         </div>
                         <h2 id="assign-title" className="font-bold text-gray-900 dark:text-white truncate">{heading}</h2>
                         {target.kind === 'lesson' && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{target.courseTitle}</p>}
@@ -156,6 +187,21 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
                 </div>
 
                 <div className="overflow-y-auto p-5 space-y-5">
+                    {target.kind === 'lessons' && (
+                        <ol className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                            {target.items.map((it, i) => (
+                                <li key={it.lessonId} className="flex items-center gap-3 px-3 py-2">
+                                    <span className="w-5 text-right text-xs font-semibold text-gray-400 tabular-nums">{i + 1}</span>
+                                    <span className="flex-1 min-w-0 truncate text-gray-900 dark:text-white">{it.lessonTitle}</span>
+                                    {dueDate && Number(spacing) > 0 && (
+                                        <span className="text-xs text-gray-500 whitespace-nowrap">
+                                            {new Date(new Date(`${dueDate}T00:00`).getTime() + i * Math.round(Number(spacing)) * 864e5).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        </span>
+                                    )}
+                                </li>
+                            ))}
+                        </ol>
+                    )}
                     {target.kind === 'custom' && (
                         <>
                             <Field label="Title" htmlFor="as-title">
@@ -226,12 +272,23 @@ export const AssignDialog: React.FC<AssignDialogProps> = ({ teacherId, target, c
                         </Field>
                     </div>
 
+                    {multi && dueDate && (
+                        <Field label="Space out due dates" htmlFor="as-spacing" hint="0 gives every lesson the same due date. 1 makes each one due a day after the one before.">
+                            <div className="flex items-center gap-2">
+                                <div className="w-24"><input id="as-spacing" type="number" min={0} max={30} className={inputClass} value={spacing} onChange={e => setSpacing(e.target.value)} /></div>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">days apart</span>
+                            </div>
+                        </Field>
+                    )}
+
                     {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-800">
                     <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
-                    <Button variant="primary" onClick={handleAssign} loading={saving} disabled={!active}>Assign</Button>
+                    <Button variant="primary" onClick={handleAssign} loading={saving} disabled={!active}>
+                        {multi ? (saving ? `Assigning ${progress} of ${target.items.length}…` : `Assign ${target.items.length}`) : 'Assign'}
+                    </Button>
                 </div>
             </div>
         </div>

@@ -45,13 +45,14 @@ import {
     type StudentProgress,
 } from '../services/classroomProgressService';
 import type { Classroom, Module, Assignment, Post, School, Submission } from '../types';
-import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
+import { COURSES } from '../data/coursesData';
 import { AssignDialog, type AssignTarget } from './AssignDialog';
 import { AssignmentDetail } from './classroom/AssignmentDetail';
 import { Gradebook } from './classroom/Gradebook';
 import { LiveActivity } from './classroom/LiveActivity';
 import { ClassPacing } from './classroom/ClassPacing';
 import { ClassActions } from './classroom/ClassActions';
+import { CurriculumPicker } from './classroom/CurriculumPicker';
 import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
 import { assignmentTitle, assignmentSubtitle, dueLabel } from '../utils/assignmentDisplay';
@@ -625,7 +626,7 @@ const ClassView: React.FC<{
                         />
                     )}
                     {tab === 'assignments' && sub === 'new' && (
-                        <CurriculumPicker base={base} modules={modules} onAssign={(t) => setAssignTarget({ kind: 'lesson', ...t })} />
+                        <CurriculumPicker base={base} modules={modules} assignments={assignments} onAssign={(items) => setAssignTarget(items.length === 1 ? { kind: 'lesson', ...items[0] } : { kind: 'lessons', items })} />
                     )}
                     {tab === 'assignments' && sub && sub !== 'new' && sub !== 'create' && (() => {
                         const a = assignments.find(x => x.id === sub);
@@ -696,10 +697,8 @@ const ClassView: React.FC<{
                     target={assignTarget}
                     students={(students ?? []).map(st => ({ uid: st.uid, name: st.name, username: st.username }))}
                     onClose={() => setAssignTarget(null)}
-                    onAssigned={(created) => {
-                        setAssignments(prev => [created, ...prev]);
-                        navigate(`${base}/assignments/${created.id}`);
-                    }}
+                    onAssigned={(created) => setAssignments(prev => [created, ...prev])}
+                    onDone={(created) => navigate(created.length === 1 ? `${base}/assignments/${created[0].id}` : `${base}/assignments`)}
                 />
             )}
 
@@ -891,73 +890,6 @@ const AssignmentsTab: React.FC<{
     );
 };
 
-const CurriculumPicker: React.FC<{
-    base: string;
-    modules: Module[];
-    onAssign: (t: { moduleId: string; lessonId: string; lessonTitle: string; courseId: string; courseTitle: string }) => void;
-}> = ({ base, modules, onAssign }) => {
-    const allIds = modules.map(m => m.id);
-    const [openCourse, setOpenCourse] = useState<string | null>(COURSES[0]?.id ?? null);
-    return (
-        <>
-            <Link to={`${base}/assignments`} className="no-hover inline-flex items-center gap-1.5 mb-4 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                <X className="w-4 h-4" aria-hidden="true" /> Cancel
-            </Link>
-            <Section title="Choose a lesson to assign">
-                <div className="space-y-3">
-                    {COURSES.map(course => {
-                        const courseModules = resolveCourseModuleIds(course.id, allIds)
-                            .map(id => modules.find(m => m.id === id))
-                            .filter((m): m is Module => !!m);
-                        const assignable = !course.comingSoon && courseModules.length > 0;
-                        const expanded = openCourse === course.id && assignable;
-                        return (
-                            <Card key={course.id} padded={false} className={assignable ? '' : 'opacity-60'}>
-                                <button
-                                    onClick={() => assignable && setOpenCourse(p => p === course.id ? null : course.id)}
-                                    disabled={!assignable}
-                                    className="no-hover w-full flex items-center justify-between gap-3 px-5 py-4 text-left disabled:cursor-not-allowed"
-                                    aria-expanded={expanded}
-                                >
-                                    <div className="min-w-0">
-                                        <div className="font-semibold text-gray-900 dark:text-white">{course.title}</div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                                            {course.comingSoon ? 'Coming soon' : `${courseModules.length} ${courseModules.length === 1 ? 'module' : 'modules'}`}
-                                        </div>
-                                    </div>
-                                    {assignable && <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />}
-                                </button>
-                                {expanded && (
-                                    <div className="border-t border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-                                        {courseModules.map(module => (
-                                            <div key={module.id} className="px-5 py-3">
-                                                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{module.title}</h3>
-                                                <ul>
-                                                    {module.lessons.map((lesson, i) => (
-                                                        <li key={lesson.id} className="flex items-center gap-3 py-1.5">
-                                                            <span className="w-6 text-right text-xs font-semibold text-gray-400 tabular-nums">{i + 1}</span>
-                                                            <span className="flex-1 min-w-0 text-sm text-gray-900 dark:text-white truncate">{lesson.title}</span>
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => onAssign({ moduleId: module.id, lessonId: lesson.id, lessonTitle: lesson.title, courseId: course.id, courseTitle: course.title })}
-                                                            >
-                                                                Assign
-                                                            </Button>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
-                        );
-                    })}
-                </div>
-            </Section>
-        </>
-    );
-};
 
 // ─── Students ────────────────────────────────────────────────────────────────
 
