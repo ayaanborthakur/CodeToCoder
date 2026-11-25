@@ -16,7 +16,9 @@ export const AssignmentBar: React.FC<{
     submission: Submission | undefined;
     finished: boolean;
     onSubmit: () => Promise<void>;
-}> = ({ assignment, submission, finished, onSubmit }) => {
+    /** Past due and the class doesn't take late work. */
+    closed?: boolean;
+}> = ({ assignment, submission, finished, onSubmit, closed = false }) => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showFeedback, setShowFeedback] = useState(true);
@@ -49,6 +51,7 @@ export const AssignmentBar: React.FC<{
                 )}
                 {!graded && <span className="text-xs text-gray-500 dark:text-gray-400">{points} points</span>}
                 <div className="ml-auto flex items-center gap-2">
+                    {closed && <span className="text-xs font-medium text-red-700 dark:text-red-400">Closed: no late work</span>}
                     {error && <span className="text-xs text-red-600 dark:text-red-400" role="alert">{error}</span>}
                     {submission?.feedback && (
                         <Button size="sm" variant="ghost" icon={<MessageSquare className="w-3.5 h-3.5" />} onClick={() => setShowFeedback(v => !v)} aria-expanded={showFeedback}>
@@ -61,7 +64,8 @@ export const AssignmentBar: React.FC<{
                         icon={submission && submission.submittedAt > 0 ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
                         onClick={handleSubmit}
                         loading={submitting}
-                        title="Hand in the code that's in the editor now"
+                        disabled={closed}
+                        title={closed ? "Past due. Your teacher isn't accepting late work." : "Hand in the code that's in the editor now"}
                     >
                         {submission && submission.submittedAt > 0 ? 'Resubmit' : 'Submit'}
                     </Button>

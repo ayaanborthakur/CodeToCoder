@@ -231,7 +231,7 @@ export const getClassroom = async (classId: string): Promise<Classroom | null> =
 
 // ─── Settings: rename / description / archive / regenerate / delete ────────
 
-type ClassroomSettingsPatch = Partial<Pick<Classroom, 'className' | 'description' | 'archived' | 'archivedAt'>>;
+type ClassroomSettingsPatch = Partial<Pick<Classroom, 'className' | 'description' | 'archived' | 'archivedAt' | 'lockedModuleIds' | 'latePolicy'>>;
 
 /**
  * Apply a settings patch to a classroom. The caller is responsible for
@@ -246,6 +246,11 @@ export const updateClassroomSettings = async (
     if (patch.description !== undefined) cleaned.description = patch.description.trim();
     if (patch.archived !== undefined) cleaned.archived = patch.archived;
     if (patch.archivedAt !== undefined) cleaned.archivedAt = patch.archivedAt;
+    if (patch.lockedModuleIds !== undefined) cleaned.lockedModuleIds = patch.lockedModuleIds;
+    if (patch.latePolicy !== undefined) cleaned.latePolicy = {
+        accept: !!patch.latePolicy.accept,
+        penaltyPercent: Math.min(100, Math.max(0, Math.round(patch.latePolicy.penaltyPercent || 0))),
+    };
     if (Object.keys(cleaned).length === 0) return;
     await updateDoc(doc(db, CLASSROOMS_COLLECTION, classId), cleaned);
 };

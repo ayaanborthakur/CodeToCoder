@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight, Clock, Pencil, Trash2, XCircle } from 'lucide-react';
-import type { Assignment, Submission } from '../../types';
+import type { Assignment, LatePolicy, Submission } from '../../types';
+import { latePenalized } from '../../utils/classroomTime';
 import type { StudentProgress } from '../../services/classroomProgressService';
 import { assignmentState, assignmentTargets, isAssignmentDone, STATE_LABEL, STATE_TONE } from '../../services/classroomProgressService';
 import { assignmentPoints } from '../../services/assignmentsService';
@@ -28,7 +29,8 @@ export const AssignmentDetail: React.FC<{
     onGraded: (s: Submission) => void;
     onUpdate: (patch: { dueAt?: number | null; points?: number }) => Promise<void>;
     onDelete: () => void;
-}> = ({ base, assignment: a, students, submissions, onGraded, onUpdate, onDelete }) => {
+    latePolicy?: LatePolicy;
+}> = ({ base, assignment: a, students, submissions, onGraded, onUpdate, onDelete, latePolicy }) => {
     const [params, setParams] = useSearchParams();
     const points = assignmentPoints(a);
     const roster = useMemo(() => students.filter(s => assignmentTargets(a, s.uid)), [students, a]);
@@ -86,7 +88,7 @@ export const AssignmentDetail: React.FC<{
                 <MiniStat label="Average" value={average === null ? '—' : `${Math.round(average * 10) / 10} / ${points}`} />
             </div>
 
-            <BulkGrade assignment={a} points={points} rows={rows} onGraded={onGraded} />
+            <BulkGrade assignment={a} points={points} rows={rows} onGraded={onGraded} latePolicy={latePolicy} />
 
             {rows.length === 0 ? (
                 <EmptyState title="No students to grade yet" description="Students appear here once they join the class." />
@@ -126,6 +128,7 @@ export const AssignmentDetail: React.FC<{
                             onPrev={index > 0 ? () => select(rows[index - 1].student.uid) : undefined}
                             onNext={index < rows.length - 1 ? () => select(rows[index + 1].student.uid) : undefined}
                             onGraded={onGraded}
+                            latePolicy={latePolicy}
                         />
                     )}
                 </div>
@@ -143,7 +146,8 @@ const BulkGrade: React.FC<{
     points: number;
     rows: { student: StudentProgress; sub: Submission | undefined; state: ReturnType<typeof assignmentState> }[];
     onGraded: (s: Submission) => void;
-}> = ({ assignment: a, points, rows, onGraded }) => {
+    latePolicy?: LatePolicy;
+}> = ({ assignment: a, points, rows, onGraded, latePolicy }) => {
     const [busy, setBusy] = useState<'pass' | 'missing' | null>(null);
     const [message, setMessage] = useState<string | null>(null);
     const passing = rows.filter(r => (r.state === 'submitted' || r.state === 'late') && r.sub?.passed && r.sub.submittedAt > 0);
@@ -152,15 +156,16 @@ const BulkGrade: React.FC<{
 
     const run = async (kind: 'pass' | 'missing') => {
         const list = kind === 'pass' ? passing : missing;
-        const score = kind === 'pass' ? points : 0;
+        const scoreFor = (late: boolean) => (kind === 'pass' ? (late ? latePenalized(points, latePolicy) : points) : 0);
         const what = kind === 'pass'
-            ? `Give ${list.length} ${list.length === 1 ? 'student' : 'students'} full credit (${points}/${points}) for work that passed the check?`
+            ? `Give ${list.length} ${list.length === 1 ? 'student' : 'students'} full credit (${points}/${points}) for work that passed the check?${latePolicy?.penaltyPercent && list.some(r => r.sub?.late) ? ` Late work gets ${latePenalized(points, latePolicy)} after the ${latePolicy.penaltyPercent}% late penalty.` : ''}`
             : `Give ${list.length} ${list.length === 1 ? 'student' : 'students'} a zero for missing work? You can change any grade later.`;
         if (!window.confirm(what)) return;
         setBusy(kind);
         setMessage(null);
         let done = 0;
         for (const r of list) {
+            const score = scoreFor(!!r.sub?.late);
             try {
                 const feedback = r.sub?.feedback ?? (kind === 'missing' ? 'Missing' : '');
                 await gradeSubmission({
@@ -216,7 +221,8 @@ const Grader: React.FC<{
     onPrev?: () => void;
     onNext?: () => void;
     onGraded: (s: Submission) => void;
-}> = ({ assignment: a, points, student, submission: sub, state, onPrev, onNext, onGraded }) => {
+    latePolicy?: LatePolicy;
+}> = ({ assignment: a, points, student, submission: sub, state, onPrev, onNext, onGraded, latePolicy }) => {
     const [score, setScore] = useState(typeof sub?.score === 'number' ? String(sub.score) : '');
     const [feedback, setFeedback] = useState(sub?.feedback ?? '');
     const [saving, setSaving] = useState(false);
@@ -308,6 +314,12 @@ const Grader: React.FC<{
                         <textarea id="grade-feedback" className={`${inputClass} min-h-[80px]`} value={feedback} onChange={e => { setFeedback(e.target.value); setSaved(false); }} placeholder="What went well, and what to try next" />
                     </Field>
                 </div>
+                {sub?.late && !!latePolicy?.penaltyPercent && (
+                    <p className="text-sm text-amber-700 dark:text-amber-400">
+                        Handed in late. With this class's {latePolicy.penaltyPercent}% penalty, full credit is {latePenalized(points, latePolicy)}.{' '}
+                        <button className="font-semibold underline" onClick={() => { setScore(String(latePenalized(Number(score || points), latePolicy))); setSaved(false); }}>Apply penalty to {score || points}</button>
+                    </p>
+                )}
                 {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
                 <div className="flex flex-wrap items-center justify-end gap-2">
                     {saved && <span className="text-sm text-green-700 dark:text-green-400 mr-auto">Saved. The student can see it now.</span>}

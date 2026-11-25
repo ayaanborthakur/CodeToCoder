@@ -49,6 +49,8 @@ import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
 import { AssignDialog, type AssignTarget } from './AssignDialog';
 import { AssignmentDetail } from './classroom/AssignmentDetail';
 import { Gradebook } from './classroom/Gradebook';
+import { LiveActivity } from './classroom/LiveActivity';
+import { ClassPacing } from './classroom/ClassPacing';
 import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
 import { assignmentTitle, assignmentSubtitle, dueLabel } from '../utils/assignmentDisplay';
@@ -91,8 +93,8 @@ const GRANTABLE_COURSES = COURSES.filter(c => c.prerequisiteCourseId !== null);
 
 const INACTIVE_AFTER_MS = 7 * DAY_MS;
 
-type ClassTab = 'overview' | 'assignments' | 'gradebook' | 'students' | 'stream' | 'settings';
-const CLASS_TABS: ClassTab[] = ['overview', 'assignments', 'gradebook', 'students', 'stream', 'settings'];
+type ClassTab = 'overview' | 'activity' | 'assignments' | 'gradebook' | 'students' | 'stream' | 'settings';
+const CLASS_TABS: ClassTab[] = ['overview', 'activity', 'assignments', 'gradebook', 'students', 'stream', 'settings'];
 
 type Submissions = Map<string, Submission>;
 
@@ -564,6 +566,7 @@ const ClassView: React.FC<{
                 className="mb-6"
                 tabs={[
                     { to: `${base}/overview`, label: 'Overview' },
+                    { to: `${base}/activity`, label: 'Live activity' },
                     { to: `${base}/assignments`, label: 'Assignments', count: assignments.length },
                     { to: `${base}/gradebook`, label: 'Gradebook' },
                     { to: `${base}/students`, label: 'Students', count: studentCount },
@@ -589,6 +592,9 @@ const ClassView: React.FC<{
                             onShowCode={() => setProjecting(true)}
                         />
                     )}
+                    {tab === 'activity' && (
+                        <LiveActivity base={base} students={students ?? []} assignments={assignments} submissions={submissions} modules={modules} onRefresh={load} />
+                    )}
                     {tab === 'assignments' && (!sub || sub === 'create') && (
                         <AssignmentsTab
                             base={base}
@@ -610,6 +616,7 @@ const ClassView: React.FC<{
                                 assignment={a}
                                 students={students ?? []}
                                 submissions={submissions}
+                                latePolicy={classroom.latePolicy}
                                 onGraded={(g) => setSubmissions(prev => new Map(prev).set(g.id, g))}
                                 onUpdate={async (patch) => {
                                     await updateAssignment(classroom.classId, a.id, patch);
@@ -644,6 +651,9 @@ const ClassView: React.FC<{
                             classroomId={classroom.classId}
                             isClassTeacher
                         />
+                    )}
+                    {tab === 'settings' && user && (
+                        <div className="mb-6"><ClassPacing classroom={classroom} modules={modules} onChange={onClassroomChange} /></div>
                     )}
                     {tab === 'settings' && user && (
                         <ClassroomSettingsModal

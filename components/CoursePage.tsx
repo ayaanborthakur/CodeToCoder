@@ -21,6 +21,8 @@ interface CoursePageProps {
     /** Student: their class assignments and own submissions. */
     assignments?: Assignment[];
     submissions?: Map<string, Submission>;
+    /** Student: modules their teacher has locked for the class. */
+    lockedModuleIds?: string[];
 }
 
 const LESSON_KIND: Record<string, string> = { learn: 'Read', quiz: 'Quiz', project: 'Project' };
@@ -39,7 +41,7 @@ const StatusIcon: React.FC<{ state: 'done' | 'current' | 'todo' }> = ({ state })
  * what's next and what's assigned (the layout Canvas and Khan Academy use).
  */
 export const CoursePage: React.FC<CoursePageProps> = ({
-    courseId, modules, completedLessons, onBackToCatalog, teacherId, unlockedCourseIds, isTeacher = false, assignments = [], submissions = new Map(),
+    courseId, modules, completedLessons, onBackToCatalog, teacherId, unlockedCourseIds, isTeacher = false, assignments = [], submissions = new Map(), lockedModuleIds = [],
 }) => {
     const course = COURSES.find(c => c.id === courseId);
     const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string } | null>(null);
@@ -75,9 +77,13 @@ export const CoursePage: React.FC<CoursePageProps> = ({
         return <Page><EmptyState title="Course not found" action={<button onClick={onBackToCatalog} className="font-semibold text-cyan-700">All courses</button>} /></Page>;
     }
 
+    const teacherLocked = (index: number) => !isTeacher && lockedModuleIds.includes(courseModules[index].id);
     const isModuleLocked = (index: number) => {
-        // A module opens once the previous module's final lesson is done. Teachers see everything.
-        if (isTeacher || index === 0) return false;
+        // A module opens once the previous module's final lesson is done, unless
+        // the teacher has locked it for the class. Teachers see everything.
+        if (isTeacher) return false;
+        if (teacherLocked(index)) return true;
+        if (index === 0) return false;
         const prev = courseModules[index - 1];
         return prev.lessons.length > 0 && !completedLessons.has(prev.lessons[prev.lessons.length - 1].id);
     };
@@ -136,7 +142,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
                                         <span className="flex-1 min-w-0">
                                             <span className="block text-xl font-bold text-gray-900 dark:text-white">{module.title}</span>
                                             <span className="block text-gray-600 dark:text-gray-400">
-                                                {locked ? "Opens when you finish the previous module's project" : `${done} of ${module.lessons.length} lessons done`}
+                                                {locked ? (teacherLocked(index) ? "Your teacher hasn't opened this module yet" : "Opens when you finish the previous module's project") : `${done} of ${module.lessons.length} lessons done`}
                                             </span>
                                         </span>
                                         {!locked && <ChevronDown className={`w-6 h-6 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />}

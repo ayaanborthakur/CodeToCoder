@@ -12,6 +12,7 @@ import { LessonCompleteCard, type LessonCompleteInfo } from './components/Lesson
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AssignmentBar } from './components/AssignmentBar';
 import { useClassAssignments } from './hooks/useClassAssignments';
+import { isClosed } from './hooks/useClassAssignments';
 import { useTeacherClasses } from './hooks/useTeacherClasses';
 import { AppSidebar } from './components/AppSidebar';
 import { IdePanel } from './components/IdePanel';
@@ -774,6 +775,15 @@ const App: React.FC = () => {
         }
 
     }, [completedLessons, completedPracticeItems, isProgressLoaded, hasCelebrated, prevCompletedLessons, prevCompletedPractice, currentModuleId, currentLessonId, displayedStars, flyingStar, totalStars, currentView, totalLessons, modules]);
+
+    // A module the teacher locked for the class stays closed to students,
+    // except lessons the teacher assigned from it.
+    useEffect(() => {
+        if (user?.role === 'teacher' || currentView !== 'classroom' || !currentModuleId || !currentLessonId) return;
+        if (!classAssignments.lockedModuleIds.includes(currentModuleId)) return;
+        if (classAssignments.assignmentFor('lesson', currentLessonId)) return;
+        navigate(`/courses/${findCourseIdForModule(currentModuleId, modules.map(m => m.id))}`, { replace: true });
+    }, [user?.role, currentView, currentModuleId, currentLessonId, classAssignments, modules, navigate]);
 
     useEffect(() => {
         if (!currentModuleId || !currentLessonId) return;
@@ -1771,6 +1781,7 @@ const App: React.FC = () => {
             assignment={openAssignment}
             submission={classAssignments.submissions.get(openAssignment.id)}
             finished={openItemFinished}
+            closed={isClosed(openAssignment, classAssignments.classroom)}
             onSubmit={() => classAssignments.submit(openAssignment, {
                 code,
                 // Only the last run of this item counts as its output.
@@ -1932,6 +1943,7 @@ const App: React.FC = () => {
                                 teacherId={user?.role === 'teacher' ? user.id : undefined}
                                 unlockedCourseIds={user?.unlockedCourseIds ?? null}
                                 isTeacher={user?.role === 'teacher'}
+                                lockedModuleIds={classAssignments.lockedModuleIds}
                                 assignments={classAssignments.assignments}
                                 submissions={classAssignments.submissions}
                             />

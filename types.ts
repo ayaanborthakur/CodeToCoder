@@ -114,6 +114,17 @@ export interface Classroom {
   // onto the classroom so a student can validate "same school" at join time
   // without reading the teacher's user doc (which rules forbid pre-join).
   schoolId?: string;
+  // Modules students in this class can't open yet (teacher-controlled pacing).
+  lockedModuleIds?: string[];
+  // How late work is handled. Absent = accepted with no penalty.
+  latePolicy?: LatePolicy;
+}
+
+export interface LatePolicy {
+  /** false = students can't hand in after the due date. */
+  accept: boolean;
+  /** Percent of the points taken off late work (0–100). */
+  penaltyPercent: number;
 }
 
 export interface User {

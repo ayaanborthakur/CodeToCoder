@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ArrowRight, BarChart3, BrainCircuit, CheckSquare, Code2, Flame, Rocket, Repeat, Terminal } from 'lucide-react';
+import { ArrowRight, BarChart3, BrainCircuit, Code2, Flame, Rocket, Repeat, Terminal } from 'lucide-react';
 import type { Assignment, DailyChallenge, Module, PlaygroundFile, PracticeItem, Submission } from '../types';
 import type { TeacherClassData } from '../hooks/useTeacherClasses';
+import { TeacherHome } from './TeacherHome';
 import { DailyChallengesWidget } from './DailyChallengesWidget';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ReviewTab } from './ReviewTab';
@@ -12,7 +13,7 @@ import { getDueReviews } from '../services/learningService';
 import { COURSES, getCourseProgress, isCourseUnlocked } from '../data/coursesData';
 import { assignmentPoints } from '../services/assignmentsService';
 import { assignmentOpenPath, assignmentTitle, dueLabel } from '../utils/assignmentDisplay';
-import { Card, EmptyState, Page, Pill, ProgressBar, Section } from './ui';
+import { Card, Page, Pill, ProgressBar, Section } from './ui';
 
 interface HomePageProps {
     modules: Module[];
@@ -87,7 +88,7 @@ export const HomePage: React.FC<HomePageProps> = (props) => {
                         {view === 'stats' ? 'How your learning is going.' : view === 'review' ? 'Quick reviews keep what you learned fresh.' : isTeacher ? "Here's what's happening in your classes." : "Here's what to work on next."}
                     </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                {!isTeacher && <div className="flex flex-wrap gap-2">
                     {view !== 'home' && <ViewButton onClick={() => setView('home')} icon={<ArrowRight className="w-4 h-4 rotate-180" />}>Back to home</ViewButton>}
                     {view !== 'stats' && <ViewButton onClick={() => setView('stats')} icon={<BarChart3 className="w-4 h-4" />}>My stats</ViewButton>}
                     {view !== 'review' && (
@@ -95,12 +96,12 @@ export const HomePage: React.FC<HomePageProps> = (props) => {
                             Review{dueReviews > 0 && <span className="ml-1 min-w-[1.5rem] h-6 px-1.5 rounded-full bg-cyan-700 text-white text-xs font-bold inline-flex items-center justify-center">{dueReviews}</span>}
                         </ViewButton>
                     )}
-                </div>
+                </div>}
             </header>
 
             {view === 'stats' && <AnalyticsDashboard />}
             {view === 'review' && <ReviewTab onSelectLesson={props.onSelectLesson} />}
-            {view === 'home' && (isTeacher ? <TeacherHome {...props} /> : <StudentHome {...props} />)}
+            {view === 'home' && (isTeacher ? <TeacherHome teacherClasses={props.teacherClasses} /> : <StudentHome {...props} />)}
         </Page>
     );
 };
@@ -311,69 +312,3 @@ const StudentHome: React.FC<HomePageProps> = ({
 
 // ─── Teacher ─────────────────────────────────────────────────────────────────
 
-const TeacherHome: React.FC<HomePageProps> = ({ teacherClasses }) => {
-    if (teacherClasses.length === 0) {
-        return (
-            <EmptyState
-                icon={<CheckSquare className="w-5 h-5" />}
-                title="Create your first class"
-                description="Classes give students a join code, and give you assignments, grading and a gradebook."
-                action={<Link to="/teacher" className="no-hover inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-semibold">Go to Classes</Link>}
-            />
-        );
-    }
-
-    const now = Date.now();
-    const week = now + 7 * 24 * 60 * 60 * 1000;
-    const upcoming = teacherClasses
-        .flatMap(c => c.assignments.filter(a => a.dueAt !== null && a.dueAt >= now && a.dueAt <= week).map(a => ({ a, c })))
-        .sort((x, y) => (x.a.dueAt ?? 0) - (y.a.dueAt ?? 0));
-
-    return (
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
-            <Section title="Your classes">
-                <div className="grid sm:grid-cols-2 gap-4">
-                    {teacherClasses.map(({ classroom, assignments, submissions }) => {
-                        const live = new Set(assignments.map(a => a.id));
-                        const toGrade = submissions.filter(s => s.status === 'submitted' && s.submittedAt > 0 && live.has(s.assignmentId)).length;
-                        const students = Array.isArray(classroom.studentIds) ? classroom.studentIds.length : 0;
-                        return (
-                            <Link key={classroom.classId} to={`/teacher/${classroom.classId}/overview`} className="no-hover rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 p-6 flex flex-col gap-4">
-                                <div>
-                                    <div className="text-xl font-bold text-gray-900 dark:text-white">{classroom.className}</div>
-                                    <div className="text-gray-600 dark:text-gray-400">{students} {students === 1 ? 'student' : 'students'} · code <span className="font-mono font-semibold tracking-wider">{classroom.joinCode}</span></div>
-                                </div>
-                                <div className="flex gap-6">
-                                    <div><div className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{assignments.length}</div><div className="text-sm text-gray-600 dark:text-gray-400">Assignments</div></div>
-                                    <div><div className={`text-2xl font-bold tabular-nums ${toGrade ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-900 dark:text-white'}`}>{toGrade}</div><div className="text-sm text-gray-600 dark:text-gray-400">To grade</div></div>
-                                </div>
-                            </Link>
-                        );
-                    })}
-                </div>
-            </Section>
-            <aside>
-                <Card padded={false} className="overflow-hidden">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Due this week</h2>
-                        <Link to="/calendar" className="text-sm font-semibold">Calendar</Link>
-                    </div>
-                    {upcoming.length === 0 ? (
-                        <p className="px-5 py-5 text-gray-600 dark:text-gray-400">Nothing due in the next 7 days.</p>
-                    ) : (
-                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {upcoming.slice(0, 6).map(({ a, c }) => (
-                                <li key={a.id}>
-                                    <Link to={`/teacher/${c.classroom.classId}/assignments/${a.id}`} className="no-hover block px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40">
-                                        <span className="block font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</span>
-                                        <span className="block text-sm text-gray-600 dark:text-gray-400">{c.classroom.className} · {new Date(a.dueAt!).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </Card>
-            </aside>
-        </div>
-    );
-};
