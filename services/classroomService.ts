@@ -273,7 +273,7 @@ export const deleteClassroomAndCascade = async (
     teacherId: string,
 ): Promise<void> => {
     // 1) Delete all subcollection docs first. Firestore doesn't cascade.
-    const subcollections = ['posts', 'assignments'] as const;
+    const subcollections = ['posts', 'assignments', 'submissions'] as const;
     for (const sub of subcollections) {
         const snap = await getDocs(collection(db, CLASSROOMS_COLLECTION, classId, sub));
         // Batched delete (Firestore caps a batch at 500 writes — chunk if needed)
