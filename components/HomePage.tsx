@@ -1,442 +1,379 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import type { Module, PlaygroundFile, DailyChallenge, Classroom } from '../types';
+import { ArrowRight, BarChart3, BrainCircuit, CheckSquare, Code2, Flame, Rocket, Repeat, Terminal } from 'lucide-react';
+import type { Assignment, DailyChallenge, Module, PlaygroundFile, PracticeItem, Submission } from '../types';
+import type { TeacherClassData } from '../hooks/useTeacherClasses';
 import { DailyChallengesWidget } from './DailyChallengesWidget';
-
-import {
-  BookOpen,
-  Terminal,
-  Star,
-  ArrowRight,
-  Trophy,
-  Flame,
-  Lock,
-  CheckCircle2,
-} from 'lucide-react';
-
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { ReviewTab } from './ReviewTab';
-import { AssignmentsCard } from './AssignmentsCard';
 import { useAuth } from '../contexts/AuthContext';
 import { getDueReviews } from '../services/learningService';
-import { formatCompactNumber } from '../utils/formatters';
 import { COURSES, getCourseProgress, isCourseUnlocked } from '../data/coursesData';
+import { assignmentPoints } from '../services/assignmentsService';
+import { assignmentOpenPath, assignmentTitle, dueLabel } from '../utils/assignmentDisplay';
+import { Card, EmptyState, Page, Pill, ProgressBar, Section } from './ui';
 
 interface HomePageProps {
-  modules: Module[];
-  onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
-  onSelectLesson: (moduleId: string, lessonId: string) => void;
-  completedLessons: Set<string>;
-  completedPracticeItems: Set<string>;
-  playgroundFiles: PlaygroundFile[];
-  mostRecentPlaygroundFile: PlaygroundFile | null;
-  onPlaygroundResume: (fileId: string) => void;
-  practiceCategories?: any;
-  netWorth?: number;
-  starBalance?: number;
-  currentStreak?: number;
-  dailyChallenges?: DailyChallenge[];
-  onClaimChallengeReward?: (challengeId: string) => void;
+    modules: Module[];
+    onNavigate: (view: 'home' | 'classroom' | 'playground' | 'practice' | 'mission' | 'about' | 'profile' | 'marketplace' | 'leaderboard' | 'reference') => void;
+    onSelectLesson: (moduleId: string, lessonId: string) => void;
+    completedLessons: Set<string>;
+    completedPracticeItems: Set<string>;
+    practiceItems: PracticeItem[];
+    playgroundFiles: PlaygroundFile[];
+    mostRecentPlaygroundFile: PlaygroundFile | null;
+    onPlaygroundResume: (fileId: string) => void;
+    currentStreak?: number;
+    dailyChallenges?: DailyChallenge[];
+    onClaimChallengeReward?: (challengeId: string) => void;
+    /** Student: their class assignments and own submissions. */
+    assignments: Assignment[];
+    submissions: Map<string, Submission>;
+    /** Teacher: their classes with assignments and submissions. */
+    teacherClasses: TeacherClassData[];
 }
 
-type HomeTab = 'overview' | 'analytics' | 'review';
+type HomeView = 'home' | 'stats' | 'review';
 
-export const HomePage: React.FC<HomePageProps> = ({
-  modules,
-  onNavigate,
-  onSelectLesson,
-  completedLessons,
-  completedPracticeItems,
-  playgroundFiles,
-  mostRecentPlaygroundFile,
-  onPlaygroundResume,
-  netWorth,
-  starBalance,
-  currentStreak = 0,
-  dailyChallenges = [],
-  onClaimChallengeReward,
-}) => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = React.useState<HomeTab>('overview');
-  const [dueReviewsCount, setDueReviewsCount] = React.useState<number>(0);
-
-  React.useEffect(() => {
-    // Cache the badge count in sessionStorage with a 5-minute TTL. The Review
-    // tab still runs its own query when actually opened — this just avoids the
-    // 'getDueReviews' query firing on every Home visit (every nav back) when
-    // the answer rarely changes within a few minutes.
-    if (!user) { setDueReviewsCount(0); return; }
-    const cacheKey = `dueReviewsCount:${user.id}`;
-    const TTL_MS = 5 * 60 * 1000;
-    try {
-      const cachedRaw = sessionStorage.getItem(cacheKey);
-      if (cachedRaw) {
-        const cached = JSON.parse(cachedRaw) as { count: number; at: number };
-        if (Date.now() - cached.at < TTL_MS) {
-          setDueReviewsCount(cached.count);
-          return;
-        }
-      }
-    } catch { /* sessionStorage may be unavailable — fall through to network */ }
-
-    let cancelled = false;
-    getDueReviews(user.id).then(reviews => {
-      if (cancelled) return;
-      const count = reviews.length;
-      setDueReviewsCount(count);
-      try { sessionStorage.setItem(cacheKey, JSON.stringify({ count, at: Date.now() })); } catch { /* ignore */ }
-    }).catch(error => {
-      console.error('Failed to fetch review count:', error);
-    });
-    return () => { cancelled = true; };
-  }, [user]);
-
-  // Find the next lesson the user should pick up.
-  const recentLesson = useMemo(() => {
-    if (modules.length === 0) return null;
-    for (const module of modules) {
-      for (const lesson of module.lessons) {
-        if (completedLessons.has(lesson.id)) {
-          const currentIndex = module.lessons.findIndex(l => l.id === lesson.id);
-          if (currentIndex < module.lessons.length - 1) {
-            return { module, lesson: module.lessons[currentIndex + 1], status: 'next' as const };
-          }
-        }
-      }
-    }
-    if (modules.length > 0 && modules[0].lessons.length > 0) {
-      return { module: modules[0], lesson: modules[0].lessons[0], status: 'start' as const };
-    }
-    return null;
-  }, [modules, completedLessons]);
-
-  // Per-course progress for the catalog mini-grid.
-  const courseProgressRows = useMemo(() => {
-    const ids = modules.map(m => m.id);
-    const byId = new Map(modules.map(m => [m.id, m] as const));
-    return COURSES.map(c => {
-      const prog = getCourseProgress(c.id, ids, byId, completedLessons);
-      const unlocked = isCourseUnlocked(c, ids, byId, completedLessons, user?.unlockedCourseIds ?? null);
-      return { course: c, progress: prog, unlocked };
-    });
-  }, [modules, completedLessons, user?.unlockedCourseIds]);
-
-  const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
-  const completionPercentage = totalLessons > 0 ? Math.round((completedLessons.size / totalLessons) * 100) : 0;
-  const firstName = user?.name?.split(' ')[0] ?? 'there';
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Small component helpers
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const TabButton: React.FC<{ tab: HomeTab; label: string; badge?: number }> = ({ tab, label, badge }) => (
-    <button
-      onClick={() => setActiveTab(tab)}
-      className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-        activeTab === tab
-          ? 'text-gray-900 dark:text-white'
-          : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-      }`}
-    >
-      {label}
-      {badge !== undefined && badge > 0 && (
-        <span className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-xs font-semibold ${
-          activeTab === tab ? 'bg-cyan-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-        }`}>{badge}</span>
-      )}
-      {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />}
-    </button>
-  );
-
-  const TopStat: React.FC<{ label: string; value: React.ReactNode; accent?: string }> = ({ label, value, accent }) => (
-    <div className="flex flex-col min-w-0">
-      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</div>
-      <div className={`text-xl font-semibold tabular-nums ${accent ?? 'text-gray-900 dark:text-white'}`}>{value}</div>
-    </div>
-  );
-
-  const SectionLabel: React.FC<{ children: React.ReactNode; right?: React.ReactNode }> = ({ children, right }) => (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-base font-bold text-gray-900 dark:text-white">{children}</h2>
-      {right}
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
-
-  return (
-    <div className="h-full w-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 overflow-y-auto">
-      <Helmet>
-        <title>Dashboard</title>
-      </Helmet>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 min-h-full flex flex-col">
-
-        {/* ─── Top header: greeting + always-visible stats strip ─────────── */}
-        <div className="flex items-end justify-between gap-6 flex-wrap mb-5">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">
-              Hey {firstName}.
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {recentLesson?.status === 'start' ? "Let's start your first lesson." : 'Pick up where you left off.'}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-6">
-            <TopStat label="Lessons" value={completedLessons.size} />
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
-            <TopStat label="Files" value={playgroundFiles.length} />
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
-            <TopStat
-              label="Stars"
-              value={
-                <span className="inline-flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                  {starBalance !== undefined ? formatCompactNumber(starBalance) : '—'}
-                </span>
-              }
-            />
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
-            <TopStat
-              label="Streak"
-              value={
-                <span className="inline-flex items-center gap-1">
-                  <Flame className={`w-3.5 h-3.5 ${currentStreak >= 7 ? 'text-orange-600' : 'text-orange-500'}`} />
-                  {currentStreak}d
-                </span>
-              }
-            />
-            <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
-            <TopStat
-              label="Net Worth"
-              value={
-                <span className="inline-flex items-center gap-1">
-                  <Trophy className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  {formatCompactNumber(netWorth)}
-                </span>
-              }
-            />
-          </div>
-        </div>
-
-        {/* ─── Tabs ─────────────────────────────────────────────────────── */}
-        <div className="flex gap-0 mb-5 border-b border-gray-200 dark:border-gray-800">
-          <TabButton tab="overview" label="Overview" />
-          <TabButton tab="analytics" label="Analytics" />
-          <TabButton tab="review" label="Review" badge={dueReviewsCount} />
-        </div>
-
-        {/* ─── Overview: multi-column dashboard ─────────────────────────── */}
-        {activeTab === 'overview' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 flex-1">
-
-            {/* LEFT COLUMN: Continue, Course Catalog, Progress strip */}
-            <div className="space-y-6 min-w-0">
-
-              {/* Continue cards */}
-              {(recentLesson || mostRecentPlaygroundFile) && (
-                <section>
-                  <SectionLabel right={
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{completionPercentage}% of course</span>
-                  }>Continue</SectionLabel>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {recentLesson && (
-                      <button
-                        onClick={() => onSelectLesson(recentLesson.module.id, recentLesson.lesson.id)}
-                        className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl p-5 shadow-sm hover:shadow-md transition-all text-left group"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <BookOpen className="w-4 h-4 text-white/85" />
-                          <ArrowRight className="w-4 h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                        <div className="text-xs font-semibold text-white/85">
-                          {recentLesson.status === 'start' ? 'Start learning' : 'Continue lesson'}
-                        </div>
-                        <div className="text-base font-semibold text-white mt-1 truncate">{recentLesson.lesson.title}</div>
-                        <div className="text-white/75 text-xs truncate mt-0.5">{recentLesson.module.title}</div>
-                      </button>
-                    )}
-                    {mostRecentPlaygroundFile && (
-                      <button
-                        onClick={() => {
-                          onNavigate('playground');
-                          onPlaygroundResume(mostRecentPlaygroundFile.id);
-                        }}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-500/50 rounded-xl p-5 shadow-sm hover:shadow-md transition-all text-left group"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <Terminal className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">Continue coding</div>
-                        <div className="text-base font-semibold text-gray-900 dark:text-white mt-1 truncate">{mostRecentPlaygroundFile.name}</div>
-                        <div className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Edited {new Date(mostRecentPlaygroundFile.lastModified).toLocaleDateString()}</div>
-                      </button>
-                    )}
-                  </div>
-                </section>
-              )}
-
-              {/* Course catalog mini-grid: see progression at a glance */}
-              <section>
-                <SectionLabel right={
-                  <button
-                    onClick={() => onNavigate('classroom')}
-                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline"
-                  >
-                    All courses →
-                  </button>
-                }>Course progression</SectionLabel>
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-                  {courseProgressRows.map(({ course, progress, unlocked }) => {
-                    const pct = progress.total > 0 ? Math.round(progress.fraction * 100) : 0;
-                    const complete = progress.total > 0 && progress.completed === progress.total;
-                    const interactive = unlocked && !course.comingSoon;
-                    return (
-                      <button
-                        key={course.id}
-                        onClick={() => interactive && onNavigate('classroom')}
-                        disabled={!interactive}
-                        className={`w-full grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-3 text-left transition-colors ${
-                          interactive ? 'hover:bg-gray-50 dark:hover:bg-gray-700/40' : 'opacity-60 cursor-not-allowed'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{course.title}</span>
-                            {complete && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
-                                <CheckCircle2 className="w-2.5 h-2.5" /> Done
-                              </span>
-                            )}
-                            {!unlocked && !course.comingSoon && (
-                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                                <Lock className="w-2.5 h-2.5" /> Locked
-                              </span>
-                            )}
-                            {course.comingSoon && (
-                              <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">
-                                Coming soon
-                              </span>
-                            )}
-                          </div>
-                          {course.comingSoon ? (
-                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full" />
-                          ) : (
-                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className={`h-full bg-gradient-to-r ${course.accentColor} transition-all duration-500`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
-                          {course.comingSoon ? '—' : `${progress.completed} / ${progress.total}`}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-            </div>
-
-            {/* RIGHT RAIL: Assignments + Daily Challenges + Quick actions */}
-            <aside className="space-y-6 min-w-0">
-
-              {user?.role === 'teacher' && <TeacherClassesCard teacherId={user.id} />}
-
-              {user?.classId && user.role !== 'teacher' && (
-                <section>
-                  <SectionLabel>Assignments to do</SectionLabel>
-                  <AssignmentsCard studentId={user.id} classroomId={user.classId} completedLessons={completedLessons} completedPracticeItems={completedPracticeItems} />
-                </section>
-              )}
-
-              {dailyChallenges.length > 0 && (
-                <section>
-                  <DailyChallengesWidget
-                    challenges={dailyChallenges}
-                    onClaimReward={onClaimChallengeReward || (() => {})}
-                  />
-                </section>
-              )}
-
-              {/* Mini links — secondary surfaces tucked into the right rail. */}
-              <section>
-                <SectionLabel>Jump to</SectionLabel>
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-                  {([
-                    { view: 'practice' as const, label: 'Practice', meta: 'Quizzes, problems, projects' },
-                    { view: 'playground' as const, label: 'Playground', meta: `${playgroundFiles.length} ${playgroundFiles.length === 1 ? 'file' : 'files'}` },
-                    { view: 'reference' as const, label: 'Reference', meta: 'Python syntax + tips' },
-                    { view: 'marketplace' as const, label: 'Star Market', meta: starBalance !== undefined ? `${formatCompactNumber(starBalance)} stars` : 'Spend your stars' },
-                    { view: 'leaderboard' as const, label: 'Leaderboard', meta: 'See how you rank' },
-                  ]).map(item => (
-                    <button
-                      key={item.view}
-                      onClick={() => onNavigate(item.view)}
-                      className="w-full flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40 text-left transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{item.meta}</div>
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-            </aside>
-          </div>
-        ) : activeTab === 'analytics' ? (
-          <AnalyticsDashboard />
-        ) : (
-          <ReviewTab onSelectLesson={onSelectLesson} />
-        )}
-      </div>
-    </div>
-  );
+const greeting = () => {
+    const h = new Date().getHours();
+    return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 };
 
-/** Teachers' shortcut to their classes from Home. */
-const TeacherClassesCard: React.FC<{ teacherId: string }> = ({ teacherId }) => {
-  const [classes, setClasses] = useState<Classroom[] | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    import('../services/classroomService')
-      .then(({ listTeacherClassrooms }) => listTeacherClassrooms(teacherId))
-      .then(list => { if (!cancelled) setClasses(list.filter(c => !c.archived)); })
-      .catch(() => { if (!cancelled) setClasses([]); });
-    return () => { cancelled = true; };
-  }, [teacherId]);
+/** The first lesson not yet done, in course order. */
+const nextLessonOf = (modules: Module[], done: Set<string>) => {
+    for (const module of modules) {
+        const index = module.lessons.findIndex(l => !done.has(l.id));
+        if (index !== -1) return { module, lesson: module.lessons[index], index, started: done.size > 0 };
+    }
+    return null;
+};
 
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-bold text-gray-900 dark:text-white">Your classes</h2>
-        <Link to="/teacher" className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline">Manage</Link>
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-        {classes === null && <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">Loading…</div>}
-        {classes?.length === 0 && (
-          <Link to="/teacher" className="no-hover block px-4 py-3 text-sm text-cyan-600 dark:text-cyan-400 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/40">
-            Create your first class
-          </Link>
-        )}
-        {classes?.map(c => (
-          <Link key={c.classId} to={`/teacher/${c.classId}/overview`} className="no-hover flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/40">
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{c.className}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{c.studentIds?.length ?? 0} students</div>
+export const HomePage: React.FC<HomePageProps> = (props) => {
+    const { user } = useAuth();
+    const [view, setView] = useState<HomeView>('home');
+    const [dueReviews, setDueReviews] = useState(0);
+
+    useEffect(() => {
+        // Cached for 5 minutes: the count rarely changes between visits.
+        if (!user) return;
+        const key = `dueReviewsCount:${user.id}`;
+        try {
+            const cached = JSON.parse(sessionStorage.getItem(key) || 'null') as { count: number; at: number } | null;
+            if (cached && Date.now() - cached.at < 5 * 60 * 1000) { setDueReviews(cached.count); return; }
+        } catch { /* storage unavailable: fetch instead */ }
+        let cancelled = false;
+        getDueReviews(user.id)
+            .then(r => {
+                if (cancelled) return;
+                setDueReviews(r.length);
+                try { sessionStorage.setItem(key, JSON.stringify({ count: r.length, at: Date.now() })); } catch { /* ignore */ }
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [user]);
+
+    const firstName = user?.name?.split(' ')[0] ?? 'there';
+    const isTeacher = user?.role === 'teacher';
+
+    return (
+        <Page width="wide">
+            <Helmet><title>Home</title></Helmet>
+            <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{greeting()}, {firstName}</h1>
+                    <p className="mt-1.5 text-lg text-gray-600 dark:text-gray-400">
+                        {view === 'stats' ? 'How your learning is going.' : view === 'review' ? 'Quick reviews keep what you learned fresh.' : isTeacher ? "Here's what's happening in your classes." : "Here's what to work on next."}
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {view !== 'home' && <ViewButton onClick={() => setView('home')} icon={<ArrowRight className="w-4 h-4 rotate-180" />}>Back to home</ViewButton>}
+                    {view !== 'stats' && <ViewButton onClick={() => setView('stats')} icon={<BarChart3 className="w-4 h-4" />}>My stats</ViewButton>}
+                    {view !== 'review' && (
+                        <ViewButton onClick={() => setView('review')} icon={<Repeat className="w-4 h-4" />}>
+                            Review{dueReviews > 0 && <span className="ml-1 min-w-[1.5rem] h-6 px-1.5 rounded-full bg-cyan-700 text-white text-xs font-bold inline-flex items-center justify-center">{dueReviews}</span>}
+                        </ViewButton>
+                    )}
+                </div>
+            </header>
+
+            {view === 'stats' && <AnalyticsDashboard />}
+            {view === 'review' && <ReviewTab onSelectLesson={props.onSelectLesson} />}
+            {view === 'home' && (isTeacher ? <TeacherHome {...props} /> : <StudentHome {...props} />)}
+        </Page>
+    );
+};
+
+const ViewButton: React.FC<{ onClick: () => void; icon: React.ReactNode; children: React.ReactNode }> = ({ onClick, icon, children }) => (
+    <button
+        onClick={onClick}
+        className="no-hover inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium hover:border-gray-300 dark:hover:border-gray-600"
+    >
+        {icon}{children}
+    </button>
+);
+
+// ─── Student ─────────────────────────────────────────────────────────────────
+
+const StudentHome: React.FC<HomePageProps> = ({
+    modules, onSelectLesson, completedLessons, completedPracticeItems, practiceItems, mostRecentPlaygroundFile, onPlaygroundResume,
+    currentStreak = 0, dailyChallenges = [], onClaimChallengeReward, assignments, submissions,
+}) => {
+    const { user } = useAuth();
+    const next = useMemo(() => nextLessonOf(modules, completedLessons), [modules, completedLessons]);
+
+    const courses = useMemo(() => {
+        const ids = modules.map(m => m.id);
+        const byId = new Map(modules.map(m => [m.id, m] as const));
+        return COURSES.filter(c => !c.comingSoon).map(c => ({
+            course: c,
+            progress: getCourseProgress(c.id, ids, byId, completedLessons),
+            unlocked: isCourseUnlocked(c, ids, byId, completedLessons, user?.unlockedCourseIds ?? null),
+        }));
+    }, [modules, completedLessons, user?.unlockedCourseIds]);
+
+    const todo = useMemo(() => assignments
+        .filter(a => {
+            const sub = submissions.get(a.id);
+            const finished = a.kind === 'practice'
+                ? !!a.practiceItem && (completedPracticeItems.has(a.practiceItem.id) || completedPracticeItems.has(`assignment:${a.id}:${a.practiceItem.id}`))
+                : !!a.lessonId && completedLessons.has(a.lessonId);
+            return !finished && !(sub && sub.submittedAt > 0);
+        })
+        .sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity)), [assignments, submissions, completedLessons, completedPracticeItems]);
+
+    const feedback = useMemo(() => [...submissions.values()]
+        .filter(s => s.status === 'graded' && typeof s.score === 'number')
+        .sort((a, b) => (b.gradedAt ?? 0) - (a.gradedAt ?? 0))
+        .slice(0, 2), [submissions]);
+
+    const practiceStats = (['quiz', 'problem', 'project'] as const).map(type => {
+        const items = practiceItems.filter(p => p.type === type);
+        return { type, total: items.length, done: items.filter(p => completedPracticeItems.has(p.id)).length };
+    });
+
+    const moduleDone = next ? next.module.lessons.filter(l => completedLessons.has(l.id)).length : 0;
+    const hasAside = !!user?.classId || feedback.length > 0 || currentStreak > 0 || dailyChallenges.length > 0;
+
+    return (
+        <div className={hasAside ? 'grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start' : 'max-w-5xl'}>
+            <div className="min-w-0 space-y-10">
+                {next ? (
+                    <section aria-labelledby="continue-title" className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 flex flex-wrap items-center gap-6">
+                        <div className="flex-1 min-w-[16rem]">
+                            <div className="text-sm font-semibold text-cyan-700 dark:text-cyan-400">{next.started ? 'Continue where you left off' : 'Start your first lesson'}</div>
+                            <h2 id="continue-title" className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{next.lesson.title}</h2>
+                            <p className="mt-1 text-gray-600 dark:text-gray-400">{next.module.title} · Lesson {next.index + 1} of {next.module.lessons.length}</p>
+                            <div className="mt-4 flex items-center gap-3 max-w-md">
+                                <ProgressBar value={moduleDone} max={next.module.lessons.length} className="flex-1 !h-2.5" label="Module progress" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 tabular-nums">{moduleDone} of {next.module.lessons.length}</span>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => onSelectLesson(next.module.id, next.lesson.id)}
+                            className="no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-lg font-semibold"
+                        >
+                            {next.started ? 'Resume lesson' : 'Start'} <ArrowRight className="w-5 h-5" />
+                        </button>
+                    </section>
+                ) : (
+                    <Card><p className="text-lg text-gray-700 dark:text-gray-300">You've finished every lesson. Try a project in Practice.</p></Card>
+                )}
+
+                <Section title="Your courses" action={<Link to="/lessons" className="font-semibold">See all</Link>}>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        {courses.map(({ course, progress, unlocked }) => (
+                            unlocked ? (
+                                <Link key={course.id} to={`/courses/${course.id}`} className="no-hover group rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 dark:hover:border-cyan-500 p-6 flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xl font-bold text-gray-900 dark:text-white">{course.title}</span>
+                                        <Pill tone={progress.completed === progress.total && progress.total > 0 ? 'success' : progress.completed > 0 ? 'info' : 'neutral'}>
+                                            {progress.completed === progress.total && progress.total > 0 ? 'Complete' : progress.completed > 0 ? 'In progress' : 'Not started'}
+                                        </Pill>
+                                    </div>
+                                    <span className="text-gray-600 dark:text-gray-400">{course.description}</span>
+                                    <div className="flex items-center gap-3">
+                                        <ProgressBar value={progress.completed} max={progress.total} className="flex-1 !h-2" label={`${course.title} progress`} />
+                                        <span className="text-sm text-gray-600 dark:text-gray-400 tabular-nums">{progress.completed} / {progress.total}</span>
+                                    </div>
+                                </Link>
+                            ) : (
+                                <div key={course.id} className="rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="text-xl font-bold text-gray-700 dark:text-gray-300">{course.title}</span>
+                                        <Pill>Locked</Pill>
+                                    </div>
+                                    <span className="text-gray-600 dark:text-gray-400">{course.description}</span>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400">Unlocks when you finish the course before it.</span>
+                                </div>
+                            )
+                        ))}
+                    </div>
+                </Section>
+
+                <Section title="Keep practicing" action={<Link to="/practice" className="font-semibold">Open Practice</Link>}>
+                    <div className="grid sm:grid-cols-3 gap-4">
+                        {practiceStats.map(p => (
+                            <Link key={p.type} to="/practice" className="no-hover rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 p-5 flex items-center gap-4">
+                                <span className="w-11 h-11 rounded-xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 flex items-center justify-center flex-shrink-0">
+                                    {p.type === 'quiz' ? <BrainCircuit className="w-5 h-5" /> : p.type === 'problem' ? <Terminal className="w-5 h-5" /> : <Rocket className="w-5 h-5" />}
+                                </span>
+                                <span>
+                                    <span className="block font-semibold text-gray-900 dark:text-white">{p.type === 'quiz' ? 'Quizzes' : p.type === 'problem' ? 'Coding problems' : 'Mini projects'}</span>
+                                    <span className="block text-sm text-gray-600 dark:text-gray-400">{p.done} of {p.total} done</span>
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </Section>
+
+                {mostRecentPlaygroundFile && (
+                    <Section title="Playground">
+                        <button onClick={() => onPlaygroundResume(mostRecentPlaygroundFile.id)} className="no-hover w-full text-left rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 p-5 flex items-center gap-4">
+                            <span className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center"><Code2 className="w-5 h-5" /></span>
+                            <span className="flex-1 min-w-0">
+                                <span className="block font-semibold text-gray-900 dark:text-white truncate">{mostRecentPlaygroundFile.name}</span>
+                                <span className="block text-sm text-gray-600 dark:text-gray-400">Edited {new Date(mostRecentPlaygroundFile.lastModified).toLocaleDateString()}</span>
+                            </span>
+                            <ArrowRight className="w-5 h-5 text-gray-400" />
+                        </button>
+                    </Section>
+                )}
             </div>
-            <ArrowRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
+
+            {hasAside && <aside className="space-y-6">
+                {user?.classId && (
+                    <Card padded={false} className="overflow-hidden">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">To do</h2>
+                            <Link to="/classroom" className="text-sm font-semibold">My class</Link>
+                        </div>
+                        {todo.length === 0 ? (
+                            <p className="px-5 py-5 text-gray-600 dark:text-gray-400">You're all caught up.</p>
+                        ) : (
+                            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {todo.slice(0, 5).map(a => {
+                                    const due = dueLabel(a.dueAt);
+                                    return (
+                                        <li key={a.id}>
+                                            <Link to={assignmentOpenPath(a)} className="no-hover flex gap-3 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                                <span className={`w-2.5 h-2.5 mt-2 rounded-full flex-shrink-0 ${due.tone === 'danger' ? 'bg-red-600' : due.tone === 'warning' ? 'bg-amber-500' : 'bg-gray-400'}`} aria-hidden="true" />
+                                                <span className="min-w-0">
+                                                    <span className="block font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</span>
+                                                    <span className={`block text-sm font-medium ${due.tone === 'danger' ? 'text-red-700 dark:text-red-400' : due.tone === 'warning' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                        {due.text} · {assignmentPoints(a)} pts
+                                                    </span>
+                                                </span>
+                                            </Link>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </Card>
+                )}
+
+                {feedback.length > 0 && (
+                    <Card>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Recent feedback</h2>
+                        <ul className="space-y-4">
+                            {feedback.map(s => {
+                                const a = assignments.find(x => x.id === s.assignmentId);
+                                return (
+                                    <li key={s.id}>
+                                        <div className="font-semibold text-gray-900 dark:text-white">{a ? assignmentTitle(a) : 'Assignment'} · {s.score}{a ? ` / ${assignmentPoints(a)}` : ''}</div>
+                                        {s.feedback && <p className="mt-1 text-gray-600 dark:text-gray-400">"{s.feedback}"</p>}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </Card>
+                )}
+
+                {currentStreak > 0 && (
+                    <Card className="flex items-center gap-4">
+                        <Flame className="w-8 h-8 text-orange-500" aria-hidden="true" />
+                        <div>
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{currentStreak}-day streak</div>
+                            <div className="text-gray-600 dark:text-gray-400">Code a little today to keep it going.</div>
+                        </div>
+                    </Card>
+                )}
+
+                {dailyChallenges.length > 0 && (
+                    <DailyChallengesWidget challenges={dailyChallenges} onClaimReward={onClaimChallengeReward || (() => {})} />
+                )}
+            </aside>}
+        </div>
+    );
+};
+
+// ─── Teacher ─────────────────────────────────────────────────────────────────
+
+const TeacherHome: React.FC<HomePageProps> = ({ teacherClasses }) => {
+    if (teacherClasses.length === 0) {
+        return (
+            <EmptyState
+                icon={<CheckSquare className="w-5 h-5" />}
+                title="Create your first class"
+                description="Classes give students a join code, and give you assignments, grading and a gradebook."
+                action={<Link to="/teacher" className="no-hover inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white font-semibold">Go to Classes</Link>}
+            />
+        );
+    }
+
+    const now = Date.now();
+    const week = now + 7 * 24 * 60 * 60 * 1000;
+    const upcoming = teacherClasses
+        .flatMap(c => c.assignments.filter(a => a.dueAt !== null && a.dueAt >= now && a.dueAt <= week).map(a => ({ a, c })))
+        .sort((x, y) => (x.a.dueAt ?? 0) - (y.a.dueAt ?? 0));
+
+    return (
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
+            <Section title="Your classes">
+                <div className="grid sm:grid-cols-2 gap-4">
+                    {teacherClasses.map(({ classroom, assignments, submissions }) => {
+                        const live = new Set(assignments.map(a => a.id));
+                        const toGrade = submissions.filter(s => s.status === 'submitted' && s.submittedAt > 0 && live.has(s.assignmentId)).length;
+                        const students = Array.isArray(classroom.studentIds) ? classroom.studentIds.length : 0;
+                        return (
+                            <Link key={classroom.classId} to={`/teacher/${classroom.classId}/overview`} className="no-hover rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 p-6 flex flex-col gap-4">
+                                <div>
+                                    <div className="text-xl font-bold text-gray-900 dark:text-white">{classroom.className}</div>
+                                    <div className="text-gray-600 dark:text-gray-400">{students} {students === 1 ? 'student' : 'students'} · code <span className="font-mono font-semibold tracking-wider">{classroom.joinCode}</span></div>
+                                </div>
+                                <div className="flex gap-6">
+                                    <div><div className="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{assignments.length}</div><div className="text-sm text-gray-600 dark:text-gray-400">Assignments</div></div>
+                                    <div><div className={`text-2xl font-bold tabular-nums ${toGrade ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-900 dark:text-white'}`}>{toGrade}</div><div className="text-sm text-gray-600 dark:text-gray-400">To grade</div></div>
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </Section>
+            <aside>
+                <Card padded={false} className="overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Due this week</h2>
+                        <Link to="/calendar" className="text-sm font-semibold">Calendar</Link>
+                    </div>
+                    {upcoming.length === 0 ? (
+                        <p className="px-5 py-5 text-gray-600 dark:text-gray-400">Nothing due in the next 7 days.</p>
+                    ) : (
+                        <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {upcoming.slice(0, 6).map(({ a, c }) => (
+                                <li key={a.id}>
+                                    <Link to={`/teacher/${c.classroom.classId}/assignments/${a.id}`} className="no-hover block px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                        <span className="block font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</span>
+                                        <span className="block text-sm text-gray-600 dark:text-gray-400">{c.classroom.className} · {new Date(a.dueAt!).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+            </aside>
+        </div>
+    );
 };

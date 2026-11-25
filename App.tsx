@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, Menu } from 'lucide-react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useMatch, useSearchParams } from 'react-router-dom';
 import { NavigationPanel } from './components/NavigationPanel';
 import { CoursesCatalog } from './components/CoursesCatalog';
 import { CoursePage } from './components/CoursePage';
-import { findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
+import { COURSES, findCourseIdForModule, resolveCourseModuleIds } from './data/coursesData';
 import { BottomPanel } from './components/BottomPanel';
 import { LessonBrief } from './components/LessonBrief';
+import { LessonTopBar } from './components/LessonTopBar';
 import { LessonCompleteCard, type LessonCompleteInfo } from './components/LessonCompleteCard';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AssignmentBar } from './components/AssignmentBar';
 import { useClassAssignments } from './hooks/useClassAssignments';
+import { useTeacherClasses } from './hooks/useTeacherClasses';
+import { AppSidebar } from './components/AppSidebar';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
 import { LearnPanel } from './components/LearnPanel';
@@ -123,6 +126,12 @@ const App: React.FC = () => {
 
     const { user, isLoading: isAuthLoading, refreshUser } = useAuth();
     const classAssignments = useClassAssignments(user);
+    const teacherData = useTeacherClasses(user);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [editorNavOpen, setEditorNavOpen] = useState(false);
+    const [navCollapsed, setNavCollapsed] = useState(() => {
+        try { return localStorage.getItem('code2coder_nav_collapsed') === 'true'; } catch { return false; }
+    });
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
@@ -132,7 +141,7 @@ const App: React.FC = () => {
         setTheme(newTheme);
         if (user) {
             import('./services/userSettingsService').then(({ updateUserSettings }) => {
-                updateUserSettings(user.id, { theme: newTheme });
+                updateUserSettings(user.id, { theme: newTheme, themeChosen: true });
             });
         }
     }, [user, setTheme]);
@@ -1653,6 +1662,38 @@ const App: React.FC = () => {
         window.addEventListener('mouseup', handleMouseUp);
     }, [panelSizes, isMobile]);
 
+    // --- APP SHELL ---
+    // Signed-in pages sit beside the sidebar; the landing page and signup
+    // keep their own full-width layout.
+    const useShell = !!user && currentView !== 'signup' && currentView !== 'mission';
+    const inEditor = (currentView === 'classroom' && !!currentLessonId)
+        || (currentView === 'practice' && !!activePracticeItem)
+        || (currentView === 'playground' && !!activePlaygroundFileId);
+    const sidebarCollapsed = inEditor ? !editorNavOpen : navCollapsed;
+    const toggleSidebar = () => {
+        if (inEditor) { setEditorNavOpen(v => !v); return; }
+        setNavCollapsed(v => {
+            try { localStorage.setItem('code2coder_nav_collapsed', String(!v)); } catch { /* preference only */ }
+            return !v;
+        });
+    };
+    const studentTodo = classAssignments.assignments.filter(a => {
+        const sub = classAssignments.submissions.get(a.id);
+        const finished = a.kind === 'practice'
+            ? !!a.practiceItem && (completedPracticeItems.has(a.practiceItem.id) || completedPracticeItems.has(`assignment:${a.id}:${a.practiceItem.id}`))
+            : !!a.lessonId && completedLessons.has(a.lessonId);
+        return !finished && !(sub && sub.submittedAt > 0);
+    }).length;
+    const sidebarProps = {
+        theme,
+        setTheme: handleThemeChange,
+        starTargetRef,
+        starBalance,
+        todoCount: studentTodo,
+        teacherClasses: teacherData.classes.map(c => c.classroom),
+        toGradeCount: teacherData.toGrade,
+    };
+
     // --- LOADING STATE ---
     // No timeout-triggered "connection trouble" fallback. If hydration is
     // slow we just keep showing the regular loading screen rather than
@@ -1828,8 +1869,28 @@ const App: React.FC = () => {
                     {showSidebar && !isMobile && <Resizer direction="horizontal" onMouseDown={(e) => handleMouseDown('nav', e)} />}
 
                     <div ref={centerColumnRef} className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out relative">
+                        {isLessonIDE && currentLesson && !isLearnMode && (() => {
+                            const module = modules.find(m => m.id === currentModuleId);
+                            if (!module) return null;
+                            const course = COURSES.find(c => c.id === selectedCourseId);
+                            return (
+                                <LessonTopBar
+                                    courseTitle={course?.title ?? 'Courses'}
+                                    courseHref={selectedCourseId ? `/courses/${selectedCourseId}` : '/lessons'}
+                                    module={module}
+                                    lessonId={currentLesson.id}
+                                    completedLessons={completedLessons}
+                                    hasPrevious={navigationState.hasPrevious}
+                                    hasNext={navigationState.hasNext}
+                                    onPrevious={handlePreviousLessonNav}
+                                    onNext={handleNextLessonNav}
+                                    onToggleOutline={() => setIsNavOpen(v => !v)}
+                                    outlineOpen={isNavOpen}
+                                />
+                            );
+                        })()}
                         {/* Curriculum Trigger (When Nav is hidden) - works on both mobile and desktop */}
-                        {isLessonIDE && !isNavOpen && !showBriefColumn && (
+                        {isLessonIDE && !isNavOpen && !showBriefColumn && isLearnMode && (
                             <button
                                 onClick={() => setIsNavOpen(true)}
                                 className="absolute top-2 left-0 z-20 bg-cyan-600 text-white p-2 rounded-r-md shadow-lg opacity-90 hover:opacity-100 transition-opacity"
@@ -1859,6 +1920,8 @@ const App: React.FC = () => {
                                 teacherId={user?.role === 'teacher' ? user.id : undefined}
                                 unlockedCourseIds={user?.unlockedCourseIds ?? null}
                                 isTeacher={user?.role === 'teacher'}
+                                assignments={classAssignments.assignments}
+                                submissions={classAssignments.submissions}
                             />
                         ) : isLearnMode && activeLesson ? (
                             <ErrorBoundary resetKey={activeLesson.id}>
@@ -1933,19 +1996,6 @@ const App: React.FC = () => {
                                     aria-label="Task"
                                     className="w-[40%] min-w-[320px] max-w-[600px] flex-shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800"
                                 >
-                                    {isLessonIDE && !isNavOpen && (
-                                        <div className="sticky top-0 z-10 flex items-center h-11 px-4 border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur">
-                                            <button
-                                                onClick={() => setIsNavOpen(true)}
-                                                className="no-hover inline-flex items-center gap-2 -ml-2 px-2 py-1 rounded-md text-sm font-semibold text-gray-600 hover:text-cyan-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-cyan-400 dark:hover:bg-gray-700"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4" aria-hidden="true">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                                                </svg>
-                                                All lessons
-                                            </button>
-                                        </div>
-                                    )}
                                     <ErrorBoundary resetKey={briefLesson.id}>
                                         <LessonBrief
                                             lesson={briefLesson}
@@ -2155,7 +2205,7 @@ const App: React.FC = () => {
                     />
                 )}
 
-                {currentView !== 'signup' && (
+                {!useShell && currentView !== 'signup' && (
                     <Header
                         currentView={currentView}
                         onNavigate={handleNavigate}
@@ -2199,6 +2249,29 @@ const App: React.FC = () => {
                     />
                 )}
 
+                <div className="flex-1 flex min-h-0">
+                {useShell && (
+                    <div className="hidden md:flex">
+                        <AppSidebar {...sidebarProps} collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebar} />
+                    </div>
+                )}
+                {useShell && mobileNavOpen && (
+                    <div className="md:hidden fixed inset-0 z-[60] flex" role="dialog" aria-modal="true" aria-label="Navigation">
+                        <div className="absolute inset-0 bg-black/40" onClick={() => setMobileNavOpen(false)} />
+                        <div className="relative h-full shadow-2xl">
+                            <AppSidebar {...sidebarProps} collapsed={false} onToggleCollapsed={() => setMobileNavOpen(false)} onNavigated={() => setMobileNavOpen(false)} />
+                        </div>
+                    </div>
+                )}
+                <div className="flex-1 flex flex-col min-w-0">
+                {useShell && (
+                    <div className="md:hidden h-14 flex-shrink-0 flex items-center gap-3 px-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+                        <button onClick={() => setMobileNavOpen(true)} className="no-hover p-2.5 -ml-1 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Open navigation">
+                            <Menu className="w-6 h-6" />
+                        </button>
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">Code2Coder</span>
+                    </div>
+                )}
                 <div className="flex-1 flex overflow-hidden relative">
                     {(() => {
                         // School-focused product: all learning content is for
@@ -2229,11 +2302,13 @@ const App: React.FC = () => {
                                     onSelectLesson={handleSelectLesson}
                                     completedLessons={completedLessons}
                                     completedPracticeItems={completedPracticeItems}
+                                    practiceItems={practiceItems}
                                     playgroundFiles={playgroundFiles}
                                     mostRecentPlaygroundFile={mostRecentPlaygroundFile}
                                     onPlaygroundResume={handlePlaygroundResume}
-                                    netWorth={netWorth}
-                                    starBalance={starBalance}
+                                    assignments={classAssignments.assignments}
+                                    submissions={classAssignments.submissions}
+                                    teacherClasses={teacherData.classes}
                                     currentStreak={currentStreak}
                                     dailyChallenges={dailyChallenges}
                                     onClaimChallengeReward={handleClaimChallengeReward}
@@ -2346,6 +2421,8 @@ const App: React.FC = () => {
                     </Routes>
                         );
                     })()}
+                </div>
+                </div>
                 </div>
             </div>
         </>

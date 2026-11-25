@@ -4,10 +4,12 @@ import { db } from './firebase';
 export interface UserSettings {
     theme: 'light' | 'dark';
     aiAssistanceLevel: number; // 0-10
+    /** Set once the person picks a theme themselves. */
+    themeChosen?: boolean;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-    theme: 'dark',
+    theme: 'light',
     aiAssistanceLevel: 7
 };
 
@@ -22,7 +24,9 @@ export const getUserSettings = async (userId: string): Promise<UserSettings> => 
         if (settingsSnap.exists()) {
             const data = settingsSnap.data();
             return {
-                theme: data.theme || DEFAULT_SETTINGS.theme,
+                // Older accounts stored the old dark default without anyone
+                // choosing it; only a theme the person picked overrides light.
+                theme: data.themeChosen ? (data.theme || DEFAULT_SETTINGS.theme) : DEFAULT_SETTINGS.theme,
                 aiAssistanceLevel: typeof data.aiAssistanceLevel === 'number'
                     ? Math.max(0, Math.min(10, data.aiAssistanceLevel))
                     : DEFAULT_SETTINGS.aiAssistanceLevel
@@ -79,7 +83,9 @@ export const subscribeToUserSettings = (
         if (snapshot.exists()) {
             const data = snapshot.data();
             const settings: UserSettings = {
-                theme: data.theme || DEFAULT_SETTINGS.theme,
+                // Older accounts stored the old dark default without anyone
+                // choosing it; only a theme the person picked overrides light.
+                theme: data.themeChosen ? (data.theme || DEFAULT_SETTINGS.theme) : DEFAULT_SETTINGS.theme,
                 aiAssistanceLevel: typeof data.aiAssistanceLevel === 'number'
                     ? Math.max(0, Math.min(10, data.aiAssistanceLevel))
                     : DEFAULT_SETTINGS.aiAssistanceLevel

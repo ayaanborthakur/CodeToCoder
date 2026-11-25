@@ -5,16 +5,16 @@ type Theme = 'light' | 'dark';
 
 export const useTheme = (): [Theme, (theme: Theme) => void] => {
     const [theme, setTheme] = useState<Theme>(
-        // Initialize state from localStorage or default to 'dark'
+        // Initialize state from localStorage, else light (the default for a school product)
         () => {
             try {
                 if (typeof window !== 'undefined' && window.localStorage) {
-                    return (window.localStorage.getItem('theme') as Theme) || 'dark';
+                    return (window.localStorage.getItem('theme') as Theme) || 'light';
                 }
             } catch (error) {
                 console.warn('LocalStorage access denied or unavailable:', error);
             }
-            return 'dark';
+            return 'light';
         }
     );
 
