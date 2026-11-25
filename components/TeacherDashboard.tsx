@@ -51,6 +51,7 @@ import { AssignmentDetail } from './classroom/AssignmentDetail';
 import { Gradebook } from './classroom/Gradebook';
 import { LiveActivity } from './classroom/LiveActivity';
 import { ClassPacing } from './classroom/ClassPacing';
+import { ClassActions } from './classroom/ClassActions';
 import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
 import { assignmentTitle, assignmentSubtitle, dueLabel } from '../utils/assignmentDisplay';
@@ -155,6 +156,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
                 classrooms={classrooms}
                 error={error}
                 onCreated={(c) => setClassrooms(prev => [...(prev ?? []), c])}
+                onChanged={(id, patch) => { setClassrooms(prev => (prev ?? []).map(c => c.classId === id ? { ...c, ...patch } : c)); notifyClassesChanged(); }}
+                onDeleted={(id) => { setClassrooms(prev => (prev ?? []).filter(c => c.classId !== id)); notifyClassesChanged(); }}
             />
         );
     }
@@ -167,11 +170,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ modules }) =
             key={classroom.classId}
             classroom={classroom}
             modules={modules}
-            onClassroomChange={(patch) => setClassrooms(prev => (prev ?? []).map(c => c.classId === classId ? { ...c, ...patch } : c))}
-            onClassroomRemoved={() => setClassrooms(prev => (prev ?? []).filter(c => c.classId !== classId))}
+            onClassroomChange={(patch) => { setClassrooms(prev => (prev ?? []).map(c => c.classId === classId ? { ...c, ...patch } : c)); if ('archived' in patch || 'className' in patch) notifyClassesChanged(); }}
+            onClassroomRemoved={() => { setClassrooms(prev => (prev ?? []).filter(c => c.classId !== classId)); notifyClassesChanged(); }}
         />
     );
 };
+
+/** Tell the sidebar and Home to reload the class list. */
+const notifyClassesChanged = () => window.dispatchEvent(new Event('c2c:classes-changed'));
 
 // ─── Classes list ────────────────────────────────────────────────────────────
 
@@ -179,7 +185,9 @@ const ClassesList: React.FC<{
     classrooms: Classroom[];
     error: string | null;
     onCreated: (c: Classroom) => void;
-}> = ({ classrooms, error, onCreated }) => {
+    onChanged: (classId: string, patch: Partial<Classroom>) => void;
+    onDeleted: (classId: string) => void;
+}> = ({ classrooms, error, onCreated, onChanged, onDeleted }) => {
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
     const [creating, setCreating] = useState(classrooms.length === 0);
@@ -256,7 +264,7 @@ const ClassesList: React.FC<{
             {active.length > 0 && (
                 <Section title="Your classes">
                     <List>
-                        {active.map(c => <ClassRow key={c.classId} classroom={c} />)}
+                        {active.map(c => <ClassRow key={c.classId} classroom={c} teacherId={user?.id ?? ''} onChanged={p => onChanged(c.classId, p)} onDeleted={() => onDeleted(c.classId)} />)}
                     </List>
                 </Section>
             )}
@@ -296,7 +304,7 @@ const ClassesList: React.FC<{
                     </button>
                     {showArchived && (
                         <List className="mt-3">
-                            {archived.map(c => <ClassRow key={c.classId} classroom={c} />)}
+                            {archived.map(c => <ClassRow key={c.classId} classroom={c} teacherId={user?.id ?? ''} onChanged={p => onChanged(c.classId, p)} onDeleted={() => onDeleted(c.classId)} />)}
                         </List>
                     )}
                 </Section>
@@ -305,13 +313,18 @@ const ClassesList: React.FC<{
     );
 };
 
-const ClassRow: React.FC<{ classroom: Classroom }> = ({ classroom }) => {
+const ClassRow: React.FC<{
+    classroom: Classroom;
+    teacherId: string;
+    onChanged: (patch: Partial<Classroom>) => void;
+    onDeleted: () => void;
+}> = ({ classroom, teacherId, onChanged, onDeleted }) => {
     const count = Array.isArray(classroom.studentIds) ? classroom.studentIds.length : 0;
     return (
-        <li>
+        <li className="flex items-center hover:bg-gray-50 dark:hover:bg-gray-700/40">
             <Link
                 to={`/teacher/${classroom.classId}/overview`}
-                className="no-hover flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40"
+                className="no-hover flex-1 min-w-0 flex items-center gap-4 pl-5 pr-2 py-4"
             >
                 <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center flex-shrink-0">
                     {classroom.archived ? <Archive className="w-5 h-5" aria-hidden="true" /> : <Users className="w-5 h-5" aria-hidden="true" />}
@@ -326,6 +339,7 @@ const ClassRow: React.FC<{ classroom: Classroom }> = ({ classroom }) => {
                 <span className="hidden sm:block font-mono text-sm font-semibold tracking-[0.2em] text-gray-500 dark:text-gray-400">{classroom.joinCode}</span>
                 <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" aria-hidden="true" />
             </Link>
+            <div className="pr-3"><ClassActions classroom={classroom} teacherId={teacherId} onChanged={onChanged} onDeleted={onDeleted} /></div>
         </li>
     );
 };
@@ -558,6 +572,7 @@ const ClassView: React.FC<{
                         </button>
                         <Button variant="secondary" icon={<Maximize2 className="w-4 h-4" />} onClick={() => setProjecting(true)} aria-label="Show join code full screen" title="Show join code full screen" />
                         <Button variant="secondary" icon={<RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />} onClick={load} disabled={refreshing} aria-label="Refresh" title="Refresh" />
+                        {user && <ClassActions classroom={classroom} teacherId={user.id} onChanged={onClassroomChange} onDeleted={() => { onClassroomRemoved(); navigate('/teacher', { replace: true }); }} />}
                     </>
                 }
             />
@@ -576,6 +591,11 @@ const ClassView: React.FC<{
             />
 
             {error && <Alert tone="danger" icon={<AlertCircle className="w-4 h-4" />} className="mb-6">{error}</Alert>}
+            {classroom.archived && (
+                <Alert tone="warning" icon={<Archive className="w-4 h-4" />} className="mb-6">
+                    This class is archived. It's hidden from your sidebar and Home, and everything in it is kept. Use the ⋮ menu to restore it.
+                </Alert>
+            )}
 
             {students === null && tab !== 'settings' && tab !== 'stream' ? (
                 <Spinner label="Loading class" />

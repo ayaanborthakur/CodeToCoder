@@ -41,6 +41,13 @@ export const useTeacherClasses = (user: User | null) => {
 
     useEffect(() => { reload(); }, [reload]);
 
+    // Archiving, restoring or deleting a class elsewhere in the app.
+    useEffect(() => {
+        const onChange = () => { reload(); };
+        window.addEventListener('c2c:classes-changed', onChange);
+        return () => window.removeEventListener('c2c:classes-changed', onChange);
+    }, [reload]);
+
     // Handed in and not graded yet (including resubmissions after a grade).
     // Work on deleted assignments doesn't count.
     const toGrade = classes.reduce((n, c) => {
