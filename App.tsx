@@ -143,6 +143,7 @@ const App: React.FC = () => {
 
     const handleThemeChange = useCallback((newTheme: 'light' | 'dark') => {
         setTheme(newTheme);
+        try { localStorage.setItem('theme_chosen', '1'); } catch { /* storage unavailable */ }
         if (user) {
             import('./services/userSettingsService').then(({ updateUserSettings }) => {
                 updateUserSettings(user.id, { theme: newTheme, themeChosen: true });

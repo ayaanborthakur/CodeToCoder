@@ -9,7 +9,7 @@ export interface UserSettings {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-    theme: 'light',
+    theme: 'dark',
     aiAssistanceLevel: 7
 };
 
