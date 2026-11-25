@@ -301,7 +301,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         <Camera className="w-8 h-8 text-white mb-1 drop-shadow-md" />
-                                        <span className="text-white text-[10px] font-bold uppercase tracking-wider drop-shadow-md">Edit</span>
+                                        <span className="text-white text-xs font-bold uppercase tracking-wider drop-shadow-md">Edit</span>
 
                                         {/* Remove Button (Inside Overlay) */}
                                         {user.avatar && !isUploadingPicture && (
@@ -442,7 +442,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                         <p className="font-bold">Module Master</p>
                                                         <p className="text-sm text-gray-500">Complete logic and loops</p>
                                                     </div>
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
+                                                    <span className="text-xs font-bold uppercase tracking-widest bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-2 py-1 rounded-md">In Progress</span>
                                                 </div>
                                                 <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                                     <div className="h-full bg-cyan-500 w-[65%]" />
@@ -470,7 +470,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 {new Date(activity.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                             </p>
                                                         </div>
-                                                        <div className="text-[10px] font-bold px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-gray-500 uppercase tracking-wider">
+                                                        <div className="text-xs font-bold px-2 py-1 bg-gray-200 dark:bg-gray-800 rounded text-gray-500 uppercase tracking-wider">
                                                             {activity.type}
                                                         </div>
                                                     </div>
@@ -561,11 +561,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 
                                                                 <div className="mt-2 w-full text-center">
                                                                     {isEarned ? (
-                                                                        <span className="inline-block text-[10px] font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm" style={{ backgroundColor: badgeColor }}>
+                                                                        <span className="inline-block text-xs font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm" style={{ backgroundColor: badgeColor }}>
                                                                             Earned
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-[10px] font-medium text-gray-400">
+                                                                        <span className="text-xs font-medium text-gray-400">
                                                                             {badge.requirement} {type === 'collection' ? 'Stars' : type === 'streak' ? 'Days' : 'Completed'}
                                                                         </span>
                                                                     )}
@@ -575,7 +575,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none flex items-center justify-center p-2">
                                                                     <div className="bg-gray-900 text-white text-xs p-2 rounded-lg shadow-xl translate-y-8 max-w-full text-center z-10">
                                                                         <p className="font-bold mb-1">{badge.description}</p>
-                                                                        <p className="text-gray-400 text-[10px] uppercase tracking-wider">{badge.tier} Tier</p>
+                                                                        <p className="text-gray-400 text-xs uppercase tracking-wider">{badge.tier} Tier</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -608,7 +608,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                         <div className="space-y-1">
                                                             <p className="font-bold text-sm truncate">{item.name}</p>
                                                             <div className="flex items-center justify-between">
-                                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ color: RARITY_COLORS[item.rarity] || '#999', backgroundColor: RARITY_COLORS[item.rarity] ? `${RARITY_COLORS[item.rarity]}15` : '#eee' }}>
+                                                                    <span className="text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-wider" style={{ color: RARITY_COLORS[item.rarity] || '#999', backgroundColor: RARITY_COLORS[item.rarity] ? `${RARITY_COLORS[item.rarity]}15` : '#eee' }}>
                                                                         {item.rarity}
                                                                     </span>
                                                             </div>

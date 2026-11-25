@@ -296,10 +296,11 @@ const App: React.FC = () => {
 
     const [isMobile, setIsMobile] = useState(false);
     // Curriculum sidebar starts closed on every viewport — user must explicitly open it
-    // via the hamburger trigger. Only collapse the AI chat panel on mobile.
+    // via the hamburger trigger. AI help starts as a rail on phones and laptops,
+    // open on wide screens.
     useEffect(() => {
         setIsNavOpen(false);
-        setPanelsCollapsed(prev => ({ ...prev, chat: isMobile }));
+        setPanelsCollapsed(prev => ({ ...prev, chat: isMobile || window.innerWidth < 1500 }));
     }, [isMobile]);
 
     useEffect(() => {
@@ -335,7 +336,9 @@ const App: React.FC = () => {
     const [panelsCollapsed, setPanelsCollapsed] = useState({
         ide: false,
         bottom: false,
-        chat: false,
+        // On laptop-size screens the editor needs the room; AI help opens
+        // from its rail when wanted.
+        chat: typeof window !== 'undefined' && window.innerWidth < 1500,
     });
 
     const [activeBottomTab, setActiveBottomTab] = useState<'lesson' | 'terminal' | 'reference'>('lesson');

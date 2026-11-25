@@ -97,7 +97,7 @@ export const DailyChallengesWidget: React.FC<DailyChallengesWidgetProps> = ({
                                                         style={{ width: `${(challenge.progress / challenge.requirement.count) * 100}%` }}
                                                     />
                                                 </div>
-                                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                                     {challenge.progress}/{challenge.requirement.count}
                                                 </span>
                                             </div>
@@ -110,17 +110,17 @@ export const DailyChallengesWidget: React.FC<DailyChallengesWidgetProps> = ({
                                     {challenge.completed && !challenge.claimed ? (
                                         <button
                                             onClick={() => onClaimReward(challenge.id)}
-                                            className="flex items-center gap-1 px-2 py-1 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 rounded text-[10px] font-bold transition-colors"
+                                            className="flex items-center gap-1 px-2 py-1 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 rounded text-xs font-bold transition-colors"
                                         >
                                             <Gift className="w-3 h-3" />
                                             +{challenge.reward}⭐
                                         </button>
                                     ) : challenge.claimed ? (
-                                        <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
                                             ✓ Claimed
                                         </span>
                                     ) : (
-                                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                        <span className="text-xs text-gray-400 dark:text-gray-500">
                                             +{challenge.reward}⭐
                                         </span>
                                     )}

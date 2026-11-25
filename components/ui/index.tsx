@@ -106,9 +106,10 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
     danger: 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20',
 };
 
+// md is ~44px tall at the 18px root (WCAG 2.5.5's comfortable target size).
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-    sm: 'px-2.5 py-1.5 text-xs gap-1.5',
-    md: 'px-3.5 py-2 text-sm gap-2',
+    sm: 'px-3 py-1.5 text-sm gap-1.5',
+    md: 'px-4 py-2.5 text-sm gap-2',
 };
 
 const buttonClass = (variant: ButtonVariant, size: ButtonSize, className?: string) =>

@@ -146,7 +146,7 @@ export const AIChatPage: React.FC = () => {
                 {/* Rate-limit status — same cap as the lesson assistant */}
                 {user && (
                     <div className="text-right">
-                        <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Questions left</div>
+                        <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-[0.08em]">Questions left</div>
                         <div className={`text-lg font-semibold tabular-nums ${
                             isLocked ? 'text-red-500' : questionsLeft <= 2 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-900 dark:text-white'
                         }`}>

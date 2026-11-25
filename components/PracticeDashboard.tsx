@@ -215,7 +215,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                                             </h3>
                                             <DifficultyBadge difficulty={item.difficulty} />
                                             {isCustom && (
-                                                <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
+                                                <span className="text-xs font-bold uppercase tracking-[0.08em] text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-md">AI Generated</span>
                                             )}
                                         </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-1">

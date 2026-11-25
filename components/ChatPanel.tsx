@@ -168,13 +168,29 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
         <Markdown>{content}</Markdown>
     );
 
+    // Collapsed: a full-height rail that says what it is, instead of a lone
+    // chevron students didn't notice.
+    if (isCollapsed) {
+        return (
+            <button
+                onClick={onToggleCollapse}
+                className="no-hover h-full w-14 flex flex-col items-center gap-3 py-5 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
+                aria-label="Open AI help"
+                title="Open AI help"
+            >
+                <Sparkles className="w-5 h-5" aria-hidden="true" />
+                <span className="text-sm font-semibold" style={{ writingMode: 'vertical-rl' }}>AI help</span>
+            </button>
+        );
+    }
+
     return (
         <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
             {/* Header */}
             <div className={`h-12 px-4 flex items-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 ${isCollapsed ? 'justify-end' : 'justify-between'} flex-shrink-0 z-10`}>
                 {!isCollapsed && (
                     <div className="flex items-center justify-between w-full pr-2">
-                        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">AI Guidance</h3>
+                        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">AI help</h3>
                         {user && (
                             <div className={`px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide border flex items-center gap-1.5 transition-all ${
                                 isLocked 
@@ -249,7 +265,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, onSendMessage, i
                                 </div>
                                 <div className="space-y-0.5">
                                     <h4 className="text-xs font-bold text-red-700 dark:text-red-400">AI Limit Reached</h4>
-                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-[260px]">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[260px]">
                                         You have asked 5 questions this hour. Your next question will unlock in <span className="font-bold text-gray-700 dark:text-gray-200">{formatCountdown(secondsUntilNext)}</span>.
                                     </p>
                                 </div>

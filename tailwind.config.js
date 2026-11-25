@@ -47,6 +47,12 @@ export default {
                 'text-secondary': 'var(--text-secondary)',
                 'border-default': 'var(--border-default)',
             },
+            // Small sizes are nudged up so labels and body copy stay readable;
+            // with the 18px root, xs ≈ 14.6px and sm ≈ 16.9px.
+            fontSize: {
+                xs: ['0.8125rem', { lineHeight: '1.25rem' }],
+                sm: ['0.9375rem', { lineHeight: '1.5rem' }],
+            },
             fontFamily: {
                 sans: ['"Outfit"', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
                 mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],

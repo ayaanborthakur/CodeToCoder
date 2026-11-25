@@ -79,7 +79,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
 const StatusDot: React.FC<{ active: boolean; label: string }> = ({ active, label }) => (
   <div className="flex flex-col items-center gap-2 w-16">
     <div className={`w-2 h-2 rounded-full transition-all duration-500 ${active ? 'bg-cyan-500 animate-ping' : 'bg-green-500'}`}></div>
-    <span className={`text-[10px] font-medium uppercase tracking-wider transition-colors duration-300 ${active ? 'text-cyan-600 dark:text-cyan-400' : 'text-green-600 dark:text-green-400'}`}>
+    <span className={`text-xs font-medium uppercase tracking-wider transition-colors duration-300 ${active ? 'text-cyan-600 dark:text-cyan-400' : 'text-green-600 dark:text-green-400'}`}>
       {label}
     </span>
   </div>

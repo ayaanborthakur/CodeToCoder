@@ -140,9 +140,9 @@ export const IdePanel: React.FC<IdePanelProps> = ({
 
         // Configure editor options
         editor.updateOptions({
-            fontSize: 14,
+            fontSize: 16,
             fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
-            lineHeight: 24,
+            lineHeight: 26,
             tabSize: 4,
             insertSpaces: true,
             minimap: { enabled: false },
@@ -397,9 +397,9 @@ export const IdePanel: React.FC<IdePanelProps> = ({
                             onMount={handleEditorDidMount}
                             theme={isDarkMode ? 'vs-dark' : 'vs-light'}
                             options={{
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontFamily: '"JetBrains Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace',
-                                lineHeight: 24,
+                                lineHeight: 26,
                                 tabSize: 4,
                                 insertSpaces: true,
                                 minimap: { enabled: false },

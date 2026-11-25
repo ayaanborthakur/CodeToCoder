@@ -491,8 +491,8 @@ export const FlowchartBuilder: React.FC<FlowchartBuilderProps> = ({ onGenerateCo
                                     <div>• <strong>Connect:</strong> Drag from white circle</div>
                                     <div>• <strong>Select:</strong> Single click</div>
                                     <div>• <strong>Edit:</strong> Double click</div>
-                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Del/Bksp</kbd> Remove</div>
-                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Shift</kbd> Multi-select</div>
+                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Del/Bksp</kbd> Remove</div>
+                                    <div>• <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-xs">Shift</kbd> Multi-select</div>
                                 </div>
                             </div>
                         </Panel>

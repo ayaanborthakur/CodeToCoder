@@ -214,7 +214,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </div>
 
                         <nav>
-                            <h4 className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
+                            <h4 className="text-xs font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
                                 Project
                             </h4>
                             <ul className="space-y-3.5 text-base">
@@ -254,7 +254,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                         </nav>
 
                         <nav>
-                            <h4 className="text-[10px] font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
+                            <h4 className="text-xs font-semibold tracking-[0.08em] uppercase text-gray-400 dark:text-gray-500 mb-5">
                                 Legal
                             </h4>
                             <ul className="space-y-3.5 text-base">

@@ -202,7 +202,7 @@ const PostCard: React.FC<{
                     <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{post.teacherName}</span>
                         {post.pinned && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded uppercase tracking-[0.05em]">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded uppercase tracking-[0.05em]">
                                 <Pin className="w-2.5 h-2.5" /> Pinned
                             </span>
                         )}
