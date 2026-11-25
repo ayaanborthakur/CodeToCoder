@@ -12,6 +12,7 @@ export const assignmentTitle = (a: Assignment): string => {
 };
 
 export const assignmentSubtitle = (a: Assignment): string => {
+    if (a.custom) return 'Coding assignment';
     if (a.kind === 'practice' && a.practiceItem) {
         return `${capitalize(a.practiceItem.type)} · ${a.practiceItem.difficulty}`;
     }
@@ -35,7 +36,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export const dueLabel = (dueAt: number | null): { text: string; tone: 'neutral' | 'warning' | 'danger' } => {
     if (dueAt === null) return { text: 'No due date', tone: 'neutral' };
     const d = dueAt - Date.now();
-    if (d < 0) return { text: 'Overdue', tone: 'danger' };
+    if (d < 0) return { text: 'Past due', tone: 'danger' };
     if (d < DAY_MS) return { text: 'Due today', tone: 'warning' };
     if (d < 3 * DAY_MS) return { text: `Due in ${Math.ceil(d / DAY_MS)} days`, tone: 'warning' };
     return { text: `Due ${new Date(dueAt).toLocaleDateString()}`, tone: 'neutral' };

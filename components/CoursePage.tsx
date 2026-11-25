@@ -1,23 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, Check, Flag, Lock, ExternalLink, ClipboardCheck } from 'lucide-react';
-import type { Classroom, Module } from '../types';
+import type { Module } from '../types';
 import {
     COURSES,
     resolveCourseModuleIds,
     getCourseProgress,
     isCourseUnlocked,
 } from '../data/coursesData';
-import { AssignLessonModal } from './AssignLessonModal';
+import { AssignDialog } from './AssignDialog';
 
 interface CoursePageProps {
     courseId: string;
     modules: Module[];
     completedLessons: Set<string>;
     onBackToCatalog: () => void;
-    // Teacher-only assignment affordance. When both are present, each lesson row
-    // gets an "Assign" button.
+    // Teacher-only: each lesson row gets an "Assign" button.
     teacherId?: string;
-    teacherClassroom?: Classroom | null;
     unlockedCourseIds?: string[] | null;
     /** Teachers bypass the locked / module-progression checks. */
     isTeacher?: boolean;
@@ -29,14 +27,13 @@ export const CoursePage: React.FC<CoursePageProps> = ({
     completedLessons,
     onBackToCatalog,
     teacherId,
-    teacherClassroom,
     unlockedCourseIds,
     isTeacher = false,
 }) => {
     const course = COURSES.find(c => c.id === courseId);
     const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string } | null>(null);
     const [recentlyAssigned, setRecentlyAssigned] = useState<Set<string>>(new Set());
-    const canAssign = !!(teacherId && teacherClassroom);
+    const canAssign = !!teacherId;
 
     const { courseModules, progress, unlocked } = useMemo(() => {
         const allIds = modules.map(m => m.id);
@@ -123,22 +120,14 @@ export const CoursePage: React.FC<CoursePageProps> = ({
 
                 {/* Modules + lesson buttons */}
                 {/* Assign modal (teacher only). Kept here so it's in the same render tree as the trigger. */}
-                {assignTarget && canAssign && teacherClassroom && teacherId && (
-                    <AssignLessonModal
-                        classroom={teacherClassroom}
+                {assignTarget && canAssign && teacherId && (
+                    <AssignDialog
                         teacherId={teacherId}
-                        courseId={courseId}
-                        courseTitle={course.title}
-                        moduleId={assignTarget.moduleId}
-                        lessonId={assignTarget.lessonId}
-                        lessonTitle={assignTarget.lessonTitle}
+                        target={{ kind: 'lesson', courseId, courseTitle: course.title, moduleId: assignTarget.moduleId, lessonId: assignTarget.lessonId, lessonTitle: assignTarget.lessonTitle }}
                         onClose={() => setAssignTarget(null)}
                         onAssigned={() => {
-                            setRecentlyAssigned(prev => {
-                                const next = new Set(prev);
-                                next.add(assignTarget.lessonId);
-                                return next;
-                            });
+                            const lessonId = assignTarget.lessonId;
+                            setRecentlyAssigned(prev => new Set(prev).add(lessonId));
                         }}
                     />
                 )}

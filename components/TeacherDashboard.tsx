@@ -10,7 +10,6 @@ import {
     ChevronDown,
     ChevronRight,
     Plus,
-    Trash2,
     ClipboardList,
     Calendar,
     Lock,
@@ -32,18 +31,24 @@ import {
     setStudentUnlockedCourses,
     removeStudentFromClassroom,
 } from '../services/classroomService';
-import { listAssignmentsForClassroom, deleteAssignment } from '../services/assignmentsService';
+import { listAssignmentsForClassroom, deleteAssignment, updateAssignment, assignmentPoints } from '../services/assignmentsService';
+import { listSubmissionsForClassroom, submissionId } from '../services/submissionsService';
 import { listPostsForClassroom, createPost, deletePost, setPostPinned } from '../services/postsService';
 import {
     loadClassroomStudents,
     assignmentTargets,
     isAssignmentDone,
+    assignmentState,
+    STATE_LABEL,
+    STATE_TONE,
     DAY_MS,
     type StudentProgress,
 } from '../services/classroomProgressService';
-import type { Classroom, Module, Assignment, Post, School } from '../types';
+import type { Classroom, Module, Assignment, Post, School, Submission } from '../types';
 import { COURSES, resolveCourseModuleIds } from '../data/coursesData';
-import { AssignLessonModal } from './AssignLessonModal';
+import { AssignDialog, type AssignTarget } from './AssignDialog';
+import { AssignmentDetail } from './classroom/AssignmentDetail';
+import { Gradebook } from './classroom/Gradebook';
 import { StreamView } from './StreamView';
 import { ClassroomSettingsModal } from './ClassroomSettingsModal';
 import { assignmentTitle, assignmentSubtitle, dueLabel } from '../utils/assignmentDisplay';
@@ -86,19 +91,33 @@ const GRANTABLE_COURSES = COURSES.filter(c => c.prerequisiteCourseId !== null);
 
 const INACTIVE_AFTER_MS = 7 * DAY_MS;
 
-type ClassTab = 'overview' | 'assignments' | 'students' | 'stream' | 'settings';
-const CLASS_TABS: ClassTab[] = ['overview', 'assignments', 'students', 'stream', 'settings'];
+type ClassTab = 'overview' | 'assignments' | 'gradebook' | 'students' | 'stream' | 'settings';
+const CLASS_TABS: ClassTab[] = ['overview', 'assignments', 'gradebook', 'students', 'stream', 'settings'];
+
+type Submissions = Map<string, Submission>;
 
 interface AssignmentStatus {
     targeted: StudentProgress[];
+    /** Handed in (submitted, late or graded). */
     done: StudentProgress[];
     pending: StudentProgress[];
+    /** Handed in but not graded yet. */
+    toGrade: number;
 }
 
-const statusFor = (a: Assignment, students: StudentProgress[]): AssignmentStatus => {
+const statusFor = (a: Assignment, students: StudentProgress[], submissions: Submissions): AssignmentStatus => {
     const targeted = students.filter(s => assignmentTargets(a, s.uid));
-    const done = targeted.filter(s => isAssignmentDone(a, s.completedLessons, s.completedPractice));
-    return { targeted, done, pending: targeted.filter(s => !done.includes(s)) };
+    const states = new Map(targeted.map(s => [
+        s.uid,
+        assignmentState(a, submissions.get(submissionId(a.id, s.uid)), isAssignmentDone(a, s.completedLessons, s.completedPractice)),
+    ]));
+    const done = targeted.filter(s => ['submitted', 'late', 'graded'].includes(states.get(s.uid)!));
+    return {
+        targeted,
+        done,
+        pending: targeted.filter(s => !done.includes(s)),
+        toGrade: targeted.filter(s => ['submitted', 'late'].includes(states.get(s.uid)!)).length,
+    };
 };
 
 // ─── Entry: picks the classes list or a single class from the URL ────────────
@@ -408,7 +427,8 @@ const ClassView: React.FC<{
     const [error, setError] = useState<string | null>(null);
     const [codeCopied, setCodeCopied] = useState(false);
     const [projecting, setProjecting] = useState(false);
-    const [assignTarget, setAssignTarget] = useState<{ moduleId: string; lessonId: string; lessonTitle: string; courseId: string; courseTitle: string } | null>(null);
+    const [submissions, setSubmissions] = useState<Submissions>(new Map());
+    const [assignTarget, setAssignTarget] = useState<AssignTarget | null>(null);
 
     const base = `/teacher/${classroom.classId}`;
 
@@ -417,14 +437,17 @@ const ClassView: React.FC<{
         try {
             // Re-read the classroom so studentIds is current.
             const fresh = (await getClassroom(classroom.classId)) ?? classroom;
-            const [assignmentList, postList, studentList] = await Promise.all([
+            const [assignmentList, postList, studentList, submissionList] = await Promise.all([
                 listAssignmentsForClassroom(fresh.classId),
                 listPostsForClassroom(fresh.classId),
                 loadClassroomStudents(fresh),
+                // Older deployments may not allow reading submissions yet.
+                listSubmissionsForClassroom(fresh.classId).catch(() => [] as Submission[]),
             ]);
             setAssignments(assignmentList);
             setPosts(postList);
             setStudents(studentList);
+            setSubmissions(new Map(submissionList.map(x => [x.id, x])));
             if (fresh.studentIds?.length !== classroom.studentIds?.length) onClassroomChange({ studentIds: fresh.studentIds });
             setError(null);
         } catch (e: unknown) {
@@ -448,6 +471,7 @@ const ClassView: React.FC<{
         if (!window.confirm(`Delete "${assignmentTitle(a)}"? Students will no longer see it.`)) return;
         const previous = assignments;
         setAssignments(prev => prev.filter(x => x.id !== a.id));
+        if (sub === a.id) navigate(`${base}/assignments`);
         try {
             await deleteAssignment(classroom.classId, a.id);
         } catch (e: unknown) {
@@ -541,6 +565,7 @@ const ClassView: React.FC<{
                 tabs={[
                     { to: `${base}/overview`, label: 'Overview' },
                     { to: `${base}/assignments`, label: 'Assignments', count: assignments.length },
+                    { to: `${base}/gradebook`, label: 'Gradebook' },
                     { to: `${base}/students`, label: 'Students', count: studentCount },
                     { to: `${base}/stream`, label: 'Stream', count: posts.length },
                     { to: `${base}/settings`, label: 'Settings' },
@@ -560,20 +585,49 @@ const ClassView: React.FC<{
                             students={students ?? []}
                             assignments={assignments}
                             posts={posts}
+                            submissions={submissions}
                             onShowCode={() => setProjecting(true)}
                         />
                     )}
-                    {tab === 'assignments' && sub !== 'new' && (
-                        <AssignmentsTab base={base} assignments={assignments} students={students ?? []} onDelete={handleDeleteAssignment} />
+                    {tab === 'assignments' && (!sub || sub === 'create') && (
+                        <AssignmentsTab
+                            base={base}
+                            assignments={assignments}
+                            students={students ?? []}
+                            submissions={submissions}
+                            onWrite={() => setAssignTarget({ kind: 'custom' })}
+                        />
                     )}
                     {tab === 'assignments' && sub === 'new' && (
-                        <CurriculumPicker base={base} modules={modules} onAssign={setAssignTarget} />
+                        <CurriculumPicker base={base} modules={modules} onAssign={(t) => setAssignTarget({ kind: 'lesson', ...t })} />
+                    )}
+                    {tab === 'assignments' && sub && sub !== 'new' && sub !== 'create' && (() => {
+                        const a = assignments.find(x => x.id === sub);
+                        if (!a) return <EmptyState title="Assignment not found" description="It may have been deleted." action={<LinkButton to={`${base}/assignments`}>All assignments</LinkButton>} />;
+                        return (
+                            <AssignmentDetail
+                                base={base}
+                                assignment={a}
+                                students={students ?? []}
+                                submissions={submissions}
+                                onGraded={(g) => setSubmissions(prev => new Map(prev).set(g.id, g))}
+                                onUpdate={async (patch) => {
+                                    await updateAssignment(classroom.classId, a.id, patch);
+                                    setAssignments(prev => prev.map(x => x.id === a.id ? { ...x, ...patch } : x));
+                                }}
+                                onDelete={() => handleDeleteAssignment(a)}
+                            />
+                        );
+                    })()}
+                    {tab === 'gradebook' && (
+                        <Gradebook base={base} className={classroom.className} assignments={assignments} students={students ?? []} submissions={submissions} />
                     )}
                     {tab === 'students' && (
                         <StudentsTab
                             joinCode={classroom.joinCode}
                             students={students ?? []}
                             assignments={assignments}
+                            submissions={submissions}
                             onToggleCourseUnlock={handleToggleCourseUnlock}
                             onRemoveStudent={handleRemoveStudent}
                         />
@@ -606,17 +660,16 @@ const ClassView: React.FC<{
             )}
 
             {assignTarget && user && (
-                <AssignLessonModal
-                    classroom={classroom}
+                <AssignDialog
                     teacherId={user.id}
-                    courseId={assignTarget.courseId}
-                    courseTitle={assignTarget.courseTitle}
-                    moduleId={assignTarget.moduleId}
-                    lessonId={assignTarget.lessonId}
-                    lessonTitle={assignTarget.lessonTitle}
+                    classroom={classroom}
+                    target={assignTarget}
+                    students={(students ?? []).map(st => ({ uid: st.uid, name: st.name, username: st.username }))}
                     onClose={() => setAssignTarget(null)}
-                    onAssigned={() => { setAssignTarget(null); load(); navigate(`${base}/assignments`); }}
-                    students={(students ?? []).map(s => ({ uid: s.uid, name: s.name, username: s.username }))}
+                    onAssigned={(created) => {
+                        setAssignments(prev => [created, ...prev]);
+                        navigate(`${base}/assignments/${created.id}`);
+                    }}
                 />
             )}
 
@@ -633,8 +686,9 @@ const OverviewTab: React.FC<{
     students: StudentProgress[];
     assignments: Assignment[];
     posts: Post[];
+    submissions: Submissions;
     onShowCode: () => void;
-}> = ({ base, classroom, students, assignments, posts, onShowCode }) => {
+}> = ({ base, classroom, students, assignments, posts, submissions, onShowCode }) => {
     const now = Date.now();
     const activeThisWeek = students.filter(s => s.lastActive && now - s.lastActive < INACTIVE_AFTER_MS).length;
     const inactive = students.filter(s => !s.lastActive || now - s.lastActive >= INACTIVE_AFTER_MS);
@@ -643,8 +697,11 @@ const OverviewTab: React.FC<{
         : 0;
     const overdue = assignments
         .filter(a => a.dueAt !== null && a.dueAt < now)
-        .map(a => ({ a, status: statusFor(a, students) }))
+        .map(a => ({ a, status: statusFor(a, students, submissions) }))
         .filter(x => x.status.pending.length > 0);
+    const toGrade = assignments
+        .map(a => ({ a, count: statusFor(a, students, submissions).toGrade }))
+        .filter(x => x.count > 0);
     const openAssignments = assignments.filter(a => a.dueAt === null || a.dueAt >= now).length;
     const recentPosts = [...posts].sort((a, b) => b.createdAt - a.createdAt).slice(0, 3);
 
@@ -669,17 +726,29 @@ const OverviewTab: React.FC<{
             </div>
 
             <Section title="Needs attention">
-                {overdue.length === 0 && inactive.length === 0 ? (
+                {overdue.length === 0 && inactive.length === 0 && toGrade.length === 0 ? (
                     <Alert tone="success" icon={<CheckCircle2 className="w-4 h-4" />}>Everything is on track. No overdue work and everyone has been active this week.</Alert>
                 ) : (
                     <List>
+                        {toGrade.map(({ a, count }) => (
+                            <li key={`grade-${a.id}`}>
+                                <Link to={`${base}/assignments/${a.id}`} className="no-hover flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                    <ClipboardList className="w-4 h-4 text-cyan-500 flex-shrink-0" aria-hidden="true" />
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{count} to grade in {assignmentTitle(a)}</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">Open the grader to review their code</div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
+                                </Link>
+                            </li>
+                        ))}
                         {overdue.map(({ a, status }) => (
                             <li key={a.id}>
-                                <Link to={`${base}/assignments`} className="no-hover flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                                <Link to={`${base}/assignments/${a.id}`} className="no-hover flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40">
                                     <Calendar className="w-4 h-4 text-red-500 flex-shrink-0" aria-hidden="true" />
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)} is overdue</div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">{status.pending.length} of {status.targeted.length} haven't finished</div>
+                                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)} is past due</div>
+                                        <div className="text-sm text-gray-500 dark:text-gray-400">{status.pending.length} of {status.targeted.length} haven't handed it in</div>
                                     </div>
                                     <ChevronRight className="w-4 h-4 text-gray-400" aria-hidden="true" />
                                 </Link>
@@ -729,9 +798,9 @@ const AssignmentsTab: React.FC<{
     base: string;
     assignments: Assignment[];
     students: StudentProgress[];
-    onDelete: (a: Assignment) => void;
-}> = ({ base, assignments, students, onDelete }) => {
-    const [open, setOpen] = useState<string | null>(null);
+    submissions: Submissions;
+    onWrite: () => void;
+}> = ({ base, assignments, students, submissions, onWrite }) => {
     const sorted = useMemo(
         () => [...assignments].sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity) || b.assignedAt - a.assignedAt),
         [assignments],
@@ -740,6 +809,7 @@ const AssignmentsTab: React.FC<{
     const actions = (
         <div className="flex flex-wrap gap-2">
             <LinkButton to={`${base}/assignments/new`} variant="primary" icon={<ClipboardList className="w-4 h-4" />}>Assign a lesson</LinkButton>
+            <Button icon={<Plus className="w-4 h-4" />} onClick={onWrite}>Write a coding assignment</Button>
             <LinkButton to="/practice" icon={<Dumbbell className="w-4 h-4" />}>Assign practice</LinkButton>
         </div>
     );
@@ -749,7 +819,7 @@ const AssignmentsTab: React.FC<{
             <EmptyState
                 icon={<ClipboardList className="w-5 h-5" />}
                 title="No assignments yet"
-                description="Assign a lesson from the curriculum, or a quiz, problem or project from Practice. Students see it on their Class page."
+                description="Assign a lesson from the curriculum, write your own coding problem, or pick a quiz, problem or project from Practice."
                 action={actions}
             />
         );
@@ -759,50 +829,30 @@ const AssignmentsTab: React.FC<{
         <Section title={`${assignments.length} ${assignments.length === 1 ? 'assignment' : 'assignments'}`} action={actions}>
             <List>
                 {sorted.map(a => {
-                    const status = statusFor(a, students);
+                    const status = statusFor(a, students, submissions);
                     const due = dueLabel(a.dueAt);
-                    const isOpen = open === a.id;
-                    const allDone = status.targeted.length > 0 && status.pending.length === 0;
+                    const allIn = status.targeted.length > 0 && status.pending.length === 0;
                     return (
                         <li key={a.id}>
-                            <div className="flex items-center gap-3 px-5 py-4">
-                                <button
-                                    onClick={() => setOpen(p => p === a.id ? null : a.id)}
-                                    className="no-hover flex-1 min-w-0 flex items-center gap-4 text-left"
-                                    aria-expanded={isOpen}
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</span>
-                                            <Pill tone={due.tone}>{due.text}</Pill>
-                                        </div>
-                                        <div className="mt-0.5 text-sm text-gray-500 dark:text-gray-400 truncate">
-                                            {[assignmentSubtitle(a), a.studentIds === null ? 'Whole class' : `${a.studentIds.length} selected ${a.studentIds.length === 1 ? 'student' : 'students'}`].filter(Boolean).join(' · ')}
-                                        </div>
+                            <Link to={`${base}/assignments/${a.id}`} className="no-hover flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40 group">
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-semibold text-gray-900 dark:text-white truncate">{assignmentTitle(a)}</span>
+                                        <Pill tone={due.tone}>{due.text}</Pill>
+                                        {status.toGrade > 0 && <Pill tone="info">{status.toGrade} to grade</Pill>}
                                     </div>
-                                    <div className="hidden sm:block w-40 flex-shrink-0">
-                                        <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 tabular-nums">
-                                            {status.targeted.length === 0 ? 'No students yet' : `${status.done.length} of ${status.targeted.length} done`}
-                                        </div>
-                                        <ProgressBar value={status.done.length} max={status.targeted.length} tone={allDone ? 'success' : 'accent'} label="Completion" />
+                                    <div className="mt-0.5 text-sm text-gray-500 dark:text-gray-400 truncate">
+                                        {[assignmentSubtitle(a), `${assignmentPoints(a)} pts`, a.studentIds === null ? 'Whole class' : `${a.studentIds.length} selected`].filter(Boolean).join(' · ')}
                                     </div>
-                                    <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
-                                </button>
-                                <button
-                                    onClick={() => onDelete(a)}
-                                    className="no-hover p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
-                                    aria-label={`Delete ${assignmentTitle(a)}`}
-                                    title="Delete assignment"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                            {isOpen && (
-                                <div className="px-5 pb-4 grid sm:grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-700 pt-4 bg-gray-50/60 dark:bg-gray-900/30">
-                                    <StudentNameList title="Not finished" students={status.pending} empty="Everyone has finished." />
-                                    <StudentNameList title="Finished" students={status.done} empty="No one yet." done />
                                 </div>
-                            )}
+                                <div className="hidden sm:block w-40 flex-shrink-0">
+                                    <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 tabular-nums">
+                                        {status.targeted.length === 0 ? 'No students yet' : `${status.done.length} of ${status.targeted.length} handed in`}
+                                    </div>
+                                    <ProgressBar value={status.done.length} max={status.targeted.length} tone={allIn ? 'success' : 'accent'} label="Handed in" />
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 flex-shrink-0" aria-hidden="true" />
+                            </Link>
                         </li>
                     );
                 })}
@@ -810,26 +860,6 @@ const AssignmentsTab: React.FC<{
         </Section>
     );
 };
-
-const StudentNameList: React.FC<{ title: string; students: StudentProgress[]; empty: string; done?: boolean }> = ({ title, students, empty, done }) => (
-    <div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{title} ({students.length})</h3>
-        {students.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{empty}</p>
-        ) : (
-            <ul className="space-y-1.5">
-                {students.map(s => (
-                    <li key={s.uid} className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200">
-                        {done
-                            ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" aria-hidden="true" />
-                            : <span className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" aria-hidden="true" />}
-                        <span className="truncate">{s.name}</span>
-                    </li>
-                ))}
-            </ul>
-        )}
-    </div>
-);
 
 const CurriculumPicker: React.FC<{
     base: string;
@@ -905,9 +935,10 @@ const StudentsTab: React.FC<{
     joinCode: string;
     students: StudentProgress[];
     assignments: Assignment[];
+    submissions: Submissions;
     onToggleCourseUnlock: (studentId: string, courseId: string) => void;
     onRemoveStudent: (studentId: string) => Promise<void>;
-}> = ({ joinCode, students, assignments, onToggleCourseUnlock, onRemoveStudent }) => {
+}> = ({ joinCode, students, assignments, submissions, onToggleCourseUnlock, onRemoveStudent }) => {
     const [open, setOpen] = useState<string | null>(null);
 
     if (students.length === 0) {
@@ -933,7 +964,8 @@ const StudentsTab: React.FC<{
             <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {students.map(s => {
                     const mine = assignments.filter(a => assignmentTargets(a, s.uid));
-                    const done = mine.filter(a => isAssignmentDone(a, s.completedLessons, s.completedPractice)).length;
+                    const stateOf = (a: Assignment) => assignmentState(a, submissions.get(submissionId(a.id, s.uid)), isAssignmentDone(a, s.completedLessons, s.completedPractice));
+                    const done = mine.filter(a => ['submitted', 'late', 'graded'].includes(stateOf(a))).length;
                     const isOpen = open === s.uid;
                     return (
                         <li key={s.uid}>
@@ -970,6 +1002,7 @@ const StudentsTab: React.FC<{
                                 <StudentDetail
                                     student={s}
                                     assignments={mine}
+                                    submissions={submissions}
                                     onToggleCourseUnlock={onToggleCourseUnlock}
                                     onRemove={() => onRemoveStudent(s.uid)}
                                 />
@@ -985,9 +1018,10 @@ const StudentsTab: React.FC<{
 const StudentDetail: React.FC<{
     student: StudentProgress;
     assignments: Assignment[];
+    submissions: Submissions;
     onToggleCourseUnlock: (studentId: string, courseId: string) => void;
     onRemove: () => Promise<void>;
-}> = ({ student: s, assignments, onToggleCourseUnlock, onRemove }) => {
+}> = ({ student: s, assignments, submissions, onToggleCourseUnlock, onRemove }) => {
     const [confirming, setConfirming] = useState(false);
     const [removing, setRemoving] = useState(false);
     return (
@@ -997,15 +1031,18 @@ const StudentDetail: React.FC<{
                 {assignments.length === 0 ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400">Nothing assigned to this student.</p>
                 ) : (
-                    <ul className="space-y-1.5">
+<ul className="space-y-1.5">
                         {assignments.map(a => {
-                            const done = isAssignmentDone(a, s.completedLessons, s.completedPractice);
+                            const sub = submissions.get(submissionId(a.id, s.uid));
+                            const state = assignmentState(a, sub, isAssignmentDone(a, s.completedLessons, s.completedPractice));
                             return (
-                                <li key={a.id} className="flex items-center gap-2 text-sm">
-                                    {done
-                                        ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" aria-label="Done" />
-                                        : <span className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" aria-label="Not done" />}
-                                    <span className="truncate text-gray-800 dark:text-gray-200">{assignmentTitle(a)}</span>
+                                <li key={a.id}>
+                                    <Link to={`/teacher/${a.classroomId}/assignments/${a.id}?student=${s.uid}`} className="no-hover flex items-center gap-2 text-sm hover:text-cyan-600 dark:hover:text-cyan-400">
+                                        <span className="truncate flex-1 text-gray-800 dark:text-gray-200">{assignmentTitle(a)}</span>
+                                        {typeof sub?.score === 'number'
+                                            ? <span className="font-semibold tabular-nums text-gray-700 dark:text-gray-300">{sub.score}/{assignmentPoints(a)}</span>
+                                            : <Pill tone={STATE_TONE[state]}>{STATE_LABEL[state]}</Pill>}
+                                    </Link>
                                 </li>
                             );
                         })}

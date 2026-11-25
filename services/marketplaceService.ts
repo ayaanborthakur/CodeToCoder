@@ -1,9 +1,8 @@
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import {
     MarketplaceData,
     DailyChallenge,
-    StarTransaction,
     Collectible,
     Rarity,
     Difficulty,
@@ -253,6 +252,68 @@ export const saveStarsData = async (userId: string, data: StarsData): Promise<vo
     } catch (error) {
         console.error('Error saving stars data:', error);
     }
+};
+
+
+// ============================================================================
+// ATOMIC ECONOMY UPDATES
+// ============================================================================
+
+const emptyStars = (): StarsData => ({
+    balance: 0,
+    totalEarned: 0,
+    totalSpent: 0,
+    lastUpdated: Date.now(),
+    transactionHistory: [],
+    dailyPrizeClaimed: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    lastActiveDate: '',
+});
+
+/**
+ * Change a user's stars (and, if `change` touches it, their collectibles) in
+ * one Firestore transaction. Reading and writing separately let two rewards
+ * landing together keep only one, and let a double-click spend the same stars
+ * or sell the same item twice. `change` may throw to cancel (e.g. not enough
+ * stars); the error reaches the caller instead of being swallowed.
+ */
+const updateEconomy = async (
+    userId: string,
+    change: (stars: StarsData, owned: string[]) => string[] | void,
+): Promise<StarsData> => {
+    await ensureUserDocument(userId);
+    const starsRef = userPaths.stars(userId);
+    const collectionRef = userPaths.collection(userId);
+    const { stars, owned } = await runTransaction(db, async tx => {
+        const [starsSnap, collectionSnap] = await Promise.all([tx.get(starsRef), tx.get(collectionRef)]);
+        const stars: StarsData = { ...emptyStars(), ...(starsSnap.exists() ? (starsSnap.data() as StarsData) : {}) };
+        stars.transactionHistory = Array.isArray(stars.transactionHistory) ? [...stars.transactionHistory] : [];
+        const before: string[] = collectionSnap.exists()
+            ? [...((collectionSnap.data() as CollectionData).collectibles?.ownedCollectibleIds ?? [])]
+            : [];
+        const after = change(stars, [...before]) ?? before;
+        stars.lastUpdated = Date.now();
+        stars.transactionHistory = stars.transactionHistory.slice(0, TRANSACTION_HISTORY_CAP);
+        tx.set(starsRef, stars);
+        if (after !== before) tx.set(collectionRef, { collectibles: { ownedCollectibleIds: after } }, { merge: true });
+        return { stars, owned: after };
+    });
+    updateNetValue(userId, stars.balance, owned).catch(err => console.error('Error updating net worth:', err));
+    return stars;
+};
+
+const earn = (stars: StarsData, amount: number, reason: string) => {
+    stars.balance += amount;
+    stars.totalEarned += amount;
+    stars.transactionHistory.unshift({ id: Date.now().toString(), amount, type: 'earn', reason, timestamp: Date.now() });
+};
+
+const spend = (stars: StarsData, amount: number, reason: string) => {
+    if (stars.balance < amount) throw new Error('Insufficient stars');
+    stars.balance -= amount;
+    stars.totalSpent += amount;
+    stars.transactionHistory.unshift({ id: Date.now().toString(), amount: -amount, type: 'spend', reason, timestamp: Date.now() });
 };
 
 // ============================================================================
@@ -550,74 +611,38 @@ const dispatchStarUpdate = (balance: number, amount: number, reason: string) => 
 export const purchasePack = async (userId: string, packId: string): Promise<{ stars: number, collectible?: Collectible, collectibles?: Collectible[] }> => {
     if (!userId) throw new Error('You must be logged in to purchase packs');
 
-    const starsData = await getStarsData(userId);
-    const collectionData = await getCollectionData(userId);
     const pack = PACKS_DATA.find(p => p.id === packId);
-
     if (!pack) throw new Error('Pack not found');
-    if (starsData.balance < pack.cost) throw new Error('Insufficient stars');
 
-    // Deduct cost
-    starsData.balance -= pack.cost;
-    starsData.totalSpent += pack.cost;
-
-    // Record transaction
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: -pack.cost,
-        type: 'spend',
-        reason: `Purchased ${pack.name}`,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    // Handle Collectibles
+    // Roll the drops up front so a transaction retry doesn't re-roll them.
     const newCollectibles: Collectible[] = [];
     if (pack.rewards.collectibles) {
-        const numDrops = pack.rewards.collectibles.minDrops || 1;
-        const maxDrops = pack.rewards.collectibles.maxDrops || numDrops;
-        const actualDrops = Math.floor(Math.random() * (maxDrops - numDrops + 1)) + numDrops;
-
-        for (let i = 0; i < actualDrops; i++) {
+        const minDrops = pack.rewards.collectibles.minDrops || 1;
+        const maxDrops = pack.rewards.collectibles.maxDrops || minDrops;
+        const drops = Math.floor(Math.random() * (maxDrops - minDrops + 1)) + minDrops;
+        const order: Rarity[] = ['divine', 'mythic', 'legendary', 'epic', 'rare', 'uncommon'];
+        for (let i = 0; i < drops; i++) {
+            const roll = Math.random();
+            let cumulative = 0;
             let rarity: Rarity = 'common';
-            const rarityRoll = Math.random();
-
-            // Determine rarity based on pack drop rates
-            const dropRates = pack.dropRates;
-            
-            // Calculate cumulative probabilities
-            if (rarityRoll < dropRates.divine) {
-                rarity = 'divine';
-            } else if (rarityRoll < dropRates.divine + dropRates.mythic) {
-                rarity = 'mythic';
-            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary) {
-                rarity = 'legendary';
-            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic) {
-                rarity = 'epic';
-            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic + dropRates.rare) {
-                rarity = 'rare';
-            } else if (rarityRoll < dropRates.divine + dropRates.mythic + dropRates.legendary + dropRates.epic + dropRates.rare + dropRates.uncommon) {
-                rarity = 'uncommon';
-            } else {
-                rarity = 'common';
+            for (const r of order) {
+                cumulative += pack.dropRates[r as keyof typeof pack.dropRates] ?? 0;
+                if (roll < cumulative) { rarity = r; break; }
             }
-
-            const availableCollectibles = COLLECTIBLES.filter(c => c.rarity === rarity);
-            if (availableCollectibles.length > 0) {
-                const newCollectible = availableCollectibles[Math.floor(Math.random() * availableCollectibles.length)];
-                newCollectibles.push(newCollectible);
-                collectionData.collectibles.ownedCollectibleIds.push(newCollectible.id);
-            }
+            const pool = COLLECTIBLES.filter(c => c.rarity === rarity);
+            if (pool.length > 0) newCollectibles.push(pool[Math.floor(Math.random() * pool.length)]);
         }
     }
 
-    await saveStarsData(userId, starsData);
-    await saveCollectionData(userId, collectionData);
-
-    dispatchStarUpdate(starsData.balance, -pack.cost, `Purchased ${pack.name}`);
+    const reason = `Purchased ${pack.name}`;
+    const stars = await updateEconomy(userId, (s, owned) => {
+        spend(s, pack.cost, reason);
+        return newCollectibles.length ? [...owned, ...newCollectibles.map(c => c.id)] : undefined;
+    });
+    dispatchStarUpdate(stars.balance, -pack.cost, reason);
 
     return {
-        stars: starsData.balance,
+        stars: stars.balance,
         collectible: newCollectibles[0],
         collectibles: newCollectibles
     };
@@ -630,28 +655,14 @@ export const purchasePack = async (userId: string, packId: string): Promise<{ st
 export const claimDailyPrize = async (userId: string): Promise<number> => {
     if (!userId) throw new Error('You must be logged in to claim the daily prize');
 
-    const starsData = await getStarsData(userId);
-
-    if (!isDailyPrizeAvailable(userId, starsData)) {
-        throw new Error('Daily prize not available yet');
-    }
-
     const prizeAmount = Math.floor(Math.random() * 50) + 10; // 10-60 stars
-    starsData.balance += prizeAmount;
-    starsData.totalEarned += prizeAmount;
-    starsData.dailyPrizeClaimed = Date.now();
-
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: prizeAmount,
-        type: 'earn',
-        reason: 'Daily Prize',
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, prizeAmount, 'Daily Prize');
+    // Checked inside the transaction so a double-click can't claim twice.
+    const stars = await updateEconomy(userId, s => {
+        if (!isDailyPrizeAvailable(userId, s)) throw new Error('Daily prize not available yet');
+        earn(s, prizeAmount, 'Daily Prize');
+        s.dailyPrizeClaimed = Date.now();
+    });
+    dispatchStarUpdate(stars.balance, prizeAmount, 'Daily Prize');
 
     return prizeAmount;
 };
@@ -705,29 +716,19 @@ export const updateChallengeProgress = async (userId: string, type: 'lesson' | '
 
 export const claimChallengeReward = async (userId: string, challengeId: string): Promise<number> => {
     const challenges = await getDailyChallenges(userId);
-    const starsData = await getStarsData(userId);
     const challenge = challenges.find(c => c.id === challengeId);
 
     if (!challenge) throw new Error('Challenge not found');
     if (!challenge.completed) throw new Error('Challenge not completed');
     if (challenge.claimed) throw new Error('Reward already claimed');
 
+    // Mark claimed first: if the reward write fails the student can retry,
+    // but a double-click can't pay out twice.
     challenge.claimed = true;
-    starsData.balance += challenge.reward;
-    starsData.totalEarned += challenge.reward;
-
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: challenge.reward,
-        type: 'earn',
-        reason: `Challenge: ${challenge.title}`,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
     await saveDailyChallenges(userId, challenges);
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, challenge.reward, `Challenge: ${challenge.title}`);
+    const reason = `Challenge: ${challenge.title}`;
+    const stars = await updateEconomy(userId, s => earn(s, challenge.reward, reason));
+    dispatchStarUpdate(stars.balance, challenge.reward, reason);
 
     return challenge.reward;
 };
@@ -753,52 +754,18 @@ export const getOwnedCollectibles = async (userId: string): Promise<(Collectible
 };
 
 export const sellCollectible = async (userId: string, collectibleId: string, amount: number = 1): Promise<number> => {
-    const collectionData = await getCollectionData(userId);
-    const starsData = await getStarsData(userId);
-
-    // Check if user has enough of the item
-    const ownedCount = collectionData.collectibles.ownedCollectibleIds.filter(id => id === collectibleId).length;
-    if (ownedCount < amount) throw new Error('Not enough items to sell');
-
-    // Remove 'amount' instances
-    let removedCount = 0;
-    const newOwned: string[] = [];
-
-    for (const id of collectionData.collectibles.ownedCollectibleIds) {
-        if (id === collectibleId && removedCount < amount) {
-            removedCount++;
-        } else {
-            newOwned.push(id);
-        }
-    }
-
-    collectionData.collectibles.ownedCollectibleIds = newOwned;
-
-    // Calculate sell value using COLLECTIBLE_SELL_RATES
     const collectible = COLLECTIBLES.find(c => c.id === collectibleId);
-    let sellValuePerItem = COLLECTIBLE_SELL_RATES.common; // Default to common rarity value
+    const totalSellValue = (collectible ? COLLECTIBLE_SELL_RATES[collectible.rarity] : COLLECTIBLE_SELL_RATES.common) * amount;
+    const reason = `Sold ${amount}x ${collectible?.name || 'Item'}`;
 
-    if (collectible) {
-        sellValuePerItem = COLLECTIBLE_SELL_RATES[collectible.rarity];
-    }
-
-    const totalSellValue = sellValuePerItem * amount;
-
-    starsData.balance += totalSellValue;
-    starsData.totalEarned += totalSellValue;
-
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: totalSellValue,
-        type: 'earn',
-        reason: `Sold ${amount}x ${collectible?.name || 'Item'}`,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    await saveCollectionData(userId, collectionData);
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, totalSellValue, `Sold ${amount}x ${collectible?.name || 'Item'}`);
+    const stars = await updateEconomy(userId, (s, owned) => {
+        if (owned.filter(id => id === collectibleId).length < amount) throw new Error('Not enough items to sell');
+        let removed = 0;
+        const remaining = owned.filter(id => !(id === collectibleId && removed++ < amount));
+        earn(s, totalSellValue, reason);
+        return remaining;
+    });
+    dispatchStarUpdate(stars.balance, totalSellValue, reason);
 
     return totalSellValue;
 };
@@ -808,73 +775,31 @@ export const sellCollectible = async (userId: string, collectibleId: string, amo
  * Returns the total number sold and total stars earned
  */
 export const sellAllDuplicates = async (userId: string): Promise<{ totalSold: number, totalEarned: number }> => {
-    const collectionData = await getCollectionData(userId);
-    const starsData = await getStarsData(userId);
-
-    // Count occurrences of each collectible
-    const counts: Record<string, number> = {};
-    collectionData.collectibles.ownedCollectibleIds.forEach(id => {
-        counts[id] = (counts[id] || 0) + 1;
-    });
-
-    // Calculate duplicates to sell and total value
     let totalSold = 0;
     let totalEarned = 0;
-    const newOwned: string[] = [];
-    const soldItems: { name: string, count: number }[] = [];
 
-    // Keep one of each, mark the rest for selling
-    const processedIds = new Set<string>();
-    
-    for (const id of collectionData.collectibles.ownedCollectibleIds) {
-        if (!processedIds.has(id)) {
-            // First occurrence - keep it
-            newOwned.push(id);
-            processedIds.add(id);
-        } else if (counts[id] > 1) {
-            // Duplicate - sell it
+    const stars = await updateEconomy(userId, (s, owned) => {
+        // Recomputed on every transaction attempt from the fresh collection.
+        totalSold = 0;
+        totalEarned = 0;
+        const seen = new Set<string>();
+        const keep: string[] = [];
+        for (const id of owned) {
             const collectible = COLLECTIBLES.find(c => c.id === id);
-            if (collectible) {
-                const sellValue = COLLECTIBLE_SELL_RATES[collectible.rarity];
-                totalEarned += sellValue;
-                totalSold++;
-                
-                // Track for transaction message
-                const existingSoldItem = soldItems.find(item => item.name === collectible.name);
-                if (existingSoldItem) {
-                    existingSoldItem.count++;
-                } else {
-                    soldItems.push({ name: collectible.name, count: 1 });
-                }
+            // Keep the first of each, and anything we can't price.
+            if (!seen.has(id) || !collectible) {
+                seen.add(id);
+                keep.push(id);
+                continue;
             }
-            counts[id]--; // Decrease count so we sell one at a time
+            totalEarned += COLLECTIBLE_SELL_RATES[collectible.rarity];
+            totalSold++;
         }
-    }
-
-    if (totalSold === 0) {
-        return { totalSold: 0, totalEarned: 0 };
-    }
-
-    // Update collection data
-    collectionData.collectibles.ownedCollectibleIds = newOwned;
-
-    // Update stars
-    starsData.balance += totalEarned;
-    starsData.totalEarned += totalEarned;
-
-    // Record transaction
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: totalEarned,
-        type: 'earn',
-        reason: `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    await saveCollectionData(userId, collectionData);
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, totalEarned, `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`);
+        if (totalSold === 0) return undefined;
+        earn(s, totalEarned, `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`);
+        return keep;
+    });
+    if (totalSold > 0) dispatchStarUpdate(stars.balance, totalEarned, `Sold ${totalSold} duplicate item${totalSold > 1 ? 's' : ''}`);
 
     return { totalSold, totalEarned };
 };
@@ -884,43 +809,13 @@ export const sellAllDuplicates = async (userId: string): Promise<{ totalSold: nu
 // ============================================================================
 
 export const addStars = async (userId: string, amount: number, reason: string): Promise<number> => {
-    const starsData = await getStarsData(userId);
-    starsData.balance += amount;
-    starsData.totalEarned += amount;
-
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount,
-        type: 'earn',
-        reason,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, amount, reason);
-
-    return starsData.balance;
+    const stars = await updateEconomy(userId, s => earn(s, amount, reason));
+    dispatchStarUpdate(stars.balance, amount, reason);
+    return stars.balance;
 };
 
 export const spendStars = async (userId: string, amount: number, reason: string): Promise<number> => {
-    const starsData = await getStarsData(userId);
-    if (starsData.balance < amount) throw new Error('Insufficient stars');
-
-    starsData.balance -= amount;
-    starsData.totalSpent += amount;
-
-    const transaction: StarTransaction = {
-        id: Date.now().toString(),
-        amount: -amount,
-        type: 'spend',
-        reason,
-        timestamp: Date.now()
-    };
-    starsData.transactionHistory.unshift(transaction);
-
-    await saveStarsData(userId, starsData);
-    dispatchStarUpdate(starsData.balance, -amount, reason);
-
-    return starsData.balance;
+    const stars = await updateEconomy(userId, s => spend(s, amount, reason));
+    dispatchStarUpdate(stars.balance, -amount, reason);
+    return stars.balance;
 };

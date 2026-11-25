@@ -9,6 +9,8 @@ import { BottomPanel } from './components/BottomPanel';
 import { LessonBrief } from './components/LessonBrief';
 import { LessonCompleteCard, type LessonCompleteInfo } from './components/LessonCompleteCard';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { AssignmentBar } from './components/AssignmentBar';
+import { useClassAssignments } from './hooks/useClassAssignments';
 import { IdePanel } from './components/IdePanel';
 import { QuizPanel } from './components/QuizPanel';
 import { LearnPanel } from './components/LearnPanel';
@@ -36,7 +38,7 @@ import { MarketplacePage } from './components/MarketplacePage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { LeaderboardPage } from './components/LeaderboardPage';
 import { UsernameModal } from './components/UsernameModal';
-import { AssignPracticeModal } from './components/AssignPracticeModal';
+import { AssignDialog } from './components/AssignDialog';
 import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
@@ -46,7 +48,7 @@ import { SchoolPromptModal } from './components/SchoolPromptModal';
 import { StarNotification } from './components/StarNotification';
 import { TutorialOverlay } from './components/TutorialOverlay';
 // PRACTICE_ITEMS removed - loaded dynamically
-import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity, Classroom } from './types';
+import type { Module, Lesson, ChatMessage, LintIssue, PracticeItem, PracticeType, FlowchartData, UserActivity } from './types';
 import { contentService } from './services/contentService';
 import { generateCodeFromFlowchart, getChatResponse } from './services/geminiService';
 import { useProgress } from './hooks/useProgress';
@@ -120,6 +122,7 @@ const App: React.FC = () => {
     const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + module.lessons.length, 0), [modules]);
 
     const { user, isLoading: isAuthLoading, refreshUser } = useAuth();
+    const classAssignments = useClassAssignments(user);
     const { completedLessons, markLessonAsCompleted, markLessonAsIncomplete, isProgressLoaded, completedPracticeItems, markPracticeAsCompleted, achievements, newlyEarnedBadges, clearNewBadges } = useProgress();
     const { files: playgroundFiles, isLoaded: isPlaygroundLoaded, createFile, updateFile, deleteFile } = usePlaygroundFiles();
     const { customQuizzes, addCustomQuiz, isLoaded: isQuizzesLoaded } = useCustomQuizzes();
@@ -161,8 +164,6 @@ const App: React.FC = () => {
     const [, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
 
-    // Teacher's classroom (loaded lazily so the Lessons-tab assign button can use it).
-    const [teacherClassroom, setTeacherClassroom] = useState<Classroom | null>(null);
 
     const [starBalance, setStarBalance] = useState(0);
     const [netWorth, setNetWorth] = useState<number | undefined>(undefined);
@@ -317,17 +318,6 @@ const App: React.FC = () => {
         // need fresh data.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the id so a profile refresh doesn't re-run it
     }, [user?.id]);
-
-    // Load teacher's classroom for the Lessons-tab assign button + student assignments lookup.
-    useEffect(() => {
-        if (!user?.classId) {
-            setTeacherClassroom(null);
-            return;
-        }
-        import('./services/classroomService').then(({ getClassroom }) => {
-            getClassroom(user.classId!).then(setTeacherClassroom).catch(() => setTeacherClassroom(null));
-        });
-    }, [user?.classId, user?.role]);
 
     const isTerminalLoadingRef = useRef(isTerminalLoading);
     useEffect(() => { isTerminalLoadingRef.current = isTerminalLoading; }, [isTerminalLoading]);
@@ -900,6 +890,16 @@ const App: React.FC = () => {
         }
     }, [classroomMatch, currentModuleId, currentLessonId, loadLesson]);
 
+    // The URL decides whether a lesson is open: the course list and course
+    // pages (reached by Back, a link or the header) close whatever lesson was
+    // open instead of showing it under the wrong address.
+    useEffect(() => {
+        if ((location.pathname === '/lessons' || coursePageMatch) && currentLessonId) {
+            setCurrentLessonId(null);
+            setCurrentLesson(null);
+        }
+    }, [location.pathname, coursePageMatch, currentLessonId]);
+
     // Update Document Title
     useEffect(() => {
         if (currentView === 'playground' && activePlaygroundFile) {
@@ -1175,6 +1175,11 @@ const App: React.FC = () => {
                         setTerminalOutput(prev => prev + '\n\n✓ Solved!');
                         triggerConfetti();
                         markPracticeAsCompleted(contextItem.id);
+                        const assigned = classAssignments.assignmentFor('practice', contextItem.id);
+                        if (assigned) {
+                            classAssignments.submit(assigned, { code, output: result.output, passed: true })
+                                .catch(err => console.error('[App] Auto-submit failed:', err));
+                        }
                         if (user) {
                             import('./services/starService').then(({ awardStarsForActivity }) => {
                                 awardStarsForActivity(user.id, 'practice', contextItem.id).then(result => {
@@ -1212,6 +1217,11 @@ const App: React.FC = () => {
                             if (validation.passed) {
                                 triggerConfetti();
                                 await markLessonAsCompleted(contextItem.id);
+                                const assigned = classAssignments.assignmentFor('lesson', contextItem.id);
+                                if (assigned) {
+                                    classAssignments.submit(assigned, { code, output: result.output, passed: true })
+                                        .catch(err => console.error('[App] Auto-submit failed:', err));
+                                }
 
                                 if (user) {
                                     import('./services/starService').then(({ awardStarsForActivity }) => {
@@ -1300,7 +1310,7 @@ const App: React.FC = () => {
         } finally {
             setIsTerminalLoading(false);
         }
-    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, currentModuleId, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons, navigationState, modules]);
+    }, [code, sessionRunCount, lessonStartTime, currentLesson, isTerminalLoading, markLessonAsCompleted, aiAssistanceLevel, advanceToNextLesson, currentView, currentModuleId, activePracticeItem, markPracticeAsCompleted, isMobile, user, completedPracticeItems, completedLessons, navigationState, modules, classAssignments]);
 
     const handleRunPlaygroundCode = useCallback(async () => {
         if (isTerminalLoading || !activePlaygroundFileId) return;
@@ -1692,6 +1702,30 @@ const App: React.FC = () => {
     const briefLesson = isClassroom ? currentLesson : (isPractice ? practiceLessonLike : null);
     const showBriefColumn = !!briefLesson && !isMobile;
 
+    // If what's open is assigned to this student, the editor shows its due date,
+    // status and grade, and can hand the work in.
+    const openAssignment = isClassroom
+        ? classAssignments.assignmentFor('lesson', currentLesson?.id)
+        : isPractice ? classAssignments.assignmentFor('practice', activePracticeItem?.id) : undefined;
+    const openItemFinished = isClassroom
+        ? !!currentLesson && completedLessons.has(currentLesson.id)
+        : !!activePracticeItem && completedPracticeItems.has(activePracticeItem.id);
+    const assignmentBar = openAssignment && (
+        <AssignmentBar
+            assignment={openAssignment}
+            submission={classAssignments.submissions.get(openAssignment.id)}
+            finished={openItemFinished}
+            onSubmit={() => classAssignments.submit(openAssignment, {
+                code,
+                // Only the last run of this item counts as its output.
+                output: lastRunContextRef.current?.lessonId === (isClassroom ? currentLesson?.id : activePracticeItem?.id)
+                    ? lastRunContextRef.current?.output ?? ''
+                    : '',
+                passed: openItemFinished,
+            })}
+        />
+    );
+
     // Sidebar visibility logic for mobile vs desktop
     // Sidebar (with hamburger) only exists in the actual lesson IDE — never on catalog/course pages.
     const showSidebar = isLessonIDE && isNavOpen;
@@ -1820,7 +1854,6 @@ const App: React.FC = () => {
                                 completedLessons={completedLessons}
                                 onBackToCatalog={() => navigate('/lessons')}
                                 teacherId={user?.role === 'teacher' ? user.id : undefined}
-                                teacherClassroom={user?.role === 'teacher' ? teacherClassroom : null}
                                 unlockedCourseIds={user?.unlockedCourseIds ?? null}
                                 isTeacher={user?.role === 'teacher'}
                             />
@@ -1873,9 +1906,17 @@ const App: React.FC = () => {
                                         <h2 className="font-bold text-gray-800 dark:text-gray-200 text-sm mr-4">{activeContentItem.title}</h2>
                                     </div>
                                 )}
+                                {assignmentBar}
                                 <QuizPanel
                                     questions={activeContentItem.quizQuestions || []}
                                     onComplete={handleQuizComplete}
+                                    onScored={openAssignment ? (correct, total) => {
+                                        classAssignments.submit(openAssignment, {
+                                            code: '',
+                                            output: `Quiz: ${correct} of ${total} correct`,
+                                            passed: correct === total,
+                                        }).catch(err => console.error('[App] Quiz submit failed:', err));
+                                    } : undefined}
                                     isCollapsed={panelsCollapsed.ide}
                                     onToggleCollapse={() => setPanelsCollapsed(prev => ({ ...prev, ide: !prev.ide }))}
                                     id={activeContentItem.id}
@@ -1911,6 +1952,7 @@ const App: React.FC = () => {
                                 </section>
                             )}
                             <div className="flex-1 flex flex-col min-w-0 relative">
+                                {assignmentBar}
                                 {lessonComplete && isClassroom && (
                                     <LessonCompleteCard
                                         info={lessonComplete}
@@ -2058,9 +2100,9 @@ const App: React.FC = () => {
             </Helmet>
             <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
             {practiceAssignTarget && user?.role === 'teacher' && (
-                <AssignPracticeModal
+                <AssignDialog
                     teacherId={user.id}
-                    practiceItem={practiceAssignTarget}
+                    target={{ kind: 'practice', practiceItem: practiceAssignTarget }}
                     onClose={() => setPracticeAssignTarget(null)}
                     onAssigned={() => { /* nothing to refresh on this view */ }}
                 />
@@ -2275,7 +2317,18 @@ const App: React.FC = () => {
                         <Route path="/reference/:itemId" element={gate(<ReferencePanel />)} />
 
                         {/* Classroom hub — join/create a classroom, pick a role */}
-                        <Route path="/classroom" element={gate(<ClassroomHub onNavigate={handleNavigate} completedLessons={completedLessons} completedPracticeItems={completedPracticeItems} />)} />
+                        {['/classroom', '/classroom/:tab'].map(path => (
+                            <Route key={path} path={path} element={gate(
+                                <ClassroomHub
+                                    onNavigate={handleNavigate}
+                                    completedLessons={completedLessons}
+                                    completedPracticeItems={completedPracticeItems}
+                                    assignments={classAssignments.assignments}
+                                    submissions={classAssignments.submissions}
+                                    onReloadAssignments={classAssignments.reload}
+                                />
+                            )} />
+                        ))}
 
                         {/* Teacher dashboard — only shown to teachers */}
                         {['/teacher', '/teacher/:classId/:tab?/:sub?'].map(path => (

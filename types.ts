@@ -483,4 +483,30 @@ export interface Assignment {
   dueAt: number | null;            // unix ms; null = no due date
   // Whole class (null) or specific student IDs.
   studentIds: string[] | null;
+  // Maximum score. Absent on assignments made before grading existed.
+  points?: number;
+  // Practice assignments the teacher wrote themselves (not from the library).
+  custom?: boolean;
+}
+
+// A student's work on one assignment, plus the teacher's grade.
+// Stored at classrooms/{classroomId}/submissions/{assignmentId}_{studentId}.
+export interface Submission {
+  id: string;
+  classroomId: string;
+  assignmentId: string;
+  studentId: string;
+  studentName: string;
+  code: string;
+  output: string;
+  // Whether the automatic check passed when this was submitted.
+  passed: boolean;
+  status: 'submitted' | 'graded';
+  late: boolean;
+  attempts: number;
+  submittedAt: number;
+  // Set by the teacher.
+  score?: number | null;
+  feedback?: string;
+  gradedAt?: number;
 }

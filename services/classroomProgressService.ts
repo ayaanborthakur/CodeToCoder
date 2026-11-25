@@ -6,7 +6,7 @@
  */
 import { getDoc } from 'firebase/firestore';
 import { userPaths } from './firestorePathHelper';
-import type { Assignment, Classroom } from '../types';
+import type { Assignment, Classroom, Submission } from '../types';
 
 export interface StudentProgress {
     uid: string;
@@ -88,9 +88,43 @@ export const isAssignmentDone = (
 ): boolean => {
     if (a.kind === 'practice') {
         const id = a.practiceItem?.id;
-        return !!id && new Set(completedPractice).has(id);
+        if (!id) return false;
+        const done = new Set(completedPractice);
+        // Opened from the assignment link, the item is recorded under a
+        // prefixed id (see App's assignment route).
+        return done.has(id) || done.has(`assignment:${a.id}:${id}`);
     }
     return !!a.lessonId && new Set(completedLessons).has(a.lessonId);
 };
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type AssignmentState = 'graded' | 'submitted' | 'late' | 'missing' | 'todo';
+
+/**
+ * Where a student is with an assignment. A submission wins; finishing the
+ * lesson without submitting (before submissions existed) counts as submitted.
+ */
+export const assignmentState = (a: Assignment, submission: Submission | undefined, finished: boolean): AssignmentState => {
+    if (submission?.status === 'graded') return 'graded';
+    if (submission && submission.submittedAt > 0) return submission.late ? 'late' : 'submitted';
+    if (finished) return 'submitted';
+    if (a.dueAt !== null && Date.now() > a.dueAt) return 'missing';
+    return 'todo';
+};
+
+export const STATE_LABEL: Record<AssignmentState, string> = {
+    graded: 'Graded',
+    submitted: 'Submitted',
+    late: 'Submitted late',
+    missing: 'Missing',
+    todo: 'Not submitted',
+};
+
+export const STATE_TONE: Record<AssignmentState, 'success' | 'info' | 'warning' | 'danger' | 'neutral'> = {
+    graded: 'success',
+    submitted: 'info',
+    late: 'warning',
+    missing: 'danger',
+    todo: 'neutral',
+};

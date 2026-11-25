@@ -55,7 +55,9 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
             setSellAmount(1); // Reset amount
         } catch (error) {
             console.error('Failed to sell item:', error);
-            alert('Failed to sell item. Please try again.');
+            alert(error instanceof Error && error.message === 'Not enough items to sell'
+                ? "You don't have that many to sell."
+                : "Couldn't sell the item. Check your connection and try again.");
         } finally {
             setSelling(false);
         }
@@ -95,7 +97,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
             alert(`Sold ${result.totalSold} duplicate item${result.totalSold > 1 ? 's' : ''} for ${result.totalEarned} ★!`);
         } catch (error) {
             console.error('Failed to sell duplicates:', error);
-            alert('Failed to sell duplicates. Please try again.');
+            alert("Couldn't sell duplicates. Check your connection and try again.");
         } finally {
             setSellingAll(false);
         }

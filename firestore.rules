@@ -203,6 +203,47 @@ service cloud.firestore {
         }
       }
 
+      // --- Submissions (student work + teacher grade) ---
+      // classrooms/{classId}/submissions/{assignmentId}_{studentId}.
+      // A student reads and writes only their own document and can never set
+      // the grade; the class teacher reads everything and writes only grades.
+      match /submissions/{submissionId} {
+        function subClassroom() {
+          return get(/databases/$(database)/documents/classrooms/$(classId)).data;
+        }
+        function isSubTeacher() {
+          return isSignedIn() && subClassroom().teacherId == request.auth.uid;
+        }
+        function isSubStudent() {
+          return isSignedIn() && request.auth.uid in subClassroom().studentIds;
+        }
+        function gradeKeys() {
+          return ['score', 'feedback', 'gradedAt'];
+        }
+        function studentKeys() {
+          return ['code', 'output', 'passed', 'late', 'attempts', 'submittedAt', 'status', 'studentName'];
+        }
+
+        allow read: if isSubTeacher()
+          || (isSignedIn() && resource.data.studentId == request.auth.uid);
+
+        allow create: if isSubTeacher()
+          || (isSubStudent()
+            && request.resource.data.studentId == request.auth.uid
+            && submissionId == request.resource.data.assignmentId + '_' + request.auth.uid
+            && request.resource.data.status == 'submitted'
+            && !request.resource.data.keys().hasAny(gradeKeys()));
+
+        allow update: if (isSubTeacher()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score', 'feedback', 'gradedAt', 'status']))
+          || (isSubStudent()
+            && resource.data.studentId == request.auth.uid
+            && request.resource.data.status == 'submitted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(studentKeys()));
+
+        allow delete: if isSubTeacher();
+      }
+
       // --- Posts (teacher announcements / classroom stream) ---
       // Stored under classrooms/{classId}/posts/{postId}.
       // Only the classroom's teacher can post or delete.

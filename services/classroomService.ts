@@ -150,10 +150,14 @@ export const joinClassroom = async (
     studentId: string,
     joinCode: string,
     studentSchoolId?: string,
+    currentClassId?: string,
 ): Promise<Classroom> => {
     const classroom = await getClassroomByJoinCode(joinCode);
     if (!classroom) {
         throw new Error('Invalid join code. Please check with your teacher and try again.');
+    }
+    if (classroom.archived) {
+        throw new Error('That class has been archived. Ask your teacher for the code to their current class.');
     }
 
     // Same-school guard: if BOTH the classroom and the student are attached to a
@@ -164,16 +168,27 @@ export const joinClassroom = async (
     }
 
     const classRef = doc(db, CLASSROOMS_COLLECTION, classroom.classId);
+    const alreadyMember = Array.isArray(classroom.studentIds) && classroom.studentIds.includes(studentId);
 
-    // Add student to the classroom's studentIds array (arrayUnion = idempotent)
-    await updateDoc(classRef, {
-        studentIds: arrayUnion(studentId),
-    });
+    // Students belong to one class. Leave the old roster first, or that
+    // teacher keeps an "unknown student" they can no longer see.
+    if (currentClassId && currentClassId !== classroom.classId) {
+        await updateDoc(doc(db, CLASSROOMS_COLLECTION, currentClassId), { studentIds: arrayRemove(studentId) })
+            .catch(() => { /* the old class may have been deleted */ });
+    }
+
+    // The join rule only allows adding exactly one id, so skip the write when
+    // the student is already on the roster (e.g. rejoining after a glitch).
+    if (!alreadyMember) {
+        await updateDoc(classRef, {
+            studentIds: arrayUnion(studentId),
+        });
+    }
 
     // Write classId + role onto the student's user doc
     await setDoc(doc(db, 'users', studentId), { classId: classroom.classId, role: 'student' }, { merge: true });
 
-    return { ...classroom, studentIds: [...classroom.studentIds, studentId] };
+    return { ...classroom, studentIds: alreadyMember ? classroom.studentIds : [...classroom.studentIds, studentId] };
 };
 
 /**

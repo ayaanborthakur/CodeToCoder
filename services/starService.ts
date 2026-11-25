@@ -46,35 +46,28 @@ export const awardStarsForActivity = async (
     activityType: 'lesson' | 'quiz' | 'practice' | 'project',
     activityId: string
 ): Promise<{ awarded: boolean, amount: number, reason: string }> => {
-    const { loadClassroomProgress, loadPracticeProgress, syncClassroomProgress, syncPracticeProgress, loadAchievements } = await import('./userDataService');
+    const { loadClassroomProgress, loadPracticeProgress } = await import('./userDataService');
+    const { setDoc, arrayUnion } = await import('firebase/firestore');
+    const { userPaths } = await import('./firestorePathHelper');
 
     let isAlreadyRewarded = false;
     let rewardType = activityType;
 
-    // Quizzes in modules are often passed as 'lesson' type in App.tsx but should be rewarded as 'quiz'
-    // However, for consistency with tracking, we follow the storage structure
-    
+    // Only the "rewarded" marker is written, with arrayUnion. Writing the whole
+    // progress document back (as this used to) raced with the lesson being
+    // marked complete at the same moment and could erase that completion.
     if (activityType === 'lesson' || activityType === 'quiz') {
         const classroomData = await loadClassroomProgress(userId);
-        const rewardedLessons = classroomData?.rewardedLessons || [];
-        if (rewardedLessons.includes(activityId)) {
+        if ((classroomData?.rewardedLessons || []).includes(activityId)) {
             isAlreadyRewarded = true;
         } else {
-            // Update rewarded set in classroom progress
-            const achievements = await loadAchievements(userId);
-            await syncClassroomProgress(
-                userId, 
-                classroomData?.completedLessons || [], 
-                achievements || undefined, 
-                [...rewardedLessons, activityId]
-            );
+            await setDoc(userPaths.progress.classroom(userId), { rewardedLessons: arrayUnion(activityId) }, { merge: true });
         }
     } else {
-        // Practice types (quiz, problem, project)
-        // We need to determine the correct sub-category for storage
+        // Practice types (quiz, problem, project) are stored per category.
         const { contentService } = await import('./contentService');
         const practiceItem = await contentService.getPracticeItem(activityId);
-        
+
         let category: 'PracticeQuizzes' | 'PracticeProblems' | 'PracticeProjects' = 'PracticeProblems';
         if (practiceItem?.type === 'quiz') category = 'PracticeQuizzes';
         if (practiceItem?.type === 'project') {
@@ -83,18 +76,13 @@ export const awardStarsForActivity = async (
         }
 
         const practiceData = await loadPracticeProgress(userId, category);
-        const rewardedItems = practiceData?.rewardedItems || [];
-        
-        if (rewardedItems.includes(activityId)) {
+        if ((practiceData?.rewardedItems || []).includes(activityId)) {
             isAlreadyRewarded = true;
         } else {
-            // Update rewarded set in practice progress
-            await syncPracticeProgress(
-                userId,
-                category,
-                practiceData?.completed || [],
-                [...rewardedItems, activityId]
-            );
+            const ref = category === 'PracticeQuizzes' ? userPaths.progress.practiceQuizzes(userId)
+                : category === 'PracticeProjects' ? userPaths.progress.practiceProjects(userId)
+                : userPaths.progress.practiceProblems(userId);
+            await setDoc(ref, { rewardedItems: arrayUnion(activityId) }, { merge: true });
         }
     }
 

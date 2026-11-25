@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
     ArrowRight,
@@ -10,7 +10,6 @@ import {
     LogOut,
     ClipboardList,
     CheckCircle2,
-    ChevronDown,
     ChevronRight,
     GraduationCap,
     Users,
@@ -21,28 +20,31 @@ import {
     setUserRole,
     leaveClassroom,
 } from '../services/classroomService';
-import { listAssignmentsForStudent } from '../services/assignmentsService';
+import { assignmentPoints } from '../services/assignmentsService';
 import { listPostsForClassroom } from '../services/postsService';
-import { isAssignmentDone } from '../services/classroomProgressService';
-import type { Classroom, Post, Assignment } from '../types';
+import { isAssignmentDone, assignmentState, STATE_LABEL, STATE_TONE, type AssignmentState } from '../services/classroomProgressService';
+import type { Classroom, Post, Assignment, Submission } from '../types';
 import type { ViewState } from './Header';
 import { StreamView } from './StreamView';
 import { assignmentTitle, assignmentSubtitle, assignmentOpenPath, dueLabel } from '../utils/assignmentDisplay';
-import { Page, PageHeader, Section, Card, List, Button, Pill, EmptyState, Alert, Spinner, Field, inputClass } from './ui';
+import { Page, PageHeader, Section, Card, List, Button, Pill, EmptyState, Alert, Spinner, Field, inputClass, RouteTabs } from './ui';
 
 interface ClassroomHubProps {
     onNavigate: (view: ViewState) => void;
     completedLessons: Set<string>;
     completedPracticeItems: Set<string>;
+    /** The student's assignments and submissions, loaded once by App. */
+    assignments: Assignment[];
+    submissions: Map<string, Submission>;
+    onReloadAssignments: () => void;
 }
 
-export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, completedLessons, completedPracticeItems }) => {
+export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, completedLessons, completedPracticeItems, assignments, submissions, onReloadAssignments }) => {
     const { user, refreshUser } = useAuth();
 
     const [settingRole, setSettingRole] = useState(false);
     const [classroom, setClassroom] = useState<Classroom | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
-    const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [classLoading, setClassLoading] = useState(!!user?.classId);
     const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -53,12 +55,8 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, complete
             const cls = await getClassroom(user.classId);
             setClassroom(cls);
             if (cls) {
-                const [postList, assignmentList] = await Promise.all([
-                    listPostsForClassroom(cls.classId),
-                    listAssignmentsForStudent(user.id, cls.classId),
-                ]);
-                setPosts(postList);
-                setAssignments(assignmentList);
+                setPosts(await listPostsForClassroom(cls.classId));
+                onReloadAssignments();
             }
             setLoadError(null);
         } catch (e: unknown) {
@@ -66,7 +64,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, complete
         } finally {
             setClassLoading(false);
         }
-    }, [user?.classId, user?.id]);
+    }, [user?.classId, user?.id, onReloadAssignments]);
 
     useEffect(() => { loadClassroom(); }, [loadClassroom]);
 
@@ -120,6 +118,7 @@ export const ClassroomHub: React.FC<ClassroomHubProps> = ({ onNavigate, complete
                 classroom={classroom}
                 posts={posts}
                 assignments={assignments}
+                submissions={submissions}
                 completedLessons={completedLessons}
                 completedPracticeItems={completedPracticeItems}
                 onLeft={async () => { await refreshUser(); setClassroom(null); }}
@@ -147,7 +146,7 @@ const JoinClass: React.FC<{ error: string | null; onJoined: () => Promise<void> 
         setJoining(true);
         setJoinError(null);
         try {
-            await joinClassroom(user.id, code.trim(), user.schoolJoinPending ? undefined : user.schoolId);
+            await joinClassroom(user.id, code.trim(), user.schoolJoinPending ? undefined : user.schoolId, user.classId || undefined);
             await onJoined();
         } catch (err: unknown) {
             setJoinError(err instanceof Error ? err.message : "That code didn't work. Check it with your teacher.");
@@ -220,20 +219,23 @@ const StudentClassPage: React.FC<{
     classroom: Classroom;
     posts: Post[];
     assignments: Assignment[];
+    submissions: Map<string, Submission>;
     completedLessons: Set<string>;
     completedPracticeItems: Set<string>;
     onLeft: () => Promise<void>;
-}> = ({ classroom, posts, assignments, completedLessons, completedPracticeItems, onLeft }) => {
+}> = ({ classroom, posts, assignments, submissions, completedLessons, completedPracticeItems, onLeft }) => {
     const { user } = useAuth();
-    const [showDone, setShowDone] = useState(false);
+    const { tab } = useParams<{ tab?: string }>();
     const [codeCopied, setCodeCopied] = useState(false);
     const [leaving, setLeaving] = useState(false);
 
-    const { todo, done } = useMemo(() => {
-        const byDue = [...assignments].sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity));
-        const isDone = (a: Assignment) => isAssignmentDone(a, completedLessons, completedPracticeItems);
-        return { todo: byDue.filter(a => !isDone(a)), done: byDue.filter(isDone) };
-    }, [assignments, completedLessons, completedPracticeItems]);
+    const rows = useMemo(() => assignments
+        .map(a => {
+            const sub = submissions.get(a.id);
+            return { a, sub, state: assignmentState(a, sub, isAssignmentDone(a, completedLessons, completedPracticeItems)) };
+        })
+        .sort((x, y) => (x.a.dueAt ?? Infinity) - (y.a.dueAt ?? Infinity)),
+    [assignments, submissions, completedLessons, completedPracticeItems]);
 
     const classmates = Array.isArray(classroom.studentIds) ? classroom.studentIds.length : 0;
 
@@ -256,52 +258,32 @@ const StudentClassPage: React.FC<{
         setTimeout(() => setCodeCopied(false), 2000);
     };
 
+    const toGrade = rows.filter(r => r.state === 'missing' || r.state === 'todo').length;
+
     return (
         <Page width="default">
-            <PageHeader
-                eyebrow="Your class"
-                title={classroom.className}
-                description={`Taught by ${classroom.teacherName}`}
-            />
+            <PageHeader eyebrow="Your class" title={classroom.className} description={`Taught by ${classroom.teacherName}`} />
             <SchoolPending />
+            <RouteTabs
+                className="mb-6"
+                tabs={[
+                    { to: '/classroom', label: 'Assignments', count: toGrade, end: true },
+                    { to: '/classroom/grades', label: 'Grades' },
+                    { to: '/classroom/announcements', label: 'Announcements', count: posts.length },
+                ]}
+            />
 
-            <div className="grid lg:grid-cols-[minmax(0,1fr)_280px] gap-8">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_260px] gap-8">
                 <div className="min-w-0">
-                    <Section title={todo.length ? `To do (${todo.length})` : 'To do'}>
-                        {todo.length === 0 ? (
-                            <EmptyState
-                                icon={<CheckCircle2 className="w-5 h-5" />}
-                                title={assignments.length ? "You're all caught up" : 'Nothing assigned yet'}
-                                description={assignments.length
-                                    ? 'Every assignment is finished. Nice work.'
-                                    : 'When your teacher assigns a lesson or practice, it shows up here.'}
-                            />
-                        ) : (
-                            <List>{todo.map(a => <AssignmentRow key={a.id} assignment={a} done={false} />)}</List>
-                        )}
-                    </Section>
-
-                    {done.length > 0 && (
-                        <Section>
-                            <button
-                                onClick={() => setShowDone(s => !s)}
-                                className="no-hover flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                                aria-expanded={showDone}
-                            >
-                                {showDone ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                Finished ({done.length})
-                            </button>
-                            {showDone && <List className="mt-3">{done.map(a => <AssignmentRow key={a.id} assignment={a} done />)}</List>}
-                        </Section>
+                    {tab === 'grades' ? (
+                        <GradesView rows={rows} />
+                    ) : tab === 'announcements' ? (
+                        posts.length === 0
+                            ? <EmptyState icon={<ClipboardList className="w-5 h-5" />} title="No announcements yet" />
+                            : <StreamView posts={posts} assignments={[]} canPost={false} classroomId={classroom.classId} isClassTeacher={false} />
+                    ) : (
+                        <AssignmentsView rows={rows} />
                     )}
-
-                    <Section title="Announcements">
-                        {posts.length === 0 ? (
-                            <EmptyState icon={<ClipboardList className="w-5 h-5" />} title="No announcements yet" />
-                        ) : (
-                            <StreamView posts={posts} assignments={[]} canPost={false} classroomId={classroom.classId} isClassTeacher={false} />
-                        )}
-                    </Section>
                 </div>
 
                 <aside className="space-y-4">
@@ -336,21 +318,100 @@ const StudentClassPage: React.FC<{
     );
 };
 
-const AssignmentRow: React.FC<{ assignment: Assignment; done: boolean }> = ({ assignment: a, done }) => {
+type Row = { a: Assignment; sub: Submission | undefined; state: AssignmentState };
+
+const AssignmentsView: React.FC<{ rows: Row[] }> = ({ rows }) => {
+    const groups: { title: string; rows: Row[]; empty?: string }[] = [
+        { title: 'Past due', rows: rows.filter(r => r.state === 'missing') },
+        { title: 'Upcoming', rows: rows.filter(r => r.state === 'todo'), empty: rows.length ? 'Nothing left to hand in.' : undefined },
+        { title: 'Waiting for a grade', rows: rows.filter(r => r.state === 'submitted' || r.state === 'late') },
+        { title: 'Graded', rows: rows.filter(r => r.state === 'graded') },
+    ];
+    if (rows.length === 0) {
+        return <EmptyState icon={<CheckCircle2 className="w-5 h-5" />} title="Nothing assigned yet" description="When your teacher assigns a lesson or practice, it shows up here." />;
+    }
+    return (
+        <>
+            {groups.filter(g => g.rows.length > 0 || g.empty).map(g => (
+                <Section key={g.title} title={`${g.title}${g.rows.length ? ` (${g.rows.length})` : ''}`}>
+                    {g.rows.length === 0
+                        ? <p className="text-sm text-gray-500 dark:text-gray-400">{g.empty}</p>
+                        : <List>{g.rows.map(r => <AssignmentRow key={r.a.id} row={r} />)}</List>}
+                </Section>
+            ))}
+        </>
+    );
+};
+
+const AssignmentRow: React.FC<{ row: Row }> = ({ row: { a, sub, state } }) => {
     const due = dueLabel(a.dueAt);
+    const points = assignmentPoints(a);
+    const finished = state === 'graded' || state === 'submitted' || state === 'late';
     return (
         <li>
             <Link to={assignmentOpenPath(a)} className="no-hover flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40 group">
-                {done
-                    ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" aria-label="Finished" />
-                    : <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" aria-label="Not finished" />}
+                {finished
+                    ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" aria-hidden="true" />
+                    : <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" aria-hidden="true" />}
                 <div className="min-w-0 flex-1">
-                    <div className={`font-semibold truncate ${done ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>{assignmentTitle(a)}</div>
-                    {assignmentSubtitle(a) && <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{assignmentSubtitle(a)}</div>}
+                    <div className="font-semibold truncate text-gray-900 dark:text-white">{assignmentTitle(a)}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {[assignmentSubtitle(a), a.dueAt ? `Due ${new Date(a.dueAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : 'No due date'].filter(Boolean).join(' · ')}
+                    </div>
                 </div>
-                {!done && <Pill tone={due.tone}>{due.text}</Pill>}
+                {state === 'graded' && typeof sub?.score === 'number'
+                    ? <span className="font-semibold tabular-nums text-gray-900 dark:text-white">{sub.score}/{points}</span>
+                    : state === 'todo' ? <Pill tone={due.tone}>{due.text}</Pill> : <Pill tone={STATE_TONE[state]}>{STATE_LABEL[state]}</Pill>}
                 <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-cyan-500 flex-shrink-0" aria-hidden="true" />
             </Link>
         </li>
+    );
+};
+
+const GradesView: React.FC<{ rows: Row[] }> = ({ rows }) => {
+    // Graded work counts; missing work counts as zero, like the teacher's gradebook.
+    let earned = 0;
+    let possible = 0;
+    rows.forEach(r => {
+        if (r.state === 'graded' && typeof r.sub?.score === 'number') { earned += r.sub.score; possible += assignmentPoints(r.a); }
+        else if (r.state === 'missing') possible += assignmentPoints(r.a);
+    });
+    const total = possible > 0 ? Math.round((earned / possible) * 100) : null;
+
+    if (rows.length === 0) return <EmptyState title="No grades yet" description="Grades show up here after your teacher reviews your work." />;
+
+    return (
+        <>
+            <Card className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                    <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Overall</div>
+                    <div className="text-3xl font-bold tabular-nums text-gray-900 dark:text-white">{total === null ? '—' : `${total}%`}</div>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-right max-w-xs">
+                    {possible > 0 ? `${Math.round(earned * 10) / 10} of ${possible} points so far. Missing work counts as zero.` : 'Your overall grade appears once something is graded.'}
+                </p>
+            </Card>
+            <List>
+                {rows.map(({ a, sub, state }) => (
+                    <li key={a.id} className="px-5 py-4">
+                        <div className="flex items-center gap-4">
+                            <div className="min-w-0 flex-1">
+                                <Link to={assignmentOpenPath(a)} className="font-semibold text-gray-900 dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 truncate block">{assignmentTitle(a)}</Link>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">{a.dueAt ? `Due ${new Date(a.dueAt).toLocaleDateString()}` : 'No due date'}</div>
+                            </div>
+                            <Pill tone={STATE_TONE[state]}>{STATE_LABEL[state]}</Pill>
+                            <span className="w-20 text-right font-semibold tabular-nums text-gray-900 dark:text-white">
+                                {typeof sub?.score === 'number' ? `${sub.score} / ${assignmentPoints(a)}` : `– / ${assignmentPoints(a)}`}
+                            </span>
+                        </div>
+                        {sub?.feedback && (
+                            <p className="mt-2 rounded-lg bg-gray-50 dark:bg-gray-900/60 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                <span className="font-semibold">Feedback: </span>{sub.feedback}
+                            </p>
+                        )}
+                    </li>
+                ))}
+            </List>
+        </>
     );
 };

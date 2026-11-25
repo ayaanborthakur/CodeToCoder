@@ -16,6 +16,21 @@ import type { Assignment, PracticeItem } from '../types';
 //   classrooms/{classroomId}/assignments/{assignmentId}
 const ASSIGNMENTS_SUBCOLLECTION = 'assignments';
 
+/** Points for an assignment when the teacher doesn't choose. */
+export const DEFAULT_POINTS = 10;
+
+/** An assignment's maximum score (older assignments have none stored). */
+export const assignmentPoints = (a: Assignment): number => a.points ?? DEFAULT_POINTS;
+
+/** Teacher changes an assignment's due date or points. */
+export const updateAssignment = async (
+    classroomId: string,
+    assignmentId: string,
+    patch: { dueAt?: number | null; points?: number },
+): Promise<void> => {
+    await setDoc(doc(db, 'classrooms', classroomId, ASSIGNMENTS_SUBCOLLECTION, assignmentId), patch, { merge: true });
+};
+
 const assignmentsRef = (classroomId: string) =>
     collection(db, 'classrooms', classroomId, ASSIGNMENTS_SUBCOLLECTION);
 
@@ -33,6 +48,7 @@ export const createAssignment = async (input: {
     lessonTitle: string;
     dueAt: number | null;
     studentIds: string[] | null;
+    points?: number;
 }): Promise<Assignment> => {
     const ref = doc(assignmentsRef(input.classroomId));
     const assignment: Assignment = {
@@ -48,6 +64,7 @@ export const createAssignment = async (input: {
         assignedAt: Date.now(),
         dueAt: input.dueAt,
         studentIds: input.studentIds,
+        points: input.points ?? DEFAULT_POINTS,
     };
     await setDoc(ref, assignment);
     return assignment;
@@ -65,6 +82,8 @@ export const createPracticeAssignment = async (input: {
     practiceItem: PracticeItem;
     dueAt: number | null;
     studentIds: string[] | null;
+    points?: number;
+    custom?: boolean;
 }): Promise<Assignment> => {
     const ref = doc(assignmentsRef(input.classroomId));
     const assignment: Assignment = {
@@ -76,6 +95,8 @@ export const createPracticeAssignment = async (input: {
         assignedAt: Date.now(),
         dueAt: input.dueAt,
         studentIds: input.studentIds,
+        points: input.points ?? DEFAULT_POINTS,
+        ...(input.custom ? { custom: true } : {}),
     };
     await setDoc(ref, assignment);
     return assignment;

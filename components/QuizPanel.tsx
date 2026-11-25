@@ -8,6 +8,8 @@ import remarkGfm from 'remark-gfm';
 interface QuizPanelProps {
     questions: QuizQuestion[];
     onComplete: () => void;
+    /** Called after every attempt with how many answers were right. */
+    onScored?: (correct: number, total: number) => void;
     isCollapsed: boolean;
     onToggleCollapse: () => void;
     id?: string;
@@ -16,7 +18,7 @@ interface QuizPanelProps {
 
 import { CheckCircle2, XCircle } from 'lucide-react';
 
-export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isCollapsed, onToggleCollapse, id, title }) => {
+export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, onScored, isCollapsed, onToggleCollapse, id, title }) => {
     const [answers, setAnswers] = useState<Record<string, number>>({});
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState<number | null>(null);
@@ -38,6 +40,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, isC
         const finalScore = (correctCount / questions.length) * 100;
         setScore(finalScore);
         setSubmitted(true);
+        onScored?.(correctCount, questions.length);
 
         // Log Activity
         try {

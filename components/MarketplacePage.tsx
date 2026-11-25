@@ -85,7 +85,9 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
             }
         } catch (error) {
             console.error('Failed to purchase pack:', error);
-            alert('Failed to purchase pack. Please try again.');
+            alert(error instanceof Error && error.message === 'Insufficient stars'
+                ? "You don't have enough stars for this pack yet."
+                : "Couldn't buy the pack. Check your connection and try again.");
         } finally {
             setPurchasingPack(null);
         }
