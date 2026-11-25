@@ -19,16 +19,9 @@ body {
 }
 
 /* Reading size. Most of the app is sized in rem, so this one value scales
-   text, spacing and click targets together: 17px on phones, 18px from
-   tablets up. Research on screen reading puts body text for students at
-   16px minimum and 18px+ preferred. */
+   text, spacing and click targets together. 16px, the browser default. */
 html {
-  font-size: 106.25%;
-}
-@media (min-width: 640px) {
-  html {
-    font-size: 112.5%;
-  }
+  font-size: 100%;
 }
 
 button {
