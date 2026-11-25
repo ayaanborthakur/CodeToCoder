@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ArrowRight, Zap, Brain, Shield, GraduationCap } from 'lucide-react';
+import { ArrowRight, Zap, Brain, Shield, Mail } from 'lucide-react';
 import { ContactModal } from './ContactModal';
-import { RegisterSchoolDialog } from './RegisterSchoolDialog';
+import { INQUIRIES_EMAIL, RegisterSchoolForm } from './RegisterSchoolDialog';
 import { AnimatedCodeBlock } from './AnimatedCodeBlock';
 import { ViewState } from './Header';
 import FooterLogo from '../assets/FooterLogo.svg?react';
@@ -39,7 +39,6 @@ const CURRICULUM = [
 
 export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate }) => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-    const [registerOpen, setRegisterOpen] = useState(false);
 
     return (
         <div className="mission-page min-h-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans antialiased">
@@ -94,13 +93,6 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             >
                                 Start coding
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-                            </button>
-                            <button
-                                onClick={() => setRegisterOpen(true)}
-                                className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                            >
-                                <GraduationCap className="w-5 h-5" />
-                                Register your school
                             </button>
                         </div>
 
@@ -200,8 +192,35 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                 </div>
             </section>
 
+            <section id="register-school" className="relative z-10 px-6 py-24 md:py-28 border-t border-gray-200 dark:border-gray-700 scroll-mt-8">
+                <div className="max-w-6xl mx-auto grid md:grid-cols-[1fr_1.3fr] gap-12 md:gap-16 items-start">
+                    <div>
+                        <div className="text-xs font-semibold tracking-[0.08em] uppercase text-cyan-600 dark:text-cyan-400 mb-5">
+                            For schools
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white leading-[1.1]">
+                            Register your school
+                        </h2>
+                        <p className="mt-5 text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+                            Code2Coder is free for every school. Teachers get classes, assignments, grading and a gradebook. Tell us about yours and we’ll get you set up.
+                        </p>
+                        <div className="mt-8 flex items-start gap-3">
+                            <span className="w-10 h-10 rounded-xl bg-cyan-500/10 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 dark:border-cyan-400/20 flex items-center justify-center flex-shrink-0">
+                                <Mail className="w-5 h-5" strokeWidth={1.75} />
+                            </span>
+                            <div>
+                                <div className="text-sm font-semibold text-gray-900 dark:text-white">For inquiries</div>
+                                <a href={`mailto:${INQUIRIES_EMAIL}`} className="text-base font-medium text-cyan-600 dark:text-cyan-400 hover:underline">{INQUIRIES_EMAIL}</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-6 md:p-8 shadow-sm">
+                        <RegisterSchoolForm compact />
+                    </div>
+                </div>
+            </section>
+
             <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
-            {registerOpen && <RegisterSchoolDialog onClose={() => setRegisterOpen(false)} />}
 
             <footer className="relative z-10 border-t border-gray-200 dark:border-gray-700 px-6 pt-20 pb-12">
                 <div className="max-w-7xl mx-auto">
@@ -213,6 +232,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 max-w-sm leading-relaxed">
                                 Free Python education for everyone. Built by students at Bellarmine College Preparatory.
+                                <span className="block mt-3">Inquiries: <a href={`mailto:${INQUIRIES_EMAIL}`} className="text-cyan-600 dark:text-cyan-400 hover:underline">{INQUIRIES_EMAIL}</a></span>
                             </p>
                         </div>
 
@@ -231,7 +251,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 </li>
                                 <li>
                                     <button
-                                        onClick={() => setRegisterOpen(true)}
+                                        onClick={() => document.getElementById('register-school')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                                         className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
                                         Register your school
