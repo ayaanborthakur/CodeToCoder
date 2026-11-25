@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, BookPlus, CalendarDays, ClipboardCheck, Megaphone, Plus, QrCode, Users } from 'lucide-react';
+import { AlertTriangle, ArrowRight, BookPlus, CalendarDays, ClipboardCheck, Clock, HeartHandshake, Inbox, Megaphone, Plus, QrCode, Users } from 'lucide-react';
 import type { TeacherClassData } from '../hooks/useTeacherClasses';
 import type { StudentProgress } from '../services/classroomProgressService';
 import { assignmentState, assignmentTargets, isAssignmentDone, loadClassroomStudents } from '../services/classroomProgressService';
@@ -10,6 +10,28 @@ import { timeAgo } from '../utils/classroomTime';
 import { Avatar, Card, EmptyState, ProgressBar } from './ui';
 
 const DAY = 24 * 60 * 60 * 1000;
+
+type Hue = 'cyan' | 'red' | 'green' | 'violet' | 'amber' | 'blue';
+// Full class names so Tailwind keeps them.
+const CHIP: Record<Hue, string> = {
+    cyan: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+    red: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+    green: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+    violet: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300',
+    amber: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
+    blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+};
+const TILE: Record<Hue, string> = {
+    cyan: 'hover:border-cyan-500 bg-gradient-to-br from-white to-cyan-50 dark:from-gray-800 dark:to-cyan-950/40',
+    red: 'hover:border-red-500 bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-red-950/40',
+    green: 'hover:border-green-500 bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-950/40',
+    violet: 'hover:border-violet-500 bg-gradient-to-br from-white to-violet-50 dark:from-gray-800 dark:to-violet-950/40',
+    amber: 'hover:border-amber-500 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-950/40',
+    blue: 'hover:border-blue-500 bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-950/40',
+};
+// Each class gets its own color, in the order they're listed.
+const CLASS_COLORS = ['from-cyan-500 to-blue-600', 'from-violet-500 to-fuchsia-600', 'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600', 'from-rose-500 to-pink-600', 'from-sky-500 to-indigo-600'];
+const CLASS_CHIP: Hue[] = ['cyan', 'violet', 'green', 'amber', 'red', 'blue'];
 
 interface ClassStats {
     missing: number;
@@ -110,16 +132,40 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
 
     return (
         <div className="space-y-8">
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-sky-600 to-indigo-600 text-white p-6 sm:p-8 flex flex-wrap items-center gap-6">
+                <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 w-72 h-72 rounded-full bg-white/10" />
+                <div aria-hidden="true" className="pointer-events-none absolute right-40 -bottom-24 w-56 h-56 rounded-full bg-white/10" />
+                <div className="relative flex-1 min-w-[16rem]">
+                    <div className="text-sm font-semibold text-cyan-100">{teacherClasses.length} {teacherClasses.length === 1 ? 'class' : 'classes'} · {totalStudents} {totalStudents === 1 ? 'student' : 'students'}</div>
+                    <h2 className="mt-1 text-2xl sm:text-3xl font-bold">
+                        {waiting.length > 0
+                            ? `${waiting.length} ${waiting.length === 1 ? 'submission is' : 'submissions are'} ready to grade`
+                            : upcoming.length > 0 ? `You're caught up. ${upcoming.length} due this week.` : "You're all caught up"}
+                    </h2>
+                    <p className="mt-1 text-cyan-50/90">
+                        {waiting.length > 0
+                            ? `Oldest handed in ${timeAgo(waiting[0].s.submittedAt, now).toLowerCase()}.`
+                            : 'New work shows up here as students hand it in.'}
+                    </p>
+                </div>
+                <Link
+                    to={waiting.length > 0 ? '/grading' : one ? `/teacher/${first}/assignments/new` : '/lessons'}
+                    className="relative no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-cyan-800 hover:bg-cyan-50 text-lg font-semibold shadow-sm"
+                >
+                    {waiting.length > 0 ? 'Start grading' : 'Assign something'} <ArrowRight className="w-5 h-5" />
+                </Link>
+            </section>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatTile to="/grading" icon={<ClipboardCheck className="w-5 h-5" />} label="To grade" value={waiting.length} tone={waiting.length ? 'accent' : undefined} />
-                <StatTile to={one ? `/teacher/${first}/gradebook` : '/teacher'} icon={<AlertTriangle className="w-5 h-5" />} label="Missing work" value={pending ?? missing} tone={missing ? 'danger' : undefined} />
-                <StatTile to={one ? `/teacher/${first}/activity` : '/teacher'} icon={<Users className="w-5 h-5" />} label="Active today" value={pending ?? `${activeToday} / ${totalStudents}`} />
-                <StatTile to="/calendar" icon={<CalendarDays className="w-5 h-5" />} label="Due this week" value={upcoming.length} />
+                <StatTile to="/grading" hue="cyan" icon={<ClipboardCheck className="w-5 h-5" />} label="To grade" value={waiting.length} />
+                <StatTile to={one ? `/teacher/${first}/gradebook` : '/teacher'} hue="red" icon={<AlertTriangle className="w-5 h-5" />} label="Missing work" value={pending ?? missing} />
+                <StatTile to={one ? `/teacher/${first}/activity` : '/teacher'} hue="green" icon={<Users className="w-5 h-5" />} label="Active today" value={pending ?? `${activeToday} / ${totalStudents}`} />
+                <StatTile to="/calendar" hue="violet" icon={<CalendarDays className="w-5 h-5" />} label="Due this week" value={upcoming.length} />
             </div>
 
             <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
                 <div className="space-y-8 min-w-0">
-                    <Panel title="Ready to grade" action={waiting.length > 0 ? <Link to="/grading" className="text-sm font-semibold">See all {waiting.length}</Link> : undefined}>
+                    <Panel title="Ready to grade" hue="cyan" icon={<Inbox className="w-4 h-4" />} action={waiting.length > 0 ? <Link to="/grading" className="text-sm font-semibold">See all {waiting.length}</Link> : undefined}>
                         {waiting.length === 0 ? (
                             <p className="px-5 py-5 text-gray-600 dark:text-gray-400">You're all caught up. New work shows up here as students hand it in.</p>
                         ) : (
@@ -141,7 +187,7 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                         )}
                     </Panel>
 
-                    <Panel title="Students to check on">
+                    <Panel title="Students to check on" hue="red" icon={<HeartHandshake className="w-4 h-4" />}>
                         {loadingStudents ? (
                             <p className="px-5 py-5 text-gray-600 dark:text-gray-400">Loading students…</p>
                         ) : attention.length === 0 ? (
@@ -173,17 +219,22 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                             <Link to="/teacher" className="text-sm font-semibold">Manage classes</Link>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
-                            {teacherClasses.map(c => {
+                            {teacherClasses.map((c, ci) => {
                                 const { classroom, assignments, submissions } = c;
                                 const st = stats.get(classroom.classId);
                                 const toGrade = submissions.filter(s => s.status === 'submitted' && s.submittedAt > 0 && live(c).has(s.assignmentId)).length;
                                 const count = classroom.studentIds?.length ?? 0;
                                 const base = `/teacher/${classroom.classId}`;
                                 return (
-                                    <Card key={classroom.classId} className="flex flex-col gap-4">
-                                        <Link to={`${base}/overview`} className="no-hover block">
+                                    <Card key={classroom.classId} padded={false} className="overflow-hidden flex flex-col">
+                                        <div className={`h-2 bg-gradient-to-r ${CLASS_COLORS[ci % CLASS_COLORS.length]}`} aria-hidden="true" />
+                                        <div className="p-5 flex flex-col gap-4">
+                                        <Link to={`${base}/overview`} className="no-hover flex items-start gap-3">
+                                            <span className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${CHIP[CLASS_CHIP[ci % CLASS_CHIP.length]]}`} aria-hidden="true">{classroom.className.trim().charAt(0).toUpperCase()}</span>
+                                            <span className="min-w-0">
                                             <span className="block text-xl font-bold text-gray-900 dark:text-white hover:text-cyan-700 dark:hover:text-cyan-400">{classroom.className}</span>
                                             <span className="block text-gray-600 dark:text-gray-400">{count} {count === 1 ? 'student' : 'students'} · {assignments.length} {assignments.length === 1 ? 'assignment' : 'assignments'} · code <span className="font-mono font-semibold tracking-wider">{classroom.joinCode}</span></span>
+                                            </span>
                                         </Link>
                                         <div>
                                             <div className="flex justify-between text-sm mb-1.5">
@@ -197,6 +248,7 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                                             <ClassLink to={`${base}/gradebook`}>Gradebook</ClassLink>
                                             <ClassLink to={`${base}/activity`}>Live activity</ClassLink>
                                         </div>
+                                        </div>
                                     </Card>
                                 );
                             })}
@@ -205,16 +257,16 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                 </div>
 
                 <aside className="space-y-6">
-                    <Panel title="Quick actions">
+                    <Panel title="Quick actions" hue="amber" icon={<Plus className="w-4 h-4" />}>
                         <div className="grid grid-cols-2 gap-2 p-4">
-                            <QuickAction to={one ? `/teacher/${first}/assignments/new` : '/lessons'} icon={<BookPlus className="w-5 h-5" />}>Assign a lesson</QuickAction>
-                            <QuickAction to={one ? `/teacher/${first}/stream` : '/teacher'} icon={<Megaphone className="w-5 h-5" />}>Post an announcement</QuickAction>
-                            <QuickAction to={one ? `/teacher/${first}/students` : '/teacher'} icon={<QrCode className="w-5 h-5" />}>Add students</QuickAction>
-                            <QuickAction to="/teacher" icon={<Plus className="w-5 h-5" />}>New class</QuickAction>
+                            <QuickAction hue="cyan" to={one ? `/teacher/${first}/assignments/new` : '/lessons'} icon={<BookPlus className="w-5 h-5" />}>Assign a lesson</QuickAction>
+                            <QuickAction hue="violet" to={one ? `/teacher/${first}/stream` : '/teacher'} icon={<Megaphone className="w-5 h-5" />}>Post an announcement</QuickAction>
+                            <QuickAction hue="green" to={one ? `/teacher/${first}/students` : '/teacher'} icon={<QrCode className="w-5 h-5" />}>Add students</QuickAction>
+                            <QuickAction hue="amber" to="/teacher" icon={<Plus className="w-5 h-5" />}>New class</QuickAction>
                         </div>
                     </Panel>
 
-                    <Panel title="Due this week" action={<Link to="/calendar" className="text-sm font-semibold">Calendar</Link>}>
+                    <Panel title="Due this week" hue="violet" icon={<CalendarDays className="w-4 h-4" />} action={<Link to="/calendar" className="text-sm font-semibold">Calendar</Link>}>
                         {upcoming.length === 0 ? (
                             <p className="px-5 py-5 text-gray-600 dark:text-gray-400">Nothing due in the next 7 days.</p>
                         ) : (
@@ -235,7 +287,7 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                         )}
                     </Panel>
 
-                    <Panel title="Recently handed in">
+                    <Panel title="Recently handed in" hue="green" icon={<Clock className="w-4 h-4" />}>
                         {recent.length === 0 ? (
                             <p className="px-5 py-5 text-gray-600 dark:text-gray-400">No work handed in yet.</p>
                         ) : (
@@ -257,18 +309,21 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
     );
 };
 
-const StatTile: React.FC<{ to: string; icon: React.ReactNode; label: string; value: React.ReactNode; tone?: 'accent' | 'danger' }> = ({ to, icon, label, value, tone }) => (
-    <Link to={to} className="no-hover rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-cyan-600 p-5">
-        <span className={`flex items-center gap-2 text-sm font-semibold ${tone === 'danger' ? 'text-red-700 dark:text-red-400' : tone === 'accent' ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-600 dark:text-gray-400'}`}>{icon}{label}</span>
-        <span className="block mt-2 text-3xl font-bold tabular-nums text-gray-900 dark:text-white">{value}</span>
+const StatTile: React.FC<{ to: string; hue: Hue; icon: React.ReactNode; label: string; value: React.ReactNode }> = ({ to, hue, icon, label, value }) => (
+    <Link to={to} className={`no-hover rounded-2xl border border-gray-200 dark:border-gray-700 p-5 ${TILE[hue]}`}>
+        <span className="flex items-center gap-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300">
+            <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${CHIP[hue]}`}>{icon}</span>{label}
+        </span>
+        <span className="block mt-3 text-3xl font-bold tabular-nums text-gray-900 dark:text-white">{value}</span>
     </Link>
 );
 
-const Panel: React.FC<{ title: string; action?: React.ReactNode; children: React.ReactNode }> = ({ title, action, children }) => (
+const Panel: React.FC<{ title: string; hue: Hue; icon: React.ReactNode; action?: React.ReactNode; children: React.ReactNode }> = ({ title, hue, icon, action, children }) => (
     <Card padded={false} className="overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center ${CHIP[hue]}`} aria-hidden="true">{icon}</span>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
-            {action}
+            {action && <span className="ml-auto">{action}</span>}
         </div>
         {children}
     </Card>
@@ -282,9 +337,9 @@ const ClassLink: React.FC<{ to: string; highlight?: boolean; children: React.Rea
     <Link to={to} className={`no-hover px-3 py-1.5 rounded-lg font-semibold border ${highlight ? 'bg-cyan-700 text-white border-cyan-700 hover:bg-cyan-800' : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>{children}</Link>
 );
 
-const QuickAction: React.FC<{ to: string; icon: React.ReactNode; children: React.ReactNode }> = ({ to, icon, children }) => (
-    <Link to={to} className="no-hover flex flex-col items-start gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3 hover:border-cyan-600 hover:bg-cyan-50/50 dark:hover:bg-cyan-900/20">
-        <span className="text-cyan-700 dark:text-cyan-400">{icon}</span>
+const QuickAction: React.FC<{ to: string; hue: Hue; icon: React.ReactNode; children: React.ReactNode }> = ({ to, hue, icon, children }) => (
+    <Link to={to} className={`no-hover flex flex-col items-start gap-2 rounded-xl border border-gray-200 dark:border-gray-700 p-3 ${TILE[hue]}`}>
+        <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${CHIP[hue]}`}>{icon}</span>
         <span className="text-sm font-semibold text-gray-900 dark:text-white leading-snug">{children}</span>
     </Link>
 );
