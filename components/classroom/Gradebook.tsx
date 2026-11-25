@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
-import type { Assignment, Submission } from '../../types';
+import type { Assignment, Module, Submission } from '../../types';
 import type { AssignmentState, StudentProgress } from '../../services/classroomProgressService';
 import { assignmentState, assignmentTargets, isAssignmentDone } from '../../services/classroomProgressService';
 import { assignmentPoints } from '../../services/assignmentsService';
@@ -10,6 +10,24 @@ import { assignmentTitle } from '../../utils/assignmentDisplay';
 import { Button, EmptyState } from '../ui';
 
 interface Cell { state: AssignmentState | 'not-assigned'; score: number | null }
+
+// CodeHS-style status colours, so a teacher can read the grid at a glance.
+const CELL_TONE: Record<Cell['state'], string> = {
+    graded: 'bg-green-50 dark:bg-green-900/25',
+    submitted: 'bg-cyan-50 dark:bg-cyan-900/30',
+    late: 'bg-amber-50 dark:bg-amber-900/25',
+    missing: 'bg-red-50 dark:bg-red-900/25',
+    todo: '',
+    'not-assigned': 'bg-gray-50 dark:bg-gray-900/40',
+};
+const LEGEND: { state: Cell['state']; label: string; swatch: string }[] = [
+    { state: 'graded', label: 'Graded', swatch: 'bg-green-100 border-green-300 dark:bg-green-900/50 dark:border-green-700' },
+    { state: 'submitted', label: 'To grade', swatch: 'bg-cyan-100 border-cyan-300 dark:bg-cyan-900/50 dark:border-cyan-700' },
+    { state: 'late', label: 'Late', swatch: 'bg-amber-100 border-amber-300 dark:bg-amber-900/50 dark:border-amber-700' },
+    { state: 'missing', label: 'Missing', swatch: 'bg-red-100 border-red-300 dark:bg-red-900/50 dark:border-red-700' },
+    { state: 'todo', label: 'Not started', swatch: 'bg-white border-gray-300 dark:bg-gray-800 dark:border-gray-600' },
+];
+const PRACTICE = '__practice';
 
 const pct = (earned: number, possible: number) => (possible > 0 ? Math.round((earned / possible) * 100) : null);
 
@@ -23,11 +41,24 @@ export const Gradebook: React.FC<{
     assignments: Assignment[];
     students: StudentProgress[];
     submissions: Map<string, Submission>;
-}> = ({ base, className, assignments, students, submissions }) => {
+    modules?: Module[];
+}> = ({ base, className, assignments, students, submissions, modules = [] }) => {
     const navigate = useNavigate();
+    const [filter, setFilter] = useState('');
+    const moduleOf = (a: Assignment) => (a.kind === 'practice' ? PRACTICE : a.moduleId ?? modules.find(m => m.lessons.some(l => l.id === a.lessonId))?.id ?? '');
+    const filters = useMemo(() => {
+        const used = new Set(assignments.map(moduleOf));
+        const list = modules.filter(m => used.has(m.id)).map(m => ({ id: m.id, title: m.title }));
+        if (used.has(PRACTICE)) list.push({ id: PRACTICE, title: 'Practice' });
+        return list;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignments, modules]);
     const columns = useMemo(
-        () => [...assignments].sort((a, b) => (a.dueAt ?? a.assignedAt) - (b.dueAt ?? b.assignedAt)),
-        [assignments],
+        () => [...assignments]
+            .filter(a => !filter || moduleOf(a) === filter)
+            .sort((a, b) => (a.dueAt ?? a.assignedAt) - (b.dueAt ?? b.assignedAt)),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [assignments, filter, modules],
     );
 
     const grid = useMemo(() => students.map(s => {
@@ -71,10 +102,10 @@ export const Gradebook: React.FC<{
         URL.revokeObjectURL(url);
     };
 
-    if (columns.length === 0 || students.length === 0) {
+    if (assignments.length === 0 || students.length === 0) {
         return (
             <EmptyState
-                title={columns.length === 0 ? 'No assignments yet' : 'No students yet'}
+                title={assignments.length === 0 ? 'No assignments yet' : 'No students yet'}
                 description="The gradebook fills in as you assign work and students hand it in."
             />
         );
@@ -82,10 +113,26 @@ export const Gradebook: React.FC<{
 
     return (
         <>
-            <div className="flex items-center justify-between gap-3 mb-3">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Click a cell to grade it. Missing work counts as zero in the total.</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    {filters.length > 1 && (
+                        <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Show
+                            <select value={filter} onChange={e => setFilter(e.target.value)} className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-900 dark:text-white">
+                                <option value="">All assignments</option>
+                                {filters.map(f => <option key={f.id} value={f.id}>{f.title}</option>)}
+                            </select>
+                        </label>
+                    )}
+                    <ul className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-400" aria-label="Key">
+                        {LEGEND.map(l => (
+                            <li key={l.state} className="flex items-center gap-1.5"><span className={`w-3.5 h-3.5 rounded border ${l.swatch}`} aria-hidden="true" />{l.label}</li>
+                        ))}
+                    </ul>
+                </div>
                 <Button size="sm" icon={<Download className="w-3.5 h-3.5" />} onClick={exportCsv}>Export CSV</Button>
             </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Click a cell to grade it. Missing work counts as zero in the total.</p>
             <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <table className="min-w-full text-sm border-separate border-spacing-0">
                     <thead>
@@ -111,13 +158,13 @@ export const Gradebook: React.FC<{
                                     {r.student.name}
                                 </th>
                                 {r.cells.map((c, i) => (
-                                    <td key={columns[i].id} className="border-b border-gray-100 dark:border-gray-700 p-0 group-hover:bg-gray-50 dark:group-hover:bg-gray-700/60">
+                                    <td key={columns[i].id} className={`border-b border-r border-white dark:border-gray-800 p-0 ${CELL_TONE[c.score !== null ? 'graded' : c.state]}`}>
                                         {c.state === 'not-assigned' ? (
                                             <span className="block px-3 py-2 text-gray-300 dark:text-gray-600" aria-label="Not assigned">·</span>
                                         ) : (
                                             <button
                                                 onClick={() => navigate(`${base}/assignments/${columns[i].id}?student=${r.student.uid}`)}
-                                                className="no-hover block w-full px-3 py-2 text-left hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                                                className="no-hover block w-full px-3 py-2 text-left hover:ring-2 hover:ring-inset hover:ring-cyan-500"
                                             >
                                                 <CellLabel cell={c} points={assignmentPoints(columns[i])} />
                                             </button>

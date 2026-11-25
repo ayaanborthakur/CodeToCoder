@@ -86,6 +86,8 @@ export const AssignmentDetail: React.FC<{
                 <MiniStat label="Average" value={average === null ? '—' : `${Math.round(average * 10) / 10} / ${points}`} />
             </div>
 
+            <BulkGrade assignment={a} points={points} rows={rows} onGraded={onGraded} />
+
             {rows.length === 0 ? (
                 <EmptyState title="No students to grade yet" description="Students appear here once they join the class." />
             ) : (
@@ -129,6 +131,72 @@ export const AssignmentDetail: React.FC<{
                 </div>
             )}
         </>
+    );
+};
+
+/**
+ * Grade many students at once: full credit for handed-in work that passed the
+ * automatic check, or zero for everyone whose work is missing.
+ */
+const BulkGrade: React.FC<{
+    assignment: Assignment;
+    points: number;
+    rows: { student: StudentProgress; sub: Submission | undefined; state: ReturnType<typeof assignmentState> }[];
+    onGraded: (s: Submission) => void;
+}> = ({ assignment: a, points, rows, onGraded }) => {
+    const [busy, setBusy] = useState<'pass' | 'missing' | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const passing = rows.filter(r => (r.state === 'submitted' || r.state === 'late') && r.sub?.passed && r.sub.submittedAt > 0);
+    const missing = rows.filter(r => r.state === 'missing');
+    if (!passing.length && !missing.length && !message) return null;
+
+    const run = async (kind: 'pass' | 'missing') => {
+        const list = kind === 'pass' ? passing : missing;
+        const score = kind === 'pass' ? points : 0;
+        const what = kind === 'pass'
+            ? `Give ${list.length} ${list.length === 1 ? 'student' : 'students'} full credit (${points}/${points}) for work that passed the check?`
+            : `Give ${list.length} ${list.length === 1 ? 'student' : 'students'} a zero for missing work? You can change any grade later.`;
+        if (!window.confirm(what)) return;
+        setBusy(kind);
+        setMessage(null);
+        let done = 0;
+        for (const r of list) {
+            try {
+                const feedback = r.sub?.feedback ?? (kind === 'missing' ? 'Missing' : '');
+                await gradeSubmission({
+                    classroomId: a.classroomId, assignmentId: a.id, studentId: r.student.uid, studentName: r.student.name,
+                    existing: !!r.sub, score, feedback,
+                });
+                onGraded({
+                    ...(r.sub ?? {
+                        id: submissionId(a.id, r.student.uid), classroomId: a.classroomId, assignmentId: a.id,
+                        studentId: r.student.uid, studentName: r.student.name, code: '', output: '',
+                        passed: false, late: false, attempts: 0, submittedAt: 0,
+                    }),
+                    score, feedback, gradedAt: Date.now(), status: 'graded',
+                });
+                done++;
+            } catch { /* keep going; reported below */ }
+        }
+        setBusy(null);
+        setMessage(done === list.length ? `Graded ${done}.` : `Graded ${done} of ${list.length}. Try again for the rest.`);
+    };
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 mr-1">Quick grade:</span>
+            {passing.length > 0 && (
+                <Button size="sm" icon={<CheckCircle2 className="w-4 h-4" />} loading={busy === 'pass'} disabled={!!busy} onClick={() => run('pass')}>
+                    Full credit for passed work ({passing.length})
+                </Button>
+            )}
+            {missing.length > 0 && (
+                <Button size="sm" icon={<XCircle className="w-4 h-4" />} loading={busy === 'missing'} disabled={!!busy} onClick={() => run('missing')}>
+                    Zero for missing ({missing.length})
+                </Button>
+            )}
+            {message && <span className="text-sm text-gray-600 dark:text-gray-400" role="status">{message}</span>}
+        </div>
     );
 };
 

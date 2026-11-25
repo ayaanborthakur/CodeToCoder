@@ -620,7 +620,7 @@ const ClassView: React.FC<{
                         );
                     })()}
                     {tab === 'gradebook' && (
-                        <Gradebook base={base} className={classroom.className} assignments={assignments} students={students ?? []} submissions={submissions} />
+                        <Gradebook base={base} className={classroom.className} assignments={assignments} students={students ?? []} submissions={submissions} modules={modules} />
                     )}
                     {tab === 'students' && (
                         <StudentsTab

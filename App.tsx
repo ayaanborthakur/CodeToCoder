@@ -45,6 +45,9 @@ import { AssignDialog } from './components/AssignDialog';
 import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
+import { CalendarPage } from './components/CalendarPage';
+import { GradingQueue } from './components/classroom/GradingQueue';
+import { isAssignmentDone } from './services/classroomProgressService';
 import { SchoolsPage } from './components/SchoolsPage';
 import { SchoolPromptModal } from './components/SchoolPromptModal';
 
@@ -167,8 +170,17 @@ const App: React.FC = () => {
         if (path.startsWith('/about')) return 'about';
         if (path.startsWith('/reference')) return 'reference';
         if (path.startsWith('/teacher')) return 'teacher';
+        if (path.startsWith('/grading')) return 'grading';
+        if (path.startsWith('/calendar')) return 'calendar';
         return 'mission';
     }, [location.pathname]);
+
+    // Grades and assignments change inside the teacher pages; refresh the
+    // sidebar count, grading queue and calendar when the teacher moves on.
+    const reloadTeacherData = teacherData.reload;
+    useEffect(() => {
+        if (user?.role === 'teacher' && ['home', 'grading', 'calendar', 'teacher'].includes(currentView)) reloadTeacherData();
+    }, [currentView, location.pathname, user?.role, reloadTeacherData]);
 
     const [, setPlaygroundView] = useState<'dashboard' | 'editor'>('dashboard');
     const [practiceCategory, setPracticeCategory] = useState<PracticeType | null>(null);
@@ -2416,6 +2428,24 @@ const App: React.FC = () => {
                                     : <Navigate to="/" replace />
                             } />
                         ))}
+
+                        <Route path="/grading" element={
+                            user?.role === 'teacher'
+                                ? <GradingQueue classes={teacherData.classes} loaded={teacherData.loaded} />
+                                : <Navigate to="/" replace />
+                        } />
+                        <Route path="/calendar" element={gate(
+                            <CalendarPage
+                                isTeacher={user?.role === 'teacher'}
+                                entries={user?.role === 'teacher'
+                                    ? teacherData.classes.flatMap(c => c.assignments.map(assignment => ({ assignment, classroom: c.classroom })))
+                                    : classAssignments.assignments.map(assignment => ({
+                                        assignment,
+                                        done: (() => { const sub = classAssignments.submissions.get(assignment.id); return !!sub && sub.submittedAt > 0; })()
+                                            || isAssignmentDone(assignment, completedLessons, completedPracticeItems),
+                                    }))}
+                            />
+                        )} />
 
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>

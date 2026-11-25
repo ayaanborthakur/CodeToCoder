@@ -4,7 +4,7 @@ import { formatCompactNumber } from '../utils/formatters';
 
 // 'classroom' = curriculum/IDE (URL /lessons, labelled "Lessons").
 // 'classhub' = classroom-management tab (URL /classroom, labelled "Classroom").
-export type ViewState = 'home' | 'classroom' | 'classhub' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher' | 'schools';
+export type ViewState = 'home' | 'classroom' | 'classhub' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher' | 'schools' | 'grading' | 'calendar';
 
 interface HeaderProps {
   currentView: ViewState;
