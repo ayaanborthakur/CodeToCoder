@@ -12,7 +12,7 @@ import {
     rejectSchool,
 } from '../services/schoolService';
 import { useAuth } from '../contexts/AuthContext';
-import { RegisterSchoolModal } from './RegisterSchoolModal';
+import { RegisterSchoolDialog } from './RegisterSchoolDialog';
 import type { School } from '../types';
 
 interface SchoolsPageProps {
@@ -142,27 +142,17 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                         Schools using Code2Coder
                     </h1>
                     <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">
-                        Every school below has a verified teacher running classrooms on Code2Coder. If your school isn't here yet, ask a teacher to register it.
+                        Every school below has a verified teacher running classrooms on Code2Coder. If your school isn't here yet, register it. It's free.
                     </p>
 
-                    {/* Register-your-school CTA. Registration lives here, separate
-                        from the classroom dashboard. Only teacher accounts can act. */}
                     <div className="mt-6">
-                        {isTeacher ? (
-                            <button
-                                onClick={() => setRegisterOpen(true)}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Register your school
-                            </button>
-                        ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {user
-                                    ? 'Only teacher accounts can register a school.'
-                                    : 'Are you a teacher? Sign in with a teacher account to register your school here.'}
-                            </p>
-                        )}
+                        <button
+                            onClick={() => setRegisterOpen(true)}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Register your school
+                        </button>
                     </div>
                 </header>
 
@@ -307,17 +297,13 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                 )}
             </div>
 
-            {isTeacher && user && (
-                <RegisterSchoolModal
-                    isOpen={registerOpen}
-                    onClose={() => setRegisterOpen(false)}
-                    teacherId={user.id}
-                    teacherName={user.name}
-                    onRegistered={(s) =>
-                        // New schools start pending → don't add to the public list;
-                        // surface them in the registrar's "awaiting review" banner.
-                        setMyPending(prev => [s, ...prev.filter(p => p.id !== s.id)])
-                    }
+            {registerOpen && (
+                <RegisterSchoolDialog
+                    onClose={() => {
+                        setRegisterOpen(false);
+                        // A teacher who just registered sees it in "awaiting review".
+                        if (isTeacher && user) listSchoolsForRegistrar(user.id).then(list => setMyPending(list.filter(x => x.status && x.status !== 'approved'))).catch(() => {});
+                    }}
                 />
             )}
         </div>

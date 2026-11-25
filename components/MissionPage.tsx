@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ArrowRight, Zap, Brain, Shield, GraduationCap } from 'lucide-react';
 import { ContactModal } from './ContactModal';
+import { RegisterSchoolDialog } from './RegisterSchoolDialog';
 import { AnimatedCodeBlock } from './AnimatedCodeBlock';
 import { ViewState } from './Header';
 import FooterLogo from '../assets/FooterLogo.svg?react';
@@ -38,6 +39,7 @@ const CURRICULUM = [
 
 export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate }) => {
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const [registerOpen, setRegisterOpen] = useState(false);
 
     return (
         <div className="mission-page min-h-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans antialiased">
@@ -94,7 +96,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
                             </button>
                             <button
-                                onClick={() => onNavigate('schools')}
+                                onClick={() => setRegisterOpen(true)}
                                 className="group inline-flex items-center gap-2.5 px-7 py-4 text-base font-semibold rounded-xl border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-cyan-500 dark:hover:border-cyan-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                             >
                                 <GraduationCap className="w-5 h-5" />
@@ -199,6 +201,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
             </section>
 
             <ContactModal isOpen={isContactModalOpen} onClose={() => setIsContactModalOpen(false)} />
+            {registerOpen && <RegisterSchoolDialog onClose={() => setRegisterOpen(false)} />}
 
             <footer className="relative z-10 border-t border-gray-200 dark:border-gray-700 px-6 pt-20 pb-12">
                 <div className="max-w-7xl mx-auto">
@@ -228,7 +231,7 @@ export const MissionPage: React.FC<MissionPageProps> = ({ onStart, onNavigate })
                                 </li>
                                 <li>
                                     <button
-                                        onClick={() => onNavigate('schools')}
+                                        onClick={() => setRegisterOpen(true)}
                                         className="text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                                     >
                                         Register your school

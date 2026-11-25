@@ -271,3 +271,37 @@ export const rejectSchoolJoin = async (studentId: string): Promise<void> => {
         { merge: true },
     );
 };
+
+export interface SchoolRequestInput {
+    contactName: string;
+    email: string;
+    role: 'teacher' | 'administrator' | 'it' | 'other';
+    schoolName: string;
+    city?: string;
+    region?: string;
+    country?: string;
+    students?: string;
+    message?: string;
+}
+
+/**
+ * A school sign-up request from the landing page, from someone who may not
+ * have an account yet. Anyone can create one; only admins can read them
+ * (see firestore.rules), and we follow up by email.
+ */
+export const submitSchoolRequest = async (input: SchoolRequestInput): Promise<void> => {
+    const clean = (v: string | undefined, max: number) => (v ?? '').trim().slice(0, max);
+    const data: Record<string, unknown> = {
+        contactName: clean(input.contactName, 100),
+        email: clean(input.email, 200).toLowerCase(),
+        role: input.role,
+        schoolName: clean(input.schoolName, 150),
+        status: 'new',
+        createdAt: Date.now(),
+    };
+    // Firestore rejects undefined, so only send optional fields that have text.
+    const optional: [keyof SchoolRequestInput, number][] = [['city', 100], ['region', 100], ['country', 100], ['students', 20], ['message', 2000]];
+    optional.forEach(([k, max]) => { const v = clean(input[k] as string | undefined, max); if (v) data[k] = v; });
+    await setDoc(doc(collection(db, 'schoolRequests')), data);
+};
+

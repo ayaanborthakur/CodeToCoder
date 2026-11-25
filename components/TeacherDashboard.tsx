@@ -16,7 +16,6 @@ import {
     Unlock,
     Archive,
     UserMinus,
-    GraduationCap,
     UserPlus,
     Users,
     X,
@@ -270,28 +269,11 @@ const ClassesList: React.FC<{
                 </Section>
             )}
 
-            <Section title="School">
-                {school.school ? (
-                    <Card className="flex items-center gap-3">
-                        <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400 flex-shrink-0" aria-hidden="true" />
-                        <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-gray-900 dark:text-white truncate">{school.school.name}</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                                {school.isRegistrar ? 'You registered this school.' : 'Your school'}
-                            </div>
-                        </div>
-                    </Card>
-                ) : (
-                    <Card className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-gray-900 dark:text-white">Your school isn't registered yet</div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Registering lets students from your school find and join your classes.</div>
-                        </div>
-                        <LinkButton to="/schools" icon={<GraduationCap className="w-4 h-4" />}>Register school</LinkButton>
-                    </Card>
-                )}
-                {school.pending.length > 0 && <PendingJoins school={school} />}
-            </Section>
+            {school.pending.length > 0 && (
+                <Section>
+                    <PendingJoins school={school} />
+                </Section>
+            )}
 
             {archived.length > 0 && (
                 <Section>
