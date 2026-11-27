@@ -25,7 +25,7 @@ export const LessonTopBar: React.FC<{
     const navButton = 'no-hover inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed';
 
     return (
-        <header className="flex-shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <header data-tour="lesson-bar" className="flex-shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
             <Link to={courseHref} className={navButton}>
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" /><span className="hidden sm:inline">{courseTitle}</span><span className="sm:hidden">Course</span>
             </Link>

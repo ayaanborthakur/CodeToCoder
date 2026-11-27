@@ -81,6 +81,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({
     return (
         <nav
             aria-label="Main"
+            data-tour="sidebar"
             className={`h-full flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 ${collapsed ? 'w-[76px] px-2' : 'w-64 px-3'} py-4 flex-shrink-0 overflow-y-auto overflow-x-hidden`}
         >
             <Link to="/dashboard" onClick={onNavigated} className={`no-hover flex items-center gap-2.5 mb-6 ${collapsed ? 'justify-center' : 'px-2'}`} aria-label="Code2Coder home">

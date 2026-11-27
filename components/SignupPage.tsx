@@ -1,24 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import {
-    Mail,
-    Lock,
-    User,
-    ArrowRight,
-    Check,
-    Loader2,
-    AlertCircle,
-    Sparkles,
-    Code2,
-    Terminal,
-    Cpu,
-    GraduationCap,
-    BookOpen,
-    Copy,
-    CheckCheck,
-    Users,
-} from 'lucide-react';
+import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, Copy, GraduationCap, Loader2, Mail, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Logo from '../assets/logo.svg?react';
 import { isUsernameAvailable, claimUsername, validateUsername } from '../services/usernameService';
 import { createClassroom, joinClassroom, setUserRole } from '../services/classroomService';
 import { listSchools, requestSchoolJoin, markSchoolPromptSeen } from '../services/schoolService';
@@ -289,579 +274,291 @@ export const SignupPage: React.FC = () => {
         return () => clearTimeout(t);
     }, [username]);
 
-    // ── Progress bar ─────────────────────────────────────────────────────────
+    // ── Step bookkeeping ──────────────────────────────────────────────────────
 
-    // Map internal step names to progress-bar indices (0-3). The student-only
-    // 'school' step shares the index with 'setup' — the visual bar doesn't
-    // need a separate dot for it (it's still part of the final "setup" phase).
-    const stepIndex = (() => {
+    // Four phases shown to the user. The student-only 'school' step belongs to
+    // the last phase, along with joining a class.
+    const phase = (() => {
         switch (step) {
             case 'method':
-            case 'credentials': return 0;
-            case 'username':    return 1;
-            case 'role':        return 2;
+            case 'credentials': return { n: 1, label: 'Create your account' };
+            case 'username':    return { n: 2, label: 'Choose a username' };
+            case 'role':        return { n: 3, label: 'Tell us how you’ll use it' };
             case 'school':
-            case 'setup':       return 3;
+            case 'setup':       return { n: 4, label: 'Set up your class' };
         }
     })();
+
+    const input = 'w-full px-3.5 py-2.5 rounded-md bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-600/40 focus:border-cyan-600';
+    const label = 'block text-sm font-medium text-slate-800 dark:text-slate-200 mb-1.5';
+    const primary = 'no-hover w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-cyan-700 hover:bg-cyan-800 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed';
+    const quiet = 'no-hover w-full py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-50';
+
+    const ErrorNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+        <p role="alert" className="flex items-start gap-2 rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2.5 text-sm text-red-700 dark:text-red-300">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />{children}
+        </p>
+    );
+
+    const Heading: React.FC<{ title: string; body?: React.ReactNode }> = ({ title, body }) => (
+        <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{title}</h1>
+            {body && <p className="mt-1.5 text-slate-600 dark:text-slate-400">{body}</p>}
+        </div>
+    );
+
+    const RoleOption: React.FC<{ icon: React.ReactNode; title: string; body: string; onClick: () => void }> = ({ icon, title, body, onClick }) => (
+        <button onClick={onClick} className="no-hover group w-full flex items-start gap-4 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 text-left hover:border-cyan-600 dark:hover:border-cyan-500">
+            <span className="mt-0.5 text-slate-500 dark:text-slate-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400">{icon}</span>
+            <span className="flex-1">
+                <span className="block font-semibold text-slate-900 dark:text-white">{title}</span>
+                <span className="block mt-0.5 text-sm text-slate-600 dark:text-slate-400">{body}</span>
+            </span>
+            <ArrowRight className="w-4 h-4 mt-1 text-slate-400 group-hover:text-cyan-700 dark:group-hover:text-cyan-400" />
+        </button>
+    );
 
     // ── Render ────────────────────────────────────────────────────────────────
 
     return (
-        <div className="min-h-screen w-full flex bg-white dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden font-sans">
+        <div className="min-h-screen w-full flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-sans">
             <Helmet>
-                <title>Sign Up - Code2Coder</title>
+                <title>Create an account | Code2Coder</title>
             </Helmet>
 
-            {/* ── Left panel ─────────────────────────────────────────── */}
-            <div className="hidden lg:flex w-1/2 relative bg-gray-900 overflow-hidden items-center justify-center">
-                <div className="absolute inset-0 bg-cyan-900/40 z-0" />
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay" />
-                <div className="absolute inset-0 z-0 overflow-hidden">
-                    <div className="absolute top-1/4 left-1/4 animate-float-slow">
-                        <Terminal className="w-24 h-24 text-cyan-500/20" />
-                    </div>
-                    <div className="absolute bottom-1/3 right-1/4 animate-float-delayed">
-                        <Code2 className="w-32 h-32 text-purple-500/20" />
-                    </div>
-                    <div className="absolute top-1/3 right-1/3 animate-pulse-slow">
-                        <Sparkles className="w-16 h-16 text-yellow-500/10" />
-                    </div>
-                    <div className="absolute bottom-1/4 left-1/3 animate-float-slow">
-                        <Cpu className="w-20 h-20 text-blue-500/20" />
-                    </div>
-                </div>
-                <div className="relative z-10 p-12 max-w-lg">
-                    <h1 className="text-5xl font-bold tracking-tight mb-6 drop-shadow-sm text-cyan-600 dark:text-cyan-400">
-                        Build your future in code.
-                    </h1>
-                    <p className="text-xl text-gray-300 leading-relaxed mb-8">
-                        Join thousands of developers mastering Python through AI-powered interactive lessons and real-time feedback.
-                    </p>
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-4 text-gray-400">
-                            <div className="w-12 h-12 rounded-full bg-cyan-900/30 flex items-center justify-center border border-cyan-800">
-                                <Sparkles className="w-6 h-6 text-cyan-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-white">AI-Powered Learning</h3>
-                                <p className="text-sm">Get instant help and code reviews.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-gray-400">
-                            <div className="w-12 h-12 rounded-full bg-purple-900/30 flex items-center justify-center border border-purple-800">
-                                <Code2 className="w-6 h-6 text-purple-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-white">Interactive Playground</h3>
-                                <p className="text-sm">Run code directly in your browser.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-gray-400">
-                            <div className="w-12 h-12 rounded-full bg-green-900/30 flex items-center justify-center border border-green-800">
-                                <GraduationCap className="w-6 h-6 text-green-400" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-white">Classroom Tools</h3>
-                                <p className="text-sm">Teachers create classes. Students join with a code.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                <Link to="/" className="no-hover flex items-center gap-2">
+                    <Logo className="h-7 w-auto" />
+                    <span className="font-semibold">Code2Coder</span>
+                </Link>
+                {step === 'method' || step === 'credentials' ? (
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                        Have an account?{' '}
+                        <button onClick={() => navigate('/?login=1')} className="no-hover font-semibold text-cyan-700 dark:text-cyan-400 hover:underline underline-offset-2">Log in</button>
+                    </span>
+                ) : null}
+            </header>
 
-            {/* ── Right panel ────────────────────────────────────────── */}
-            <div className="w-full lg:w-1/2 flex flex-col relative z-10 bg-white dark:bg-gray-950">
-                <div className="flex-1 flex flex-col justify-center px-8 sm:px-12 md:px-16 lg:px-24 max-w-2xl mx-auto w-full">
-
-                    {/* Mobile header */}
-                    <div className="lg:hidden mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">Code2Coder</h1>
-                        <p className="text-gray-500 dark:text-gray-400 mt-2">Master Python with AI</p>
-                    </div>
-
-                    {/* Progress bar — 4 steps */}
-                    <div className="flex gap-2 mb-10">
-                        {[0, 1, 2, 3].map((i) => (
-                            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                                i < stepIndex  ? 'bg-cyan-200 dark:bg-cyan-900' :
-                                i === stepIndex ? 'bg-cyan-500' :
-                                                  'bg-gray-100 dark:bg-gray-800'
-                            }`} />
+            <main className="flex-1 w-full max-w-md mx-auto px-6 py-10 sm:py-14">
+                <div className="mb-8">
+                    <div className="flex gap-1.5" aria-hidden="true">
+                        {[1, 2, 3, 4].map(n => (
+                            <span key={n} className={`h-1 flex-1 rounded-full ${n <= phase.n ? 'bg-cyan-700 dark:bg-cyan-500' : 'bg-slate-200 dark:bg-slate-800'}`} />
                         ))}
                     </div>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Step {phase.n} of 4 · {phase.label}</p>
+                </div>
 
-                    <div className="animate-fade-in-up">
-
-                        {/* ── Step 1: Sign-up method ───────────────────────── */}
-                        {step === 'method' && (
-                            <div className="space-y-6">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-bold mb-2">Get Started</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Create your free account</p>
-                                </div>
-
-                                <button
-                                    onClick={handleGoogleSignIn}
-                                    disabled={loading}
-                                    className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl text-lg font-semibold transition-all transform hover:-translate-y-1 hover:shadow-lg group"
-                                >
-                                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                {/* 1. Sign-up method */}
+                {step === 'method' && (
+                    <div>
+                        <Heading title="Create your account" body="Free for students and teachers. No credit card, nothing to install." />
+                        <div className="space-y-3">
+                            <button onClick={handleGoogleSignIn} disabled={loading} className="no-hover w-full inline-flex items-center justify-center gap-3 px-4 py-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50">
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                                    <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
                                         <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
                                         <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
                                         <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                                     </svg>
-                                    <span>Continue with Google</span>
-                                    <ArrowRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity text-cyan-500 ml-auto" />
-                                </button>
-
-                                <div className="relative py-4">
-                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-800" /></div>
-                                    <div className="relative flex justify-center"><span className="bg-white dark:bg-gray-950 px-4 text-sm text-gray-500">or</span></div>
-                                </div>
-
-                                <button
-                                    onClick={() => setStep('credentials')}
-                                    className="w-full py-4 px-6 flex items-center justify-center gap-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl text-lg font-semibold transition-all"
-                                >
-                                    <Mail className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-                                    <span>Sign up with Email</span>
-                                </button>
-
-                                <p className="text-center text-sm text-gray-500 mt-4">
-                                    Already have an account?{' '}
-                                    <button onClick={() => navigate('/?login=1')} className="text-cyan-600 dark:text-cyan-400 font-bold hover:underline">
-                                        Log in
-                                    </button>
-                                </p>
-                            </div>
-                        )}
-
-                        {/* ── Step 2b: Email credentials ───────────────────── */}
-                        {step === 'credentials' && (
-                            <form onSubmit={handleEmailSignup} className="space-y-5">
-                                <div className="mb-6">
-                                    <button type="button" onClick={() => setStep('method')} className="text-sm text-gray-500 hover:text-cyan-500 flex items-center gap-1 mb-4">
-                                        ← Back
-                                    </button>
-                                    <h2 className="text-3xl font-bold">Create Profile</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Enter your details to create an account</p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Full Name</label>
-                                    <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="John Doe" required />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Email Address</label>
-                                    <div className="relative">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="john@example.com" required />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Password</label>
-                                    <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                            placeholder="••••••••" required minLength={6} />
-                                    </div>
-                                </div>
-
-                                {error && (
-                                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
-                                        <AlertCircle className="w-5 h-5 shrink-0" />{error}
-                                    </div>
                                 )}
-
-                                <button type="submit" disabled={loading}
-                                    className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 mt-4 disabled:opacity-70 flex items-center justify-center gap-2">
-                                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Account</span>}
-                                </button>
-                            </form>
-                        )}
-
-                        {/* ── Step 3: Username ─────────────────────────────── */}
-                        {step === 'username' && (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-cyan-500 rounded-2xl rotate-3 flex items-center justify-center mx-auto mb-6 text-white shadow-xl">
-                                        <Sparkles className="w-8 h-8" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold">Choose your Identity</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Pick a unique username for the leaderboard</p>
-                                </div>
-
-                                <form onSubmit={handleUsernameSubmit}>
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Username</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">@</span>
-                                            <input
-                                                type="text"
-                                                value={username}
-                                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                                className={`w-full pl-10 pr-12 py-4 text-lg font-mono rounded-xl bg-gray-50 dark:bg-gray-900 border outline-none transition-all ${
-                                                    usernameError ? 'focus:ring-red-500 focus:border-red-500 border-red-200' :
-                                                    isUsernameValid ? 'focus:ring-green-500 focus:border-green-500 border-green-200 dark:border-green-800' :
-                                                    'border-gray-200 dark:border-gray-800 focus:ring-cyan-500 focus:border-cyan-500'
-                                                } focus:ring-2`}
-                                                placeholder="python_wizard"
-                                                maxLength={20}
-                                                minLength={3}
-                                                autoFocus
-                                            />
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                {isCheckingUsername ? <Loader2 className="w-5 h-5 text-gray-400 animate-spin" /> :
-                                                 isUsernameValid  ? <Check className="w-5 h-5 text-green-500" /> :
-                                                 usernameError    ? <AlertCircle className="w-5 h-5 text-red-500" /> : null}
-                                            </div>
-                                        </div>
-                                        {usernameError && <p className="mt-2 text-sm text-red-500 ml-1">{usernameError}</p>}
-                                        {isUsernameValid && (
-                                            <p className="mt-2 text-sm text-green-600 dark:text-green-400 ml-1 flex items-center gap-1">
-                                                <Sparkles className="w-3 h-3" /> Username available!
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {error && (
-                                        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm">
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    <button type="submit" disabled={loading || !isUsernameValid}
-                                        className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Continue →'}
-                                    </button>
-                                </form>
-                            </div>
-                        )}
-
-                        {/* ── Step 4: Account type ─────────────────────────── */}
-                        {step === 'role' && (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="text-center mb-8">
-                                    <h2 className="text-3xl font-bold mb-2">What's your role?</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">This helps us personalise your experience</p>
-                                </div>
-
-                                <button
-                                    onClick={() => handlePickRole('teacher')}
-                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-500 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-14 h-14 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shrink-0 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-900/70 transition-colors">
-                                        <GraduationCap className="w-7 h-7 text-cyan-600 dark:text-cyan-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold">I'm a Teacher</h3>
-                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-cyan-500 transition-colors" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Create a classroom and share a join code with your students. Track their progress.
-                                        </p>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => handlePickRole('student')}
-                                    className="w-full p-6 flex items-start gap-5 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 rounded-2xl transition-all group text-left"
-                                >
-                                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center shrink-0 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/70 transition-colors">
-                                        <BookOpen className="w-7 h-7 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-lg font-bold">I'm a Student</h3>
-                                            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Learn Python with AI-powered lessons. Join a classroom with a code from your teacher.
-                                        </p>
-                                    </div>
-                                </button>
-
-                                <button
-                                    onClick={() => navigate('/dashboard')}
-                                    className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-center"
-                                >
-                                    Skip for now
-                                </button>
-                            </div>
-                        )}
-
-                        {/* ── Step 4b (students only): pick your school ────── */}
-                        {step === 'school' && (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl">
-                                        <GraduationCap className="w-8 h-8" />
-                                    </div>
-                                    <h2 className="text-2xl font-bold mb-2">Are you part of a school?</h2>
-                                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                        Pick yours so your teacher can confirm you're a student. You can skip this if you're learning on your own.
-                                    </p>
-                                </div>
-
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={schoolFilter}
-                                        onChange={(e) => setSchoolFilter(e.target.value)}
-                                        className="w-full pl-4 pr-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm"
-                                        placeholder="Search your school by name or city..."
-                                        disabled={schoolSubmitting}
-                                        autoFocus
-                                    />
-                                </div>
-
-                                <div className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 divide-y divide-gray-100 dark:divide-gray-800">
-                                    {schoolsLoading && (
-                                        <div className="px-4 py-6 text-center text-sm text-gray-400">Loading schools…</div>
-                                    )}
-                                    {!schoolsLoading && schools.length === 0 && (
-                                        <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                                            No schools registered yet. Ask your teacher to register your school in their dashboard.
-                                        </div>
-                                    )}
-                                    {!schoolsLoading && schools.length > 0 && (() => {
-                                        const q = schoolFilter.trim().toLowerCase();
-                                        const matches = q
-                                            ? schools.filter(s =>
-                                                s.name.toLowerCase().includes(q)
-                                                || s.city?.toLowerCase().includes(q)
-                                                || s.state?.toLowerCase().includes(q)
-                                                || s.country?.toLowerCase().includes(q),
-                                              )
-                                            : schools;
-                                        if (matches.length === 0) {
-                                            return (
-                                                <div className="px-4 py-6 text-center text-sm text-gray-400">
-                                                    No schools match "{schoolFilter}".
-                                                </div>
-                                            );
-                                        }
-                                        return matches.map(s => (
-                                            <button
-                                                key={s.id}
-                                                onClick={() => handlePickSchool(s)}
-                                                disabled={schoolSubmitting}
-                                                className="w-full px-4 py-3 text-left hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-3"
-                                            >
-                                                <div className="min-w-0">
-                                                    <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">{s.name}</div>
-                                                    {(s.city || s.state || s.country) && (
-                                                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                            {[s.city, s.state, s.country].filter(Boolean).join(', ')}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                            </button>
-                                        ));
-                                    })()}
-                                </div>
-
-                                {error && (
-                                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
-                                        <AlertCircle className="w-4 h-4 shrink-0" /> {error}
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleSkipSchool}
-                                    disabled={schoolSubmitting}
-                                    className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors disabled:opacity-50"
-                                >
-                                    Skip — I'm not part of a school
-                                </button>
-                            </div>
-                        )}
-
-                        {/* ── Step 5: Role-specific setup ──────────────────── */}
-                        {step === 'setup' && selectedRole === 'teacher' && (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl">
-                                        <GraduationCap className="w-8 h-8" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold">Create your Classroom</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Give your class a name — we'll generate a join code your students can use</p>
-                                </div>
-
-                                {!createdClassroom ? (
-                                    <form onSubmit={handleCreateClassroom} className="space-y-5">
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Class Name</label>
-                                            <div className="relative">
-                                                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                                <input
-                                                    type="text"
-                                                    value={className}
-                                                    onChange={(e) => setClassName(e.target.value)}
-                                                    className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-                                                    placeholder="e.g. Grade 8 Python, Period 3"
-                                                    required
-                                                    maxLength={60}
-                                                    autoFocus
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {error && (
-                                            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-300 text-sm flex items-center gap-2">
-                                                <AlertCircle className="w-5 h-5 shrink-0" />{error}
-                                            </div>
-                                        )}
-
-                                        <button type="submit" disabled={loading || !className.trim()}
-                                            className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
-                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Create Classroom <ArrowRight className="w-5 h-5" /></>}
-                                        </button>
-
-                                        <button type="button" onClick={() => navigate('/dashboard')}
-                                            className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                                            Skip for now
-                                        </button>
-                                    </form>
-                                ) : (
-                                    /* ── Join code reveal ─── */
-                                    <div className="space-y-6">
-                                        <div className="p-6 rounded-2xl bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-center">
-                                            <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300 mb-3 uppercase tracking-wider">
-                                                Class Join Code
-                                            </p>
-                                            <div className="flex items-center justify-center gap-3 mb-4">
-                                                <span className="text-5xl font-bold font-mono tracking-[0.3em] text-gray-900 dark:text-white">
-                                                    {createdClassroom.joinCode}
-                                                </span>
-                                                <button
-                                                    onClick={copyJoinCode}
-                                                    className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
-                                                    title="Copy code"
-                                                >
-                                                    {codeCopied ? <CheckCheck className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-gray-500" />}
-                                                </button>
-                                            </div>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                Share this code with your students. They'll enter it when they sign up.
-                                            </p>
-                                        </div>
-
-                                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                <span className="font-semibold text-gray-900 dark:text-white">Class:</span> {createdClassroom.className}
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            onClick={() => navigate('/dashboard')}
-                                            className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                                            Go to Dashboard <ArrowRight className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {step === 'setup' && selectedRole === 'student' && (
-                            <div className="space-y-6 animate-fade-in-up">
-                                <div className="text-center mb-8">
-                                    <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl">
-                                        <BookOpen className="w-8 h-8" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold">Join a Classroom</h2>
-                                    <p className="text-gray-500 dark:text-gray-400">Enter the 6-letter code your teacher gave you</p>
-                                </div>
-
-                                <form onSubmit={handleJoinClassroom} className="space-y-5">
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1.5 ml-1 text-gray-700 dark:text-gray-300">Join Code</label>
-                                        <input
-                                            type="text"
-                                            value={joinCode}
-                                            onChange={(e) => {
-                                                setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''));
-                                                setJoinError(null);
-                                            }}
-                                            className={`w-full px-4 py-4 text-3xl font-bold font-mono tracking-[0.4em] text-center rounded-xl bg-gray-50 dark:bg-gray-900 border focus:ring-2 outline-none transition-all ${
-                                                joinError
-                                                    ? 'border-red-400 focus:ring-red-500'
-                                                    : 'border-gray-200 dark:border-gray-800 focus:ring-purple-500 focus:border-purple-500'
-                                            }`}
-                                            placeholder="ABCDEF"
-                                            maxLength={6}
-                                            autoFocus
-                                            autoCapitalize="characters"
-                                        />
-                                        {joinError && (
-                                            <p className="mt-2 text-sm text-red-500 ml-1 flex items-center gap-1">
-                                                <AlertCircle className="w-4 h-4" /> {joinError}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <button type="submit" disabled={joinLoading || joinCode.length !== 6}
-                                        className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
-                                        {joinLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Join Classroom <ArrowRight className="w-5 h-5" /></>}
-                                    </button>
-
-                                    <button type="button" onClick={() => navigate('/dashboard')}
-                                        className="w-full py-3 text-sm text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors">
-                                        I don't have a code — skip for now
-                                    </button>
-                                </form>
-                            </div>
-                        )}
-
-                        {/* Fallback: setup reached without a role selected */}
-                        {step === 'setup' && !selectedRole && (
-                            <div className="text-center">
-                                <p className="text-gray-500 mb-4">Something went wrong. Please pick your account type.</p>
-                                <button onClick={() => setStep('role')} className="text-cyan-500 underline">Choose role</button>
-                            </div>
-                        )}
-
+                                Continue with Google
+                            </button>
+                            <div className="flex items-center gap-3 py-1 text-sm text-slate-500"><span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />or<span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" /></div>
+                            <button onClick={() => setStep('credentials')} className="no-hover w-full inline-flex items-center justify-center gap-3 px-4 py-2.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <Mail className="w-5 h-5 text-slate-500" /> Sign up with email
+                            </button>
+                        </div>
+                        {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
+                        <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+                            By creating an account you agree to the <Link to="/terms" className="underline underline-offset-2">terms of use</Link> and <Link to="/privacy" className="underline underline-offset-2">privacy policy</Link>.
+                        </p>
                     </div>
-                </div>
+                )}
 
-                <div className="p-6 text-center text-xs text-gray-400 border-t border-gray-100 dark:border-gray-900">
-                    &copy; 2024 Code2Coder. All rights reserved.
-                </div>
-            </div>
+                {/* 1b. Email and password */}
+                {step === 'credentials' && (
+                    <form onSubmit={handleEmailSignup} className="space-y-5">
+                        <button type="button" onClick={() => { setStep('method'); setError(null); }} className="no-hover inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                            <ArrowLeft className="w-4 h-4" /> Other ways to sign up
+                        </button>
+                        <Heading title="Sign up with email" />
+                        <div>
+                            <label htmlFor="su-name" className={label}>Full name</label>
+                            <input id="su-name" type="text" value={name} onChange={(e) => setName(e.target.value)} className={input} autoComplete="name" required autoFocus />
+                        </div>
+                        <div>
+                            <label htmlFor="su-email" className={label}>Email</label>
+                            <input id="su-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} autoComplete="email" required />
+                        </div>
+                        <div>
+                            <label htmlFor="su-password" className={label}>Password</label>
+                            <input id="su-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} autoComplete="new-password" required minLength={6} aria-describedby="su-password-hint" />
+                            <p id="su-password-hint" className="mt-1.5 text-sm text-slate-500">At least 6 characters.</p>
+                        </div>
+                        {error && <ErrorNote>{error}</ErrorNote>}
+                        <button type="submit" disabled={loading} className={primary}>
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create account'}
+                        </button>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            By creating an account you agree to the <Link to="/terms" className="underline underline-offset-2">terms of use</Link> and <Link to="/privacy" className="underline underline-offset-2">privacy policy</Link>.
+                        </p>
+                    </form>
+                )}
 
-            <style>{`
-                @keyframes float-slow {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-20px); }
-                }
-                @keyframes float-delayed {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-15px); }
-                }
-                @keyframes fade-in-up {
-                    from { opacity: 0; transform: translateY(10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
-                .animate-float-delayed { animation: float-delayed 7s ease-in-out infinite 1s; }
-                .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-                .animate-fade-in-up { animation: fade-in-up 0.4s ease-out forwards; }
-            `}</style>
+                {/* 2. Username */}
+                {step === 'username' && (
+                    <form onSubmit={handleUsernameSubmit} className="space-y-5">
+                        <Heading title="Choose a username" body="It’s shown on the leaderboard instead of your name. Use lowercase letters, numbers and underscores." />
+                        <div>
+                            <label htmlFor="su-username" className={label}>Username</label>
+                            <div className="relative">
+                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">@</span>
+                                <input
+                                    id="su-username"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                    className={`${input} pl-8 pr-10 font-mono ${usernameError ? '!border-red-400' : isUsernameValid ? '!border-emerald-500' : ''}`}
+                                    placeholder="ada_codes"
+                                    maxLength={20}
+                                    minLength={3}
+                                    autoFocus
+                                    aria-describedby="su-username-status"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    {isCheckingUsername ? <Loader2 className="w-4 h-4 text-slate-400 animate-spin" /> : isUsernameValid ? <Check className="w-4 h-4 text-emerald-600" /> : null}
+                                </span>
+                            </div>
+                            <p id="su-username-status" className={`mt-1.5 text-sm ${usernameError ? 'text-red-600 dark:text-red-400' : isUsernameValid ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                                {usernameError ?? (isUsernameValid ? 'Available' : '3 to 20 characters.')}
+                            </p>
+                        </div>
+                        {error && <ErrorNote>{error}</ErrorNote>}
+                        <button type="submit" disabled={loading || !isUsernameValid} className={primary}>
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue'}
+                        </button>
+                    </form>
+                )}
+
+                {/* 3. Role */}
+                {step === 'role' && (
+                    <div>
+                        <Heading title="How will you use Code2Coder?" body="You can change this later from your profile." />
+                        <div className="space-y-3">
+                            <RoleOption icon={<BookOpen className="w-5 h-5" />} title="I’m learning" body="Work through the Python course, practice and build projects. Join your teacher’s class with a code if you have one." onClick={() => handlePickRole('student')} />
+                            <RoleOption icon={<GraduationCap className="w-5 h-5" />} title="I’m teaching" body="Create classes, assign lessons and grade students’ work from a gradebook." onClick={() => handlePickRole('teacher')} />
+                        </div>
+                        <button onClick={() => navigate('/dashboard')} className={`${quiet} mt-4`}>Skip for now</button>
+                    </div>
+                )}
+
+                {/* 3b. Students: school */}
+                {step === 'school' && (
+                    <div>
+                        <Heading title="Find your school" body="If your school uses Code2Coder, pick it so your teacher can confirm you. Learning on your own? Skip this." />
+                        <label htmlFor="su-school" className="sr-only">Search schools</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input id="su-school" type="search" value={schoolFilter} onChange={(e) => setSchoolFilter(e.target.value)} className={`${input} pl-9`} placeholder="School name or city" disabled={schoolSubmitting} autoFocus />
+                        </div>
+                        <div className="mt-3 max-h-64 overflow-y-auto rounded-md border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                            {schoolsLoading && <p className="px-4 py-5 text-sm text-slate-500">Loading schools…</p>}
+                            {!schoolsLoading && schools.length === 0 && <p className="px-4 py-5 text-sm text-slate-500">No schools are registered yet.</p>}
+                            {!schoolsLoading && schools.length > 0 && (() => {
+                                const q = schoolFilter.trim().toLowerCase();
+                                const matches = q
+                                    ? schools.filter(s => [s.name, s.city, s.state, s.country].some(v => v?.toLowerCase().includes(q)))
+                                    : schools;
+                                if (matches.length === 0) return <p className="px-4 py-5 text-sm text-slate-500">No schools match “{schoolFilter}”.</p>;
+                                return matches.map(s => (
+                                    <button key={s.id} onClick={() => handlePickSchool(s)} disabled={schoolSubmitting} className="no-hover w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-900 disabled:opacity-50 flex items-center justify-between gap-3">
+                                        <span className="min-w-0">
+                                            <span className="block font-medium text-slate-900 dark:text-white truncate">{s.name}</span>
+                                            {(s.city || s.state || s.country) && <span className="block text-sm text-slate-500 truncate">{[s.city, s.state, s.country].filter(Boolean).join(', ')}</span>}
+                                        </span>
+                                        <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    </button>
+                                ));
+                            })()}
+                        </div>
+                        {error && <div className="mt-4"><ErrorNote>{error}</ErrorNote></div>}
+                        <button onClick={handleSkipSchool} disabled={schoolSubmitting} className={`${quiet} mt-3`}>Skip, I’m not part of a school</button>
+                    </div>
+                )}
+
+                {/* 4. Teachers: first class */}
+                {step === 'setup' && selectedRole === 'teacher' && (
+                    !createdClassroom ? (
+                        <form onSubmit={handleCreateClassroom} className="space-y-5">
+                            <Heading title="Name your first class" body="Students join with a six-letter code we’ll create for it. You can add more classes later." />
+                            <div>
+                                <label htmlFor="su-class" className={label}>Class name</label>
+                                <input id="su-class" type="text" value={className} onChange={(e) => setClassName(e.target.value)} className={input} placeholder="e.g. Intro to Python, Period 3" required maxLength={60} autoFocus />
+                            </div>
+                            {error && <ErrorNote>{error}</ErrorNote>}
+                            <button type="submit" disabled={loading || !className.trim()} className={primary}>
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create class'}
+                            </button>
+                            <button type="button" onClick={() => navigate('/dashboard')} className={quiet}>Skip for now</button>
+                        </form>
+                    ) : (
+                        <div>
+                            <Heading title="Your class is ready" body={<>Share this code with the students in <span className="font-semibold text-slate-900 dark:text-white">{createdClassroom.className}</span>. They enter it when they sign up.</>} />
+                            <div className="rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-6 text-center">
+                                <div className="text-sm font-medium text-slate-500">Join code</div>
+                                <div className="mt-2 flex items-center justify-center gap-3">
+                                    <span className="text-4xl font-bold font-mono tracking-[0.25em]">{createdClassroom.joinCode}</span>
+                                    <button onClick={copyJoinCode} className="no-hover p-2 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-800" aria-label="Copy join code">
+                                        {codeCopied ? <CheckCheck className="w-5 h-5 text-emerald-600" /> : <Copy className="w-5 h-5 text-slate-500" />}
+                                    </button>
+                                </div>
+                            </div>
+                            <button onClick={() => navigate('/dashboard')} className={`${primary} mt-6`}>Go to your dashboard <ArrowRight className="w-4 h-4" /></button>
+                        </div>
+                    )
+                )}
+
+                {/* 4. Students: join a class */}
+                {step === 'setup' && selectedRole === 'student' && (
+                    <form onSubmit={handleJoinClassroom} className="space-y-5">
+                        <Heading title="Join your class" body="Enter the six-letter code from your teacher." />
+                        <div>
+                            <label htmlFor="su-join" className={label}>Join code</label>
+                            <input
+                                id="su-join"
+                                type="text"
+                                value={joinCode}
+                                onChange={(e) => { setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, '')); setJoinError(null); }}
+                                className={`${input} text-2xl font-bold font-mono tracking-[0.4em] text-center ${joinError ? '!border-red-400' : ''}`}
+                                placeholder="ABCDEF"
+                                maxLength={6}
+                                autoFocus
+                                autoCapitalize="characters"
+                            />
+                            {joinError && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{joinError}</p>}
+                        </div>
+                        <button type="submit" disabled={joinLoading || joinCode.length !== 6} className={primary}>
+                            {joinLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Join class'}
+                        </button>
+                        <button type="button" onClick={() => navigate('/dashboard')} className={quiet}>I don’t have a code yet</button>
+                    </form>
+                )}
+
+                {step === 'setup' && !selectedRole && (
+                    <div>
+                        <Heading title="Choose how you’ll use Code2Coder" />
+                        <button onClick={() => setStep('role')} className={primary}>Continue</button>
+                    </div>
+                )}
+            </main>
+
+            <footer className="px-6 py-5 border-t border-slate-200 dark:border-slate-800 text-sm text-slate-500 flex flex-wrap justify-center gap-x-5 gap-y-1">
+                <span>© {new Date().getFullYear()} Code2Coder</span>
+                <Link to="/privacy" className="hover:text-slate-800 dark:hover:text-slate-200">Privacy</Link>
+                <Link to="/terms" className="hover:text-slate-800 dark:hover:text-slate-200">Terms</Link>
+            </footer>
         </div>
     );
 };

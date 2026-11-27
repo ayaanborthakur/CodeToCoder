@@ -9,7 +9,7 @@ interface TutorialOverlayProps {
 }
 
 export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ userId, onComplete, onSkip }) => {
-    const [currentStepIndex, setCurrentStepIndex] = useState(() => getTutorialProgress());
+    const [currentStepIndex, setCurrentStepIndex] = useState(() => getTutorialProgress(userId));
     const [isVisible, setIsVisible] = useState(false);
     const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
     const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
@@ -22,8 +22,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ userId, onComp
 
     // Save progress whenever step changes
     useEffect(() => {
-        saveTutorialProgress(currentStepIndex);
-    }, [currentStepIndex]);
+        saveTutorialProgress(currentStepIndex, userId);
+    }, [currentStepIndex, userId]);
 
     // Detect when user clicks a lesson (for step 'lesson-nav')
     useEffect(() => {
@@ -133,7 +133,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ userId, onComp
 
     const handleComplete = async () => {
         setIsVisible(false);
-        clearTutorialProgress();
+        clearTutorialProgress(userId);
         await markTutorialCompleted(userId);
         setTimeout(() => {
             onComplete();
@@ -142,7 +142,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ userId, onComp
 
     const handleSkip = async () => {
         setIsVisible(false);
-        clearTutorialProgress();
+        clearTutorialProgress(userId);
         await markTutorialCompleted(userId);
         setTimeout(() => {
             onSkip();

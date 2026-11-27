@@ -28,11 +28,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     // Navigation Bar - MOVED BEFORE CLASSROOM
     {
         id: 'nav-bar',
-        title: 'Navigation Bar',
-        description: 'Here is your main navigation bar. Use it to quickly access different sections: Home, Classroom, Practice, Playground, Market, and your Profile.',
+        title: 'Getting around',
+        description: 'This sidebar takes you everywhere: Home, Courses, Practice, the Playground, your class and the calendar. Your stars and account menu are at the bottom.',
         route: '/dashboard',
-        targetElement: 'header nav',
-        position: 'bottom',
+        targetElement: '[data-tour="sidebar"]',
+        position: 'right',
         action: 'highlight'
     },
 
@@ -50,10 +50,10 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     {
         id: 'lesson-nav',
         title: 'Lesson Navigation',
-        description: 'We\'ve opened the first lesson for you! This sidebar shows all available modules and lessons.',
+        description: 'We\'ve opened a lesson for you. This bar shows where you are in the module. Use Previous and Next, or All lessons to jump anywhere.',
         route: '/lessons/module-1/m1-lp1',
-        targetElement: 'aside',
-        position: 'right',
+        targetElement: '[data-tour="lesson-bar"]',
+        position: 'bottom',
         action: 'highlight'
     },
 
@@ -262,7 +262,7 @@ export const markTutorialCompleted = async (userId?: string): Promise<void> => {
  */
 export const resetTutorial = async (userId?: string): Promise<void> => {
     // Clear progress
-    localStorage.removeItem(TUTORIAL_PROGRESS_KEY);
+    clearTutorialProgress(userId);
 
     if (userId) {
         localStorage.removeItem(`${TUTORIAL_STORAGE_KEY}_${userId}`);
@@ -280,17 +280,29 @@ export const resetTutorial = async (userId?: string): Promise<void> => {
 
 export const TUTORIAL_PROGRESS_KEY = 'code2coder_tutorial_step';
 
-export const saveTutorialProgress = (stepIndex: number) => {
-    localStorage.setItem(TUTORIAL_PROGRESS_KEY, stepIndex.toString());
+// The step a tour is on is kept per account, so a tour left unfinished by one
+// account can't make another account on the same browser start mid-way (or,
+// with a step that no longer exists, not start at all).
+const progressKey = (userId?: string) => (userId ? `${TUTORIAL_PROGRESS_KEY}_${userId}` : TUTORIAL_PROGRESS_KEY);
+
+export const saveTutorialProgress = (stepIndex: number, userId?: string) => {
+    try { localStorage.setItem(progressKey(userId), stepIndex.toString()); } catch { /* storage unavailable */ }
 };
 
-export const getTutorialProgress = (): number => {
-    const saved = localStorage.getItem(TUTORIAL_PROGRESS_KEY);
-    return saved ? parseInt(saved, 10) : 0;
+export const getTutorialProgress = (userId?: string): number => {
+    try {
+        const saved = Number.parseInt(localStorage.getItem(progressKey(userId)) ?? '', 10);
+        return Number.isInteger(saved) && saved >= 0 && saved < TUTORIAL_STEPS.length ? saved : 0;
+    } catch {
+        return 0;
+    }
 };
 
-export const clearTutorialProgress = () => {
-    localStorage.removeItem(TUTORIAL_PROGRESS_KEY);
+export const clearTutorialProgress = (userId?: string) => {
+    try {
+        localStorage.removeItem(progressKey(userId));
+        localStorage.removeItem(TUTORIAL_PROGRESS_KEY); // the old, shared key
+    } catch { /* storage unavailable */ }
 };
 
 
