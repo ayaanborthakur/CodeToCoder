@@ -57,7 +57,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, sta
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full border border-gray-200 dark:border-gray-700 animate-scale-in relative overflow-hidden max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Background Decoration */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-cyan-500 to-blue-600 opacity-20 dark:opacity-30"></div>
+        <div className="absolute top-0 left-0 right-0 h-32 bg-cyan-500 opacity-20 dark:opacity-30"></div>
 
         <div className="relative p-6 md:p-8">
           {/* Close Button */}
@@ -72,7 +72,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, sta
 
           {/* User Info */}
           <div className="flex flex-col items-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-3xl font-bold text-white shadow-xl border-4 border-white dark:border-gray-800 mb-3">
+            <div className="w-20 h-20 rounded-full bg-cyan-400 flex items-center justify-center text-3xl font-bold text-white shadow-xl border-4 border-white dark:border-gray-800 mb-3">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{user.name}</h2>
@@ -126,7 +126,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, sta
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
+                          className="h-full bg-cyan-500 transition-all duration-500"
                           style={{ width: `${lessonProgress.progress}%` }}
                         />
                       </div>
@@ -144,7 +144,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, sta
                       </div>
                       <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500"
+                          className="h-full bg-cyan-500 transition-all duration-500"
                           style={{ width: `${practiceProgress.progress}%` }}
                         />
                       </div>

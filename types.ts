@@ -422,7 +422,7 @@ export interface Course {
   title: string;
   description: string;
   icon: string;           // emoji
-  accentColor: string;    // tailwind gradient classes, e.g. "from-cyan-500 to-blue-600"
+  accentColor: string;    // solid Tailwind background class, e.g. "bg-cyan-600"
   order: number;
   comingSoon: boolean;
   // Module IDs (matching the remote manifest) that belong to this course.

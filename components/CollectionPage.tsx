@@ -245,7 +245,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
                     {!isEmbedded && (
                         <div className="text-center mb-8">
-                            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 mb-4 tracking-tight">
+                            <h1 className="text-5xl font-bold mb-4 tracking-tight text-cyan-600 dark:text-cyan-400">
                                 My Collection
                             </h1>
                             <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>
@@ -265,7 +265,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                         {/* Progress Bar */}
                         <div className="h-4 bg-surface-highlight rounded-full overflow-hidden mb-6">
                             <div
-                                className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 transition-all duration-500 relative"
+                                className="h-full bg-cyan-500 transition-all duration-500 relative"
                                 style={{ width: `${stats.percentage}%` }}
                             >
                                 <div className="absolute inset-0 bg-white/20 animate-pulse" />
@@ -292,7 +292,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
                                 <button
                                     onClick={handleSellAllDuplicates}
                                     disabled={sellingAll}
-                                    className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg hover:shadow-orange-500/25"
+                                    className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg"
                                 >
                                     {sellingAll ? (
                                         <>Selling...</>

@@ -127,7 +127,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
                         <button
                             type="submit"
                             disabled={submitting || !draft.trim()}
-                            className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shadow-sm shadow-cyan-500/20 transition-colors"
+                            className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2 shadow-sm transition-colors"
                         >
                             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
                         </button>
@@ -299,7 +299,7 @@ const AssignmentCard: React.FC<{
                     href={assignmentOpenPath(assignment)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-sm shadow-cyan-500/20 transition-colors"
+                    className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                 >
                     Open
                     <ExternalLink className="w-3 h-3" />

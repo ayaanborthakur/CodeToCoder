@@ -126,6 +126,8 @@ service cloud.firestore {
       // Writing is handled via Cloud Functions in production,
       // but if writing from client, strictly limit to the user's entry
       allow write: if request.auth.token.admin == true;
+      // A user may remove their own entry when deleting their account.
+      allow delete: if request.auth != null && request.auth.uid == docId;
     }
 
     // --- Classrooms ---

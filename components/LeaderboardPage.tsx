@@ -158,7 +158,7 @@ export const LeaderboardPage: React.FC = () => {
                                                 RANK 2
                                             </div>
                                         </div>
-                                        <div className="w-full bg-gradient-to-t from-gray-900/80 to-gray-800/50 backdrop-blur-md rounded-t-2xl border-t border-gray-700 p-6 text-center h-[200px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300">
+                                        <div className="w-full bg-gray-900/80 backdrop-blur-md rounded-t-2xl border-t border-gray-700 p-6 text-center h-[200px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300">
                                             <div>
                                                 <h3 className="font-bold text-xl truncate text-gray-200">@{top3[1].username}</h3>
                                                 <p className="text-gray-500 text-sm mt-1">{getMemberSince(top3[1].joinedAt)}</p>
@@ -185,11 +185,11 @@ export const LeaderboardPage: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
+                                            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-white font-bold text-sm px-4 py-1.5 rounded-full shadow-xl z-20 whitespace-nowrap">
                                                 CHAMPION
                                             </div>
                                         </div>
-                                        <div className="w-full bg-gradient-to-t from-yellow-900/40 to-yellow-600/20 backdrop-blur-xl rounded-t-3xl border-t border-yellow-500/50 p-8 text-center h-[240px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 shadow-[0_10px_40px_-10px_rgba(234,179,8,0.2)]">
+                                        <div className="w-full bg-yellow-900/40 backdrop-blur-xl rounded-t-3xl border-t border-yellow-500/50 p-8 text-center h-[240px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 shadow-[0_10px_40px_-10px_rgba(234,179,8,0.2)]">
                                             <div>
                                                 <h3 className="font-bold text-2xl truncate text-yellow-100">@{top3[0].username}</h3>
                                                 <p className="text-yellow-200/60 text-sm mt-1 font-medium">{getMemberSince(top3[0].joinedAt)}</p>
@@ -222,7 +222,7 @@ export const LeaderboardPage: React.FC = () => {
                                                 RANK 3
                                             </div>
                                         </div>
-                                        <div className="w-full bg-gradient-to-t from-gray-900/80 to-gray-800/50 backdrop-blur-md rounded-t-2xl border-t border-gray-700 p-6 text-center h-[180px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300">
+                                        <div className="w-full bg-gray-900/80 backdrop-blur-md rounded-t-2xl border-t border-gray-700 p-6 text-center h-[180px] flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300">
                                             <div>
                                                 <h3 className="font-bold text-xl truncate text-gray-200">@{top3[2].username}</h3>
                                                 <p className="text-gray-500 text-sm mt-1">{getMemberSince(top3[2].joinedAt)}</p>

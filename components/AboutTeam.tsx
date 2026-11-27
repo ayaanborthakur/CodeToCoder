@@ -67,7 +67,7 @@ export const AboutTeam: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                     }}
                                 />
                                 {/* Fallback Visual (Hidden by default, shown on error) */}
-                                <div className="hidden absolute inset-0 w-full h-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                                <div className="hidden absolute inset-0 w-full h-full bg-cyan-500 flex items-center justify-center">
                                     <span className="text-6xl font-bold text-white/50">{getInitials(member.name)}</span>
                                 </div>
                             </div>

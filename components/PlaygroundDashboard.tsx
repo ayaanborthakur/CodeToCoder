@@ -246,7 +246,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                     {lastActiveFile && onResume && (
                         <button
                             onClick={() => onResume(lastActiveFile.id)}
-                            className="bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-lg p-4 shadow-lg hover:shadow-xl transition-all text-left flex flex-col justify-between min-h-[120px]"
+                            className="bg-cyan-600 text-white rounded-lg p-4 shadow-lg hover:shadow-xl transition-all text-left flex flex-col justify-between min-h-[120px]"
                         >
                             <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-2">
                                 <Play className="w-5 h-5" />
@@ -373,7 +373,7 @@ export const PlaygroundDashboard: React.FC<PlaygroundDashboardProps> = ({
                                 <FileText className="w-6 h-6" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                                <h1 className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                                     {shareData.name}
                                 </h1>
                                 <p className="text-slate-400 text-sm flex items-center gap-2">

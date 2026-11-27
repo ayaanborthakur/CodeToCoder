@@ -84,7 +84,7 @@ export const CurriculumPicker: React.FC<{
                                 ? 'border-cyan-500 ring-2 ring-cyan-500/30 bg-white dark:bg-gray-800'
                                 : usable ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 opacity-60 cursor-not-allowed'}`}
                         >
-                            <span className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${course.accentColor}`} aria-hidden="true" />
+                            <span className={`absolute inset-x-0 top-0 h-1.5 ${course.accentColor}`} aria-hidden="true" />
                             <span className="text-2xl" aria-hidden="true">{course.icon}</span>
                             <span className="min-w-0 flex-1">
                                 <span className="block font-bold text-gray-900 dark:text-white truncate">{course.title}</span>
@@ -109,7 +109,7 @@ export const CurriculumPicker: React.FC<{
                                 <div className="flex items-center gap-3 px-4 sm:px-5 py-4">
                                     <Checkbox checked={all} mixed={some} onChange={() => toggleModule(module)} label={`Select every lesson in ${module.title}`} />
                                     <button onClick={() => toggleOpen(module.id)} aria-expanded={open} className="no-hover flex-1 min-w-0 flex items-center gap-3 text-left">
-                                        <span className={`w-10 h-10 rounded-xl bg-gradient-to-br ${current.course.accentColor} text-white font-bold flex items-center justify-center flex-shrink-0`}>{mi + 1}</span>
+                                        <span className={`w-10 h-10 rounded-xl ${current.course.accentColor} text-white font-bold flex items-center justify-center flex-shrink-0`}>{mi + 1}</span>
                                         <span className="min-w-0 flex-1">
                                             <span className="block text-lg font-bold text-gray-900 dark:text-white truncate">{module.title}</span>
                                             <span className="block text-sm text-gray-600 dark:text-gray-400">

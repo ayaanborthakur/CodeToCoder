@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, ChevronDown, ClipboardCheck, Lock } from 'lucide-react';
+import { ArrowRight, Award, BookOpen, ChevronDown, ClipboardCheck, Lock } from 'lucide-react';
 import type { Assignment, Lesson, Module, Submission } from '../types';
 import { COURSES, resolveCourseModuleIds, getCourseProgress, isCourseUnlocked } from '../data/coursesData';
 import { AssignDialog } from './AssignDialog';
@@ -109,6 +109,11 @@ export const CoursePage: React.FC<CoursePageProps> = ({
                 {unlocked && next && !isTeacher && (
                     <Link to={`/lessons/${next.module.id}/${next.lesson.id}`} className="no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-lg font-semibold">
                         {progress.completed > 0 ? 'Continue' : 'Start'}: {next.lesson.title} <ArrowRight className="w-5 h-5" />
+                    </Link>
+                )}
+                {unlocked && !isTeacher && progress.total > 0 && progress.completed === progress.total && (
+                    <Link to={`/certificate/${course.id}`} className="no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-lg font-semibold">
+                        <Award className="w-5 h-5" /> Get your certificate
                     </Link>
                 )}
             </header>

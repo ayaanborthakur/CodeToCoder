@@ -136,7 +136,7 @@ export const AIChatPage: React.FC = () => {
         <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden min-h-[600px]">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center gap-3 sticky top-0 z-10 backdrop-blur-md bg-opacity-80 dark:bg-opacity-80">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white shadow-lg">
                     <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="min-w-0 flex-1">

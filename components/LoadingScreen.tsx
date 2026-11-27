@@ -35,7 +35,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
         <div className="absolute inset-4 bg-white dark:bg-gray-900 rounded-full shadow-lg flex items-center justify-center p-4 border border-gray-100 dark:border-gray-800 z-10">
            <svg 
              viewBox="0 0 24 24" 
-             className="w-full h-full text-transparent bg-clip-text bg-gradient-to-br from-cyan-500 to-blue-600 animate-gradient-xy fill-current"
+             className="w-full h-full fill-current text-cyan-600 dark:text-cyan-400"
            >
              <path fill="currentColor" d="M14.25 2.25H9.75v3.75h4.5v-3.75zM5.63 4.88L2.25 8.25l2.65 2.65 3.38-3.37-2.65-2.65zM18.37 4.88l-2.65 2.65 3.38 3.37 2.65-2.65-3.38-3.37zM2.25 15.75l3.38 3.38 2.65-2.65-3.38-3.38-2.65 2.65zM18.37 19.13l3.38-3.38-2.65-2.65-3.38 3.38 2.65 2.65zM12 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
            </svg>
@@ -43,7 +43,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ status }) => {
       </div>
 
       {/* Loading Text */}
-      <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent mb-6 tracking-tight">
+      <h2 className="text-2xl font-bold mb-6 tracking-tight text-cyan-600 dark:text-cyan-400">
         Code2Coder
       </h2>
 

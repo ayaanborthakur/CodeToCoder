@@ -244,7 +244,7 @@ export const Avatar: React.FC<{ name: string; src?: string; size?: 'sm' | 'md' |
     return src ? (
         <img src={src} alt="" className={cx(dims, 'rounded-full object-cover flex-shrink-0')} />
     ) : (
-        <span className={cx(dims, 'rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 text-white font-bold flex items-center justify-center flex-shrink-0')} aria-hidden="true">
+        <span className={cx(dims, 'rounded-full bg-cyan-400 text-white font-bold flex items-center justify-center flex-shrink-0')} aria-hidden="true">
             {(name || '?').charAt(0).toUpperCase()}
         </span>
     );

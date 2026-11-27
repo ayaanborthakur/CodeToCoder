@@ -47,6 +47,8 @@ import { SignupPage } from './components/SignupPage';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { ClassroomHub } from './components/ClassroomHub';
 import { CalendarPage } from './components/CalendarPage';
+import { PrivacyPage, TermsPage } from './components/LegalPages';
+import { CertificatePage } from './components/CertificatePage';
 import { GradingQueue } from './components/classroom/GradingQueue';
 import { isAssignmentDone } from './services/classroomProgressService';
 import { SchoolsPage } from './components/SchoolsPage';
@@ -174,6 +176,8 @@ const App: React.FC = () => {
         if (path.startsWith('/teacher')) return 'teacher';
         if (path.startsWith('/grading')) return 'grading';
         if (path.startsWith('/calendar')) return 'calendar';
+        if (path.startsWith('/privacy') || path.startsWith('/terms')) return 'legal';
+        if (path.startsWith('/certificate')) return 'certificate';
         return 'mission';
     }, [location.pathname]);
 
@@ -2341,6 +2345,9 @@ const App: React.FC = () => {
                             </div>
                         )} />
 
+                        <Route path="/certificate/:courseId" element={gate(<div className="h-full w-full overflow-y-auto"><CertificatePage modules={modules} completedLessons={completedLessons} /></div>)} />
+                        <Route path="/privacy" element={<div className="h-full w-full overflow-y-auto"><PrivacyPage onNavigate={handleNavigate} /></div>} />
+                        <Route path="/terms" element={<div className="h-full w-full overflow-y-auto"><TermsPage onNavigate={handleNavigate} /></div>} />
                         <Route path="/about" element={<AboutTeam onBack={() => handleNavigate('home')} />} />
 
                         {/* Public list of schools registered on Code2Coder.

@@ -148,7 +148,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                     <div className="mt-6">
                         <button
                             onClick={() => setRegisterOpen(true)}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl shadow-md shadow-cyan-500/25 transition-all"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl shadow-md transition-all"
                         >
                             <Plus className="w-4 h-4" />
                             Register your school

@@ -265,7 +265,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl relative overflow-hidden">
                             {/* Accent Background */}
-                            <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-cyan-600 to-blue-700 opacity-10 dark:opacity-20" />
+                            <div className="absolute top-0 left-0 right-0 h-32 bg-cyan-600 opacity-10 dark:opacity-20" />
                             
                             <div className="relative flex flex-col items-center">
                                 {/* Avatar */}
@@ -280,7 +280,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     />
                                     
                                     {/* Avatar Display */}
-                                    <div className="w-full h-full rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
+                                    <div className="w-full h-full rounded-3xl bg-cyan-400 flex items-center justify-center text-5xl font-bold text-white shadow-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden">
                                         {isUploadingPicture ? (
                                             <div className="animate-spin w-8 h-8 border-4 border-white border-t-transparent rounded-full" />
                                         ) : user.avatar ? (
@@ -416,7 +416,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                     className={`
                                         flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all duration-300
                                         ${activeTab === tab.id 
-                                            ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 translate-y-[-2px]' 
+                                            ? 'bg-cyan-600 text-white shadow-lg translate-y-[-2px]' 
                                             : 'text-gray-500 hover:text-cyan-600 hover:bg-gray-50 dark:hover:bg-gray-700'}
                                     `}
                                 >
@@ -493,7 +493,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                 <div className="p-8 animate-fade-in space-y-10">
                                     {/* Stats Summary */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                        <div className="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg">
+                                        <div className="bg-yellow-500 rounded-2xl p-4 text-white shadow-lg">
                                             <div className="text-3xl font-bold">{earnedBadges.length}</div>
                                             <div className="text-xs font-bold uppercase tracking-wider opacity-80">Badges Earned</div>
                                         </div>
@@ -595,11 +595,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                             <div className="col-span-full py-20 text-center space-y-4">
                                                 <Layers className="w-16 h-16 text-gray-300 mx-auto" />
                                                 <p className="text-gray-500 font-medium">No collectibles yet. Grab your first pack in the Marketplace!</p>
-                                                <button onClick={() => onNavigate('marketplace')} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-purple-600/20 transition-all">Go to Marketplace</button>
+                                                <button onClick={() => onNavigate('marketplace')} className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold shadow-lg transition-all">Go to Marketplace</button>
                                             </div>
                                         ) : (
                                             collectibles.map((item) => (
-                                                <div key={item.id} className="group relative rounded-2xl p-0.5 border border-transparent hover:border-cyan-500/30 transition-all hover:translate-y-[-4px] shadow-lg hover:shadow-cyan-500/10 overflow-hidden bg-white dark:bg-slate-800">
+                                                <div key={item.id} className="group relative rounded-2xl p-0.5 border border-transparent hover:border-cyan-500/30 transition-all hover:translate-y-[-4px] shadow-lg overflow-hidden bg-white dark:bg-slate-800">
                                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300" style={{ backgroundColor: RARITY_COLORS[item.rarity] || '#ccc' }} />
                                                     <div className="relative p-3 space-y-3">
                                                         <div className="aspect-square rounded-xl relative flex items-center justify-center text-4xl shadow-sm transition-transform group-hover:scale-105 duration-300" style={{ backgroundColor: RARITY_BG_COLORS[item.rarity] || '#eee' }}>
@@ -704,7 +704,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ onNavigate, theme, set
                                                     <AlertTriangle className="w-5 h-5" />
                                                     <span className="font-bold">Delete Account</span>
                                                 </div>
-                                                <p className="text-sm text-red-600/70 dark:text-red-400/70">Warning: This action is permanent and will delete all your progress, stars, and collectibles.</p>
+                                                <p className="text-sm text-red-600/70 dark:text-red-400/70">This is permanent. It deletes your progress, code, stars and collectibles, and removes you from your class. For teachers, it also deletes the classes you run.</p>
                                                 <div className="flex gap-2">
                                                     <input
                                                         type="text"

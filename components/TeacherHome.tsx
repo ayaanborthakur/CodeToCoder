@@ -22,15 +22,15 @@ const CHIP: Record<Hue, string> = {
     blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
 };
 const TILE: Record<Hue, string> = {
-    cyan: 'hover:border-cyan-500 bg-gradient-to-br from-white to-cyan-50 dark:from-gray-800 dark:to-cyan-950/40',
-    red: 'hover:border-red-500 bg-gradient-to-br from-white to-red-50 dark:from-gray-800 dark:to-red-950/40',
-    green: 'hover:border-green-500 bg-gradient-to-br from-white to-green-50 dark:from-gray-800 dark:to-green-950/40',
-    violet: 'hover:border-violet-500 bg-gradient-to-br from-white to-violet-50 dark:from-gray-800 dark:to-violet-950/40',
-    amber: 'hover:border-amber-500 bg-gradient-to-br from-white to-amber-50 dark:from-gray-800 dark:to-amber-950/40',
-    blue: 'hover:border-blue-500 bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-blue-950/40',
+    cyan: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
+    red: 'hover:border-red-500 bg-white dark:bg-gray-800',
+    green: 'hover:border-green-500 bg-white dark:bg-gray-800',
+    violet: 'hover:border-violet-500 bg-white dark:bg-gray-800',
+    amber: 'hover:border-amber-500 bg-white dark:bg-gray-800',
+    blue: 'hover:border-blue-500 bg-white dark:bg-gray-800',
 };
 // Each class gets its own color, in the order they're listed.
-const CLASS_COLORS = ['from-cyan-500 to-blue-600', 'from-violet-500 to-fuchsia-600', 'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600', 'from-rose-500 to-pink-600', 'from-sky-500 to-indigo-600'];
+const CLASS_COLORS = ['bg-cyan-600', 'bg-sky-700', 'bg-blue-700', 'bg-cyan-800', 'bg-slate-600', 'bg-sky-500'];
 const CLASS_CHIP: Hue[] = ['cyan', 'violet', 'green', 'amber', 'red', 'blue'];
 
 interface ClassStats {
@@ -132,17 +132,15 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
 
     return (
         <div className="space-y-8">
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600 via-sky-600 to-indigo-600 text-white p-6 sm:p-8 flex flex-wrap items-center gap-6">
-                <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20 w-72 h-72 rounded-full bg-white/10" />
-                <div aria-hidden="true" className="pointer-events-none absolute right-40 -bottom-24 w-56 h-56 rounded-full bg-white/10" />
-                <div className="relative flex-1 min-w-[16rem]">
-                    <div className="text-sm font-semibold text-cyan-100">{teacherClasses.length} {teacherClasses.length === 1 ? 'class' : 'classes'} · {totalStudents} {totalStudents === 1 ? 'student' : 'students'}</div>
+            <section className="rounded-2xl bg-slate-900 dark:bg-gray-800 dark:border dark:border-gray-700 text-white p-6 sm:p-8 flex flex-wrap items-center gap-6">
+                <div className="flex-1 min-w-[16rem]">
+                    <div className="text-sm font-semibold text-cyan-300">{teacherClasses.length} {teacherClasses.length === 1 ? 'class' : 'classes'} · {totalStudents} {totalStudents === 1 ? 'student' : 'students'}</div>
                     <h2 className="mt-1 text-2xl sm:text-3xl font-bold">
                         {waiting.length > 0
                             ? `${waiting.length} ${waiting.length === 1 ? 'submission is' : 'submissions are'} ready to grade`
                             : upcoming.length > 0 ? `You're caught up. ${upcoming.length} due this week.` : "You're all caught up"}
                     </h2>
-                    <p className="mt-1 text-cyan-50/90">
+                    <p className="mt-1 text-slate-300">
                         {waiting.length > 0
                             ? `Oldest handed in ${timeAgo(waiting[0].s.submittedAt, now).toLowerCase()}.`
                             : 'New work shows up here as students hand it in.'}
@@ -150,7 +148,7 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                 </div>
                 <Link
                     to={waiting.length > 0 ? '/grading' : one ? `/teacher/${first}/assignments/new` : '/lessons'}
-                    className="relative no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-cyan-800 hover:bg-cyan-50 text-lg font-semibold shadow-sm"
+                    className="no-hover inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-lg font-semibold"
                 >
                     {waiting.length > 0 ? 'Start grading' : 'Assign something'} <ArrowRight className="w-5 h-5" />
                 </Link>
@@ -227,7 +225,7 @@ export const TeacherHome: React.FC<{ teacherClasses: TeacherClassData[] }> = ({ 
                                 const base = `/teacher/${classroom.classId}`;
                                 return (
                                     <Card key={classroom.classId} padded={false} className="overflow-hidden flex flex-col">
-                                        <div className={`h-2 bg-gradient-to-r ${CLASS_COLORS[ci % CLASS_COLORS.length]}`} aria-hidden="true" />
+                                        <div className={`h-2 ${CLASS_COLORS[ci % CLASS_COLORS.length]}`} aria-hidden="true" />
                                         <div className="p-5 flex flex-col gap-4">
                                         <Link to={`${base}/overview`} className="no-hover flex items-start gap-3">
                                             <span className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${CHIP[CLASS_CHIP[ci % CLASS_CHIP.length]]}`} aria-hidden="true">{classroom.className.trim().charAt(0).toUpperCase()}</span>

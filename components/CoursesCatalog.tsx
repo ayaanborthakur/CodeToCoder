@@ -55,7 +55,7 @@ export const CoursesCatalog: React.FC<CoursesCatalogProps> = ({ modules, complet
                                 ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-cyan-600 hover:shadow-md'
                                 : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 cursor-not-allowed'}`}
                         >
-                            <div className={`h-2 bg-gradient-to-r ${course.accentColor} ${open ? '' : 'opacity-30'}`} />
+                            <div className={`h-2 ${course.accentColor} ${open ? '' : 'opacity-30'}`} />
                             <div className="p-6 flex flex-col gap-4 flex-1">
                                 <div className="flex items-start gap-4">
                                     <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 bg-gray-100 dark:bg-gray-700 ${open ? '' : 'grayscale opacity-60'}`} aria-hidden="true">{course.icon}</span>

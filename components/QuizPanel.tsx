@@ -134,7 +134,7 @@ export const QuizPanel: React.FC<QuizPanelProps> = ({ questions, onComplete, onS
                     <div className="flex items-center gap-4">
                         <div className="hidden sm:block w-48 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                             <div
-                                className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 ease-out"
+                                className="h-full bg-cyan-500 transition-all duration-500 ease-out"
                                 style={{ width: `${progressPercentage}%` }}
                             />
                         </div>

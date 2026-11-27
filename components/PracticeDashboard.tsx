@@ -150,7 +150,7 @@ export const PracticeDashboard: React.FC<PracticeDashboardProps> = ({
                     {currentType === 'quiz' && onAddCustomItem && (
                         <button
                             onClick={() => setIsGenerateModalOpen(true)}
-                            className="bg-gradient-to-r from-cyan-600 to-cyan-500 p-5 rounded-xl hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-6 shadow-md border border-cyan-400/30"
+                            className="bg-cyan-600 p-5 rounded-xl hover:scale-[1.01] transition-all text-left flex justify-between items-center group text-white mb-6 shadow-md border border-cyan-400/30"
                         >
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">

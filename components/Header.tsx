@@ -4,7 +4,7 @@ import { formatCompactNumber } from '../utils/formatters';
 
 // 'classroom' = curriculum/IDE (URL /lessons, labelled "Lessons").
 // 'classhub' = classroom-management tab (URL /classroom, labelled "Classroom").
-export type ViewState = 'home' | 'classroom' | 'classhub' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher' | 'schools' | 'grading' | 'calendar';
+export type ViewState = 'home' | 'classroom' | 'classhub' | 'playground' | 'practice' | 'about' | 'mission' | 'profile' | 'marketplace' | 'reference' | 'leaderboard' | 'teacher' | 'schools' | 'grading' | 'calendar' | 'legal' | 'certificate';
 
 interface HeaderProps {
   currentView: ViewState;
@@ -136,6 +136,24 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
             {primaryNav.map(item => <NavLink key={item.view} {...item} />)}
           </nav>
         )}
+        {!user && (
+          <nav className="hidden lg:flex items-center gap-1 ml-4" aria-label="Site">
+            {[['students', 'Students'], ['teachers', 'Teachers'], ['curriculum', 'Curriculum'], ['faq', 'FAQ'], ['register-school', 'Schools']].map(([id, label]) => (
+              <a
+                key={id}
+                href={`/#${id}`}
+                onClick={(e) => {
+                  if (window.location.pathname !== '/') return;
+                  e.preventDefault();
+                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="no-hover px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+        )}
       </div>
 
       {/* Right: status + account */}
@@ -165,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
                 {user.avatar ? (
                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold text-white">
+                  <div className="w-full h-full bg-cyan-400 flex items-center justify-center text-sm font-bold text-white">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                 )}

@@ -76,6 +76,11 @@ export const authService = {
 
     const userId = firebaseUser.uid;
 
+    // Delete the user's stored data first, while they are still signed in
+    // (only the owner may delete it under the security rules).
+    const { deleteUserData } = await import('./accountDeletionService');
+    await deleteUserData(userId);
+
     // Delete all user data from localStorage
     localStorage.removeItem(`code2coder_progress_${userId}`);
     localStorage.removeItem(`code2coder_practice_progress_${userId}`);

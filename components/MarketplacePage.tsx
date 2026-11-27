@@ -290,7 +290,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                         {/* Star Balance */}
                         <div className="flex flex-col items-center gap-4 mb-12">
                             <div className="bg-surface/50 backdrop-blur-sm rounded-2xl shadow-xl border border-border-default px-10 py-6 relative group overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="absolute inset-0 bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="relative z-10">
                                     <div className="text-xs text-cyan-400 font-bold mb-2 text-center uppercase tracking-[0.2em]">Your Balance</div>
                                     <div className="text-5xl font-bold text-text-primary font-mono flex items-center gap-4 justify-center">
@@ -304,7 +304,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                         {/* Daily Prize */}
                         <div className="mb-10">
                             <div className="bg-surface/80 rounded-2xl shadow-lg border border-border-default p-8 transition-all duration-300 hover:border-yellow-500/50 hover:shadow-yellow-500/20 group relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="absolute inset-0 bg-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="relative z-10">
                                     <h2 className="text-2xl font-bold text-text-primary mb-6 flex items-center gap-3 justify-center">
                                         <span className="text-3xl">🎁</span> Daily Prize
@@ -313,7 +313,7 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                         <button
                                             onClick={handleClaimDailyPrize}
                                             disabled={claimingPrize}
-                                            className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-400 hover:to-orange-500 text-white font-bold text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-orange-500/30 transform hover:scale-[1.02] active:scale-[0.98]"
+                                            className="w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold text-xl py-6 px-8 rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
                                         >
                                             {claimingPrize ? 'Claiming...' : '✨ Claim Your Daily Prize! ✨'}
                                         </button>
@@ -343,8 +343,8 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                             : 'border-border-default hover:border-cyan-500/50'
                                             } p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group overflow-hidden`}
                                     >
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${challenge.completed ? 'from-green-500/10' : 'from-cyan-500/10'
-                                            } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                                        <div className={`absolute inset-0 ${challenge.completed ? 'bg-green-500/10' : 'bg-cyan-500/10'
+                                            } opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
                                         <div className="relative z-10">
                                             <div className="flex items-start justify-between mb-4">
@@ -420,18 +420,18 @@ export const MarketplacePage: React.FC<MarketplacePageProps> = ({ onNavigate, on
                                         <div
                                             key={pack.id}
                                             className={`relative bg-surface rounded-2xl shadow-lg border-2 ${pack.tier === 'designer' ? 'border-yellow-500/50 hover:border-yellow-400 hover:shadow-yellow-500/20' :
-                                                pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400 hover:shadow-purple-500/20' :
+                                                pack.tier === 'elite' ? 'border-purple-500/50 hover:border-purple-400' :
                                                     pack.tier === 'developer' ? 'border-green-500/50 hover:border-green-400 hover:shadow-green-500/20' :
-                                                        pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400 hover:shadow-blue-500/20' :
-                                                            'border-border-default hover:border-cyan-400 hover:shadow-cyan-500/20'
+                                                        pack.tier === 'premium' ? 'border-blue-500/50 hover:border-blue-400' :
+                                                            'border-border-default hover:border-cyan-400'
                                                 } p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 group overflow-hidden`}
                                         >
-                                            <div className={`absolute inset-0 bg-gradient-to-br ${pack.tier === 'designer' ? 'from-yellow-500/10' :
-                                                pack.tier === 'elite' ? 'from-purple-500/10' :
-                                                    pack.tier === 'developer' ? 'from-green-500/10' :
-                                                        pack.tier === 'premium' ? 'from-blue-500/10' :
-                                                            'from-cyan-500/10'
-                                                } to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                                            <div className={`absolute inset-0 ${pack.tier === 'designer' ? 'bg-yellow-500/10' :
+                                                pack.tier === 'elite' ? 'bg-cyan-500/10' :
+                                                    pack.tier === 'developer' ? 'bg-green-500/10' :
+                                                        pack.tier === 'premium' ? 'bg-cyan-500/10' :
+                                                            'bg-cyan-500/10'
+                                                } opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
                                             <div className="relative z-10">
                                                 <div className="flex justify-between items-start mb-3">

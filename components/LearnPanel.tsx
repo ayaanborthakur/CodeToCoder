@@ -186,7 +186,7 @@ export const LearnPanel: React.FC<LearnPanelProps> = ({
                             disabled={!hasNextLesson}
                             className={`group px-6 py-3 rounded-full font-bold text-lg transition-colors flex items-center gap-2 ${
                                 hasNextLesson
-                                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md hover:shadow-lg'
+                                    ? 'bg-cyan-500 text-white shadow-md hover:shadow-lg'
                                     : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                             }`}
                         >
