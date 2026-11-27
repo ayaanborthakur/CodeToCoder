@@ -13,21 +13,22 @@ const DAY = 24 * 60 * 60 * 1000;
 
 type Hue = 'cyan' | 'red' | 'green' | 'violet' | 'amber' | 'blue';
 // Full class names so Tailwind keeps them.
+// One accent for every icon and badge: light blue on navy, nothing else.
 const CHIP: Record<Hue, string> = {
     cyan: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
-    red: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
-    green: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-    violet: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-300',
-    amber: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300',
-    blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+    red: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+    green: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+    violet: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+    amber: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
+    blue: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300',
 };
 const TILE: Record<Hue, string> = {
     cyan: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
-    red: 'hover:border-red-500 bg-white dark:bg-gray-800',
-    green: 'hover:border-green-500 bg-white dark:bg-gray-800',
-    violet: 'hover:border-violet-500 bg-white dark:bg-gray-800',
-    amber: 'hover:border-amber-500 bg-white dark:bg-gray-800',
-    blue: 'hover:border-blue-500 bg-white dark:bg-gray-800',
+    red: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
+    green: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
+    violet: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
+    amber: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
+    blue: 'hover:border-cyan-500 bg-white dark:bg-gray-800',
 };
 // Each class gets its own color, in the order they're listed.
 const CLASS_COLORS = ['bg-cyan-600', 'bg-sky-700', 'bg-blue-700', 'bg-cyan-800', 'bg-slate-600', 'bg-sky-500'];

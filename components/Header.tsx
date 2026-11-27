@@ -138,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onNavigate, theme, 
         )}
         {!user && (
           <nav className="hidden lg:flex items-center gap-1 ml-4" aria-label="Site">
-            {[['students', 'Students'], ['teachers', 'Teachers'], ['curriculum', 'Curriculum'], ['faq', 'FAQ'], ['register-school', 'Schools']].map(([id, label]) => (
+            {[['curriculum', 'Curriculum'], ['teachers', 'For teachers'], ['faq', 'Questions'], ['register-school', 'Schools']].map(([id, label]) => (
               <a
                 key={id}
                 href={`/#${id}`}
