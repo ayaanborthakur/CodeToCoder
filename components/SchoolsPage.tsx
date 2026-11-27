@@ -138,7 +138,7 @@ export const SchoolsPage: React.FC<SchoolsPageProps> = ({ onBack }) => {
                         <GraduationCap className="w-3.5 h-3.5" />
                         Registered schools
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white">
+                    <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">
                         Schools using Code2Coder
                     </h1>
                     <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl leading-relaxed">

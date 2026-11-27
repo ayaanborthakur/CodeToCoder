@@ -13,7 +13,7 @@ import { getDueReviews } from '../services/learningService';
 import { COURSES, getCourseProgress, isCourseUnlocked } from '../data/coursesData';
 import { assignmentPoints } from '../services/assignmentsService';
 import { assignmentOpenPath, assignmentTitle, dueLabel } from '../utils/assignmentDisplay';
-import { Card, Page, Pill, ProgressBar, Section } from './ui';
+import { Button, Card, Page, PageHeader, Pill, ProgressBar, Section } from './ui';
 
 interface HomePageProps {
     modules: Module[];
@@ -81,23 +81,21 @@ export const HomePage: React.FC<HomePageProps> = (props) => {
     return (
         <Page width="wide">
             <Helmet><title>Home</title></Helmet>
-            <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{greeting()}, {firstName}</h1>
-                    <p className="mt-1.5 text-lg text-gray-600 dark:text-gray-400">
-                        {view === 'stats' ? 'How your learning is going.' : view === 'review' ? 'Quick reviews keep what you learned fresh.' : isTeacher ? "Here's what's happening in your classes." : "Here's what to work on next."}
-                    </p>
-                </div>
-                {!isTeacher && <div className="flex flex-wrap gap-2">
-                    {view !== 'home' && <ViewButton onClick={() => setView('home')} icon={<ArrowRight className="w-4 h-4 rotate-180" />}>Back to home</ViewButton>}
-                    {view !== 'stats' && <ViewButton onClick={() => setView('stats')} icon={<BarChart3 className="w-4 h-4" />}>My stats</ViewButton>}
-                    {view !== 'review' && (
-                        <ViewButton onClick={() => setView('review')} icon={<Repeat className="w-4 h-4" />}>
-                            Review{dueReviews > 0 && <span className="ml-1 min-w-[1.5rem] h-6 px-1.5 rounded-full bg-cyan-700 text-white text-xs font-bold inline-flex items-center justify-center">{dueReviews}</span>}
-                        </ViewButton>
-                    )}
-                </div>}
-            </header>
+            <PageHeader
+                title={view === 'stats' ? 'My stats' : view === 'review' ? 'Review' : `${greeting()}, ${firstName}`}
+                description={view === 'home' ? new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : undefined}
+                actions={!isTeacher && (
+                    <>
+                        {view !== 'home' && <Button size="sm" icon={<ArrowRight className="w-4 h-4 rotate-180" />} onClick={() => setView('home')}>Home</Button>}
+                        {view !== 'stats' && <Button size="sm" icon={<BarChart3 className="w-4 h-4" />} onClick={() => setView('stats')}>My stats</Button>}
+                        {view !== 'review' && (
+                            <Button size="sm" icon={<Repeat className="w-4 h-4" />} onClick={() => setView('review')}>
+                                Review{dueReviews > 0 && <span className="ml-1 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-cyan-700 text-white text-xs font-semibold inline-flex items-center justify-center">{dueReviews}</span>}
+                            </Button>
+                        )}
+                    </>
+                )}
+            />
 
             {view === 'stats' && <AnalyticsDashboard />}
             {view === 'review' && <ReviewTab onSelectLesson={props.onSelectLesson} />}
@@ -106,14 +104,6 @@ export const HomePage: React.FC<HomePageProps> = (props) => {
     );
 };
 
-const ViewButton: React.FC<{ onClick: () => void; icon: React.ReactNode; children: React.ReactNode }> = ({ onClick, icon, children }) => (
-    <button
-        onClick={onClick}
-        className="no-hover inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-medium hover:border-gray-300 dark:hover:border-gray-600"
-    >
-        {icon}{children}
-    </button>
-);
 
 // ─── Student ─────────────────────────────────────────────────────────────────
 

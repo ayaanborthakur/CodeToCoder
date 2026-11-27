@@ -28,7 +28,11 @@ export const Page: React.FC<{
     </div>
 );
 
-/** Title row for a page: optional back link, title, description, actions. */
+/**
+ * Title row for a page, in the compact style of tools like Canvas or GitHub:
+ * a short muted context line (or back link), a medium-weight title, an
+ * optional one-line detail, actions on the right, and a divider below.
+ */
 export const PageHeader: React.FC<{
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -36,21 +40,22 @@ export const PageHeader: React.FC<{
     actions?: React.ReactNode;
     back?: { to: string; label: string };
 }> = ({ title, description, eyebrow, actions, back }) => (
-    <header className="mb-6">
-        {back && (
+    <header className="mb-6 pb-4 border-b border-gray-200 dark:border-gray-800">
+        {back ? (
             <Link
                 to={back.to}
-                className="no-hover inline-flex items-center gap-1.5 mb-3 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                className="no-hover inline-flex items-center gap-1 mb-1.5 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
             >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
                 {back.label}
             </Link>
-        )}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        ) : eyebrow ? (
+            <div className="mb-1 text-sm text-gray-500 dark:text-gray-400">{eyebrow}</div>
+        ) : null}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
-                {eyebrow && <div className="text-sm font-semibold text-cyan-600 dark:text-cyan-400 mb-1">{eyebrow}</div>}
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white truncate">{title}</h1>
-                {description && <p className="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400">{description}</p>}
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate">{title}</h1>
+                {description && <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{description}</p>}
             </div>
             {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
         </div>

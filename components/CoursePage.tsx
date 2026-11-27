@@ -97,7 +97,7 @@ export const CoursePage: React.FC<CoursePageProps> = ({
 
             <header className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 flex flex-wrap items-center gap-6 mb-8">
                 <div className="flex-1 min-w-[18rem]">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">{course.title}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">{course.title}</h1>
                     <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">{course.description}</p>
                     {unlocked && !course.comingSoon && progress.total > 0 && (
                         <div className="mt-5 flex items-center gap-3 max-w-xl">

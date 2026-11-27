@@ -245,7 +245,7 @@ export const CollectionPage: React.FC<CollectionPageProps> = ({ onNavigate, onOp
 
                     {!isEmbedded && (
                         <div className="text-center mb-8">
-                            <h1 className="text-5xl font-bold mb-4 tracking-tight text-cyan-600 dark:text-cyan-400">
+                            <h1 className="text-2xl sm:text-3xl font-semibold mb-3 text-gray-900 dark:text-white">
                                 My Collection
                             </h1>
                             <p className="text-text-secondary text-lg">Discover and collect unique programming treasures</p>

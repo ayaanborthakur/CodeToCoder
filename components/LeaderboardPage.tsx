@@ -75,15 +75,11 @@ export const LeaderboardPage: React.FC = () => {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10">
                 {/* Header Section */}
                 <div className="space-y-3 relative">
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white relative z-10">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-white relative z-10">
                         Leaderboard
                     </h1>
-                    <p className="text-slate-400 text-sm sm:text-base relative z-10">
-                        {scope === 'class'
-                            ? <>Top performers in <span className="text-cyan-400 font-bold">your class</span>. Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>
-                            : scope === 'school'
-                                ? <>Top performers at <span className="text-cyan-400 font-bold">your school</span>. Ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>
-                                : <>Students everywhere, ranked by <span className="text-cyan-400 font-bold">Net Worth</span>.</>}
+                    <p className="text-slate-400 text-sm relative z-10">
+                        {scope === 'class' ? 'Your class, ranked by net worth.' : scope === 'school' ? 'Your school, ranked by net worth.' : 'Everyone, ranked by net worth.'}
                     </p>
 
                     {/* Scope toggle */}
